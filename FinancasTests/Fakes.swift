@@ -54,3 +54,75 @@ final class FakeClock {
         date += interval
     }
 }
+
+extension AccountUser {
+    static let sample = AccountUser(id: "u1", email: "eu@mail.com", name: "Adriano")
+}
+
+@MainActor
+final class FakeAccountService: AccountService {
+    var storedUser: AccountUser?
+    var signUpResult: Result<AccountUser?, AccountError> = .success(nil)
+    var signInResult: Result<AccountUser, AccountError> = .success(.sample)
+    var resetResult: Result<Void, AccountError> = .success(())
+    var handleResult: Result<Void, AccountError> = .success(())
+    var updateResult: Result<Void, AccountError> = .success(())
+    var suspendsSignIn = false
+
+    private(set) var signInCalls: [(email: String, password: String)] = []
+    private(set) var signUpCalls: [(name: String, email: String, password: String)] = []
+    private(set) var signOutScopes: [SignOutScope] = []
+    private(set) var updatedPasswords: [String] = []
+
+    private let stream: AsyncStream<AccountEvent>
+    private let continuation: AsyncStream<AccountEvent>.Continuation
+    private var signInGate: CheckedContinuation<Void, Never>?
+
+    init() {
+        (stream, continuation) = AsyncStream.makeStream()
+    }
+
+    func currentUser() -> AccountUser? { storedUser }
+
+    func events() -> AsyncStream<AccountEvent> { stream }
+
+    func send(_ event: AccountEvent) {
+        continuation.yield(event)
+    }
+
+    func signUp(name: String, email: String, password: String) async throws(AccountError) -> AccountUser? {
+        signUpCalls.append((name, email, password))
+        return try signUpResult.get()
+    }
+
+    func signIn(email: String, password: String) async throws(AccountError) -> AccountUser {
+        signInCalls.append((email, password))
+        if suspendsSignIn {
+            await withCheckedContinuation { signInGate = $0 }
+        }
+        return try signInResult.get()
+    }
+
+    func releaseSignIn() {
+        signInGate?.resume()
+        signInGate = nil
+    }
+
+    func sendPasswordReset(email: String) async throws(AccountError) {
+        try resetResult.get()
+    }
+
+    func handle(url: URL) async throws(AccountError) {
+        try handleResult.get()
+    }
+
+    func updatePassword(_ password: String) async throws(AccountError) {
+        updatedPasswords.append(password)
+        try updateResult.get()
+    }
+
+    func signOut(scope: SignOutScope) async {
+        signOutScopes.append(scope)
+        storedUser = nil
+    }
+}
