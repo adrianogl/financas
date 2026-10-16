@@ -1,0 +1,53 @@
+name: Financas
+options:
+  bundleIdPrefix: dev.aglv
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: 3RLPE9T639
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Financas:
+    type: application
+    platform: iOS
+    sources:
+      - path: Financas
+        excludes: ["**/.omc/**"]
+    info:
+      path: Financas/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: pt-BR
+        CFBundleDisplayName: Finanças
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSFaceIDUsageDescription: O Face ID protege seus dados financeiros.
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.aglv.financas
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+  FinancasTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: FinancasTests
+        excludes: ["**/.omc/**"]
+    dependencies:
+      - target: Financas
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Financas:
+    build:
+      targets:
+        Financas: all
+    test:
+      targets: [FinancasTests]

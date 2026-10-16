@@ -1,0 +1,94 @@
+import Charts
+import SwiftUI
+
+struct HomeView: View {
+    @Environment(LockManager.self) private var lockManager
+    @AppStorage(ProfileConstants.nameKey) private var name = ""
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    balanceCard
+                    transactionsCard
+                    Text("Valores de exemplo")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+            }
+            .background(AppBackground())
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Bloquear", systemImage: "lock") {
+                        lockManager.lock()
+                    }
+                }
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            AppMark(size: 44)
+                .padding(.bottom, 10)
+            Text(Greeting.text(hour: Calendar.current.component(.hour, from: .now), name: name))
+                .font(.largeTitle.bold())
+            Text(Greeting.dateText(for: .now))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var balanceCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(HomeConstants.sampleMonthLabel)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(HomeConstants.sampleBalance, format: .currency(code: HomeConstants.currencyCode))
+                .font(.system(size: 34, weight: .semibold))
+                .monospacedDigit()
+            Chart(HomeConstants.balancePoints) { point in
+                AreaMark(
+                    x: .value("Dia", point.day),
+                    yStart: .value("Base", HomeConstants.balanceFloor),
+                    yEnd: .value("Saldo", point.balance)
+                )
+                .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.28), Theme.accent.opacity(0)], startPoint: .top, endPoint: .bottom))
+                .interpolationMethod(.catmullRom)
+
+                LineMark(x: .value("Dia", point.day), y: .value("Saldo", point.balance))
+                    .foregroundStyle(Theme.accent)
+                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .interpolationMethod(.catmullRom)
+            }
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .chartYScale(domain: HomeConstants.balanceFloor...HomeConstants.balanceCeiling)
+            .frame(height: 96)
+            .padding(.top, 8)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassEffect(.regular, in: .rect(cornerRadius: 26))
+    }
+
+    private var transactionsCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Últimos lançamentos")
+                .font(.headline)
+                .padding(.bottom, 6)
+            ForEach(HomeConstants.sampleTransactions) { transaction in
+                TransactionRow(transaction: transaction)
+                if transaction.id != HomeConstants.sampleTransactions.last?.id {
+                    Divider().padding(.leading, 48)
+                }
+            }
+        }
+        .padding(18)
+        .glassEffect(.regular, in: .rect(cornerRadius: 26))
+    }
+}
