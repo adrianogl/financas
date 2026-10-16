@@ -26,17 +26,8 @@ final class SupabaseAccountService: AccountService {
         let changes = client.auth.authStateChanges
         return AsyncStream { continuation in
             let task = Task {
-                for await (event, session) in changes {
-                    switch event {
-                    case .signedOut:
-                        continuation.yield(.signedOut)
-                    case .passwordRecovery:
-                        if let session {
-                            continuation.yield(.passwordRecovery(Self.accountUser(from: session.user)))
-                        }
-                    default:
-                        break
-                    }
+                for await (event, _) in changes where event == .signedOut {
+                    continuation.yield(.signedOut)
                 }
                 continuation.finish()
             }
@@ -74,17 +65,17 @@ final class SupabaseAccountService: AccountService {
 
     func sendPasswordReset(email: String) async throws(AccountError) {
         do {
-            try await client.auth.resetPasswordForEmail(email, redirectTo: AccountConstants.redirectURL)
+            try await client.auth.resetPasswordForEmail(email, redirectTo: AccountConstants.recoveryRedirectURL)
         } catch {
             throw Self.accountError(from: error)
         }
     }
 
-    func handle(url: URL) async throws(AccountError) {
+    func handle(url: URL) async throws(AccountError) -> AccountUser {
         do {
-            _ = try await client.auth.session(from: url)
+            return Self.accountUser(from: try await client.auth.session(from: url).user)
         } catch {
-            throw .invalidRecoveryLink
+            throw Self.accountError(from: error)
         }
     }
 
@@ -108,7 +99,7 @@ final class SupabaseAccountService: AccountService {
         )
     }
 
-    private static func accountError(from error: any Error) -> AccountError {
+    static func accountError(from error: any Error) -> AccountError {
         if error is URLError {
             return .network
         }
@@ -117,12 +108,17 @@ final class SupabaseAccountService: AccountService {
         switch authError {
         case .weakPassword:
             return .weakPassword
+        case .sessionMissing:
+            return .invalidRecoveryLink
         case .api(_, let errorCode, _, _):
             switch errorCode {
             case .invalidCredentials: return .invalidCredentials
             case .emailNotConfirmed: return .emailNotConfirmed
             case .userAlreadyExists, .emailExists: return .emailAlreadyRegistered
             case .weakPassword: return .weakPassword
+            case .samePassword: return .samePassword
+            case .overEmailSendRateLimit: return .emailRateLimited
+            case .sessionNotFound: return .invalidRecoveryLink
             default: return .unknown
             }
         default:

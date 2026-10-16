@@ -65,7 +65,7 @@ final class FakeAccountService: AccountService {
     var signUpResult: Result<AccountUser?, AccountError> = .success(nil)
     var signInResult: Result<AccountUser, AccountError> = .success(.sample)
     var resetResult: Result<Void, AccountError> = .success(())
-    var handleResult: Result<Void, AccountError> = .success(())
+    var handleResult: Result<AccountUser, AccountError> = .success(.sample)
     var updateResult: Result<Void, AccountError> = .success(())
     var suspendsSignIn = false
 
@@ -73,6 +73,7 @@ final class FakeAccountService: AccountService {
     private(set) var signUpCalls: [(name: String, email: String, password: String)] = []
     private(set) var signOutScopes: [SignOutScope] = []
     private(set) var updatedPasswords: [String] = []
+    private(set) var handledURLs: [URL] = []
 
     private let stream: AsyncStream<AccountEvent>
     private let continuation: AsyncStream<AccountEvent>.Continuation
@@ -112,8 +113,9 @@ final class FakeAccountService: AccountService {
         try resetResult.get()
     }
 
-    func handle(url: URL) async throws(AccountError) {
-        try handleResult.get()
+    func handle(url: URL) async throws(AccountError) -> AccountUser {
+        handledURLs.append(url)
+        return try handleResult.get()
     }
 
     func updatePassword(_ password: String) async throws(AccountError) {

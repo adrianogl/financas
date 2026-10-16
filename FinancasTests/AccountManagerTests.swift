@@ -175,32 +175,76 @@ struct AccountManagerTests {
         #expect(harness.manager.errorMessage == "E-mail ou senha incorretos.")
     }
 
-    @Test func recoveryEventOpensNewPassword() async {
+    @Test func recoveryLinkOpensNewPassword() async {
         let harness = AccountManagerHarness()
         await harness.manager.start()
 
-        harness.service.send(.passwordRecovery(.sample))
-        await harness.settle()
+        await harness.manager.handle(url: AccountConstants.recoveryRedirectURL)
 
         #expect(harness.manager.state == .recoveringPassword(.sample))
     }
 
     @Test func invalidRecoveryLinkShowsMessage() async {
         let harness = AccountManagerHarness()
-        harness.service.handleResult = .failure(.invalidRecoveryLink)
+        harness.service.handleResult = .failure(.unknown)
         await harness.manager.start()
 
-        await harness.manager.handle(url: AccountConstants.redirectURL)
+        await harness.manager.handle(url: AccountConstants.recoveryRedirectURL)
 
         #expect(harness.manager.state == .signedOut)
         #expect(harness.manager.errorMessage == "O link expirou ou foi aberto em outro aparelho. Peça um novo neste aparelho.")
     }
 
+    @Test func confirmationLinkSignsIn() async {
+        let harness = AccountManagerHarness()
+        await harness.manager.start()
+        await harness.manager.signUp(name: "Adriano", email: "eu@mail.com", password: "senha1234")
+
+        await harness.manager.handle(url: AccountConstants.redirectURL)
+
+        #expect(harness.manager.state == .signedIn(.sample))
+        #expect(harness.authenticatedCount == 1)
+    }
+
+    @Test func invalidConfirmationLinkKeepsConfirmationScreen() async {
+        let harness = AccountManagerHarness()
+        await harness.manager.start()
+        await harness.manager.signUp(name: "Adriano", email: "eu@mail.com", password: "senha1234")
+        harness.service.handleResult = .failure(.unknown)
+
+        await harness.manager.handle(url: AccountConstants.redirectURL)
+
+        #expect(harness.manager.state == .awaitingConfirmation(email: "eu@mail.com"))
+        #expect(harness.manager.errorMessage == AccountError.invalidConfirmationLink.message)
+    }
+
+    @Test func linkIsIgnoredWhileSignedIn() async {
+        let harness = AccountManagerHarness()
+        harness.service.storedUser = .sample
+        await harness.manager.start()
+
+        await harness.manager.handle(url: AccountConstants.recoveryRedirectURL)
+
+        #expect(harness.manager.state == .signedIn(.sample))
+        #expect(harness.service.handledURLs.isEmpty)
+        #expect(harness.signedOutCount == 0)
+    }
+
+    @Test func cancelPasswordRecoverySignsOutLocally() async {
+        let harness = AccountManagerHarness()
+        await harness.manager.start()
+        await harness.manager.handle(url: AccountConstants.recoveryRedirectURL)
+
+        await harness.manager.cancelPasswordRecovery()
+
+        #expect(harness.manager.state == .signedOut)
+        #expect(harness.service.signOutScopes == [.local])
+    }
+
     @Test func newPasswordSignsOutOtherDevices() async {
         let harness = AccountManagerHarness()
         await harness.manager.start()
-        harness.service.send(.passwordRecovery(.sample))
-        await harness.settle()
+        await harness.manager.handle(url: AccountConstants.recoveryRedirectURL)
 
         await harness.manager.saveNewPassword("novasenha1")
 

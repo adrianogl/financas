@@ -191,7 +191,7 @@ Antes de escrever, consultar a API do `supabase-swift` 3.x no context7 (`/supaba
 
 Feito junto com o dono, que cria o projeto.
 
-- [ ] **Step 1:** Guiar o dono: criar projeto no Supabase; em Authentication > URL Configuration, adicionar `financas://auth-callback` às Redirect URLs; manter "Confirm email" ligado; copiar Project URL e a chave publicável para `Config/Secrets.xcconfig`.
+- [ ] **Step 1:** Guiar o dono: criar projeto no Supabase; em Authentication > URL Configuration, adicionar `financas://auth-callback` e `financas://auth-callback/recovery` às Redirect URLs; manter "Confirm email" ligado; copiar Project URL e a chave publicável para `Config/Secrets.xcconfig`.
 - [ ] **Step 2:** Validar no simulador: criar conta → tela de confirmação → confirmar pelo e-mail → "Já confirmei" → criar PIN → home com o nome → fechar e abrir (só biometria/PIN) → "Sair da conta" → tela de conta.
 - [ ] **Step 3:** Segundo simulador com a mesma conta: entra, cria outro PIN, vê o mesmo nome.
 - [ ] **Step 4:** "Esqueci minha senha" no simulador 1: link abre o app → nova senha → home. No simulador 2, ao reabrir após a renovação do token, volta para a tela de conta.

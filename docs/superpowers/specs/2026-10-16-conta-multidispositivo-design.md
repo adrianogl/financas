@@ -146,7 +146,7 @@ só travando o app, sem disparar a biometria.
 ### Configuração no painel do Supabase (feita pelo dono, com guia)
 
 - Criar o projeto.
-- Auth > URL Configuration: adicionar `financas://auth-callback` às URLs de redirecionamento.
+- Auth > URL Configuration: adicionar `financas://auth-callback` e `financas://auth-callback/recovery` às URLs de redirecionamento.
 - Copiar URL e chave publicável para o `Secrets.xcconfig`.
 
 ## Como validar

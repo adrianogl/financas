@@ -112,12 +112,37 @@ final class AccountManager {
     }
 
     func handle(url: URL) async {
-        do {
-            try await service.handle(url: url)
-        } catch {
-            errorMessage = AccountError.invalidRecoveryLink.message
-            state = .signedOut
+        switch state {
+        case .signedOut, .awaitingConfirmation:
+            break
+        case .loading, .signedIn, .recoveringPassword:
+            return
         }
+
+        let isRecovery = url.path == AccountConstants.recoveryPath
+        do {
+            let user = try await service.handle(url: url)
+            if isRecovery {
+                errorMessage = nil
+                state = .recoveringPassword(user)
+            } else {
+                authenticated(user)
+            }
+        } catch {
+            if isRecovery {
+                errorMessage = AccountError.invalidRecoveryLink.message
+                state = .signedOut
+            } else {
+                errorMessage = AccountError.invalidConfirmationLink.message
+            }
+        }
+    }
+
+    func cancelPasswordRecovery() async {
+        guard case .recoveringPassword = state else { return }
+        errorMessage = nil
+        state = .signedOut
+        await service.signOut(scope: .local)
     }
 
     func saveNewPassword(_ password: String) async {
@@ -171,18 +196,12 @@ final class AccountManager {
     }
 
     private func apply(_ event: AccountEvent) {
-        switch event {
-        case .signedOut:
-            switch state {
-            case .signedIn, .recoveringPassword:
-                onSignedOut()
-                state = .signedOut
-            case .loading, .signedOut, .awaitingConfirmation:
-                break
-            }
-        case .passwordRecovery(let user):
-            errorMessage = nil
-            state = .recoveringPassword(user)
+        switch (event, state) {
+        case (.signedOut, .signedIn), (.signedOut, .recoveringPassword):
+            onSignedOut()
+            state = .signedOut
+        case (.signedOut, _):
+            break
         }
     }
 }

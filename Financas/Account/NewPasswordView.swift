@@ -31,6 +31,13 @@ struct NewPasswordView: View {
                     Task { await save() }
                 }
                 .disabled(password.isEmpty || confirmation.isEmpty)
+
+                Button("Cancelar") {
+                    Task { await account.cancelPasswordRecovery() }
+                }
+                .font(.footnote.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .disabled(account.isWorking)
             }
             .padding(24)
         }

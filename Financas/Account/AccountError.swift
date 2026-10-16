@@ -4,6 +4,9 @@ enum AccountError: Error, Equatable {
     case emailAlreadyRegistered
     case weakPassword
     case invalidRecoveryLink
+    case invalidConfirmationLink
+    case samePassword
+    case emailRateLimited
     case network
     case unknown
 
@@ -19,6 +22,12 @@ enum AccountError: Error, Equatable {
             "A senha precisa ter pelo menos 8 caracteres."
         case .invalidRecoveryLink:
             "O link expirou ou foi aberto em outro aparelho. Peça um novo neste aparelho."
+        case .invalidConfirmationLink:
+            "Não foi possível confirmar por este link. Se você já tocou nele, entre com seu e-mail e senha."
+        case .samePassword:
+            "A nova senha precisa ser diferente da atual."
+        case .emailRateLimited:
+            "Muitos e-mails enviados em pouco tempo. Espere alguns minutos e tente de novo."
         case .network:
             "Sem conexão. Verifique a internet e tente de novo."
         case .unknown:
