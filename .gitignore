@@ -5,3 +5,4 @@ DerivedData/
 build/
 Financas/Info.plist
 .omc/
+Config/Secrets.xcconfig
