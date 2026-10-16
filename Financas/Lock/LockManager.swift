@@ -104,6 +104,20 @@ final class LockManager {
         lock(autoUnlock: false)
     }
 
+    func beginAfterAccountLogin() {
+        shouldAutoUnlock = false
+        errorMessage = nil
+        pinMessage = nil
+        phase = .unlocked
+    }
+
+    func resetForSignOut() {
+        pinStore.clear()
+        hasPIN = false
+        resetPINAttempts()
+        lock(autoUnlock: false)
+    }
+
     func didEnterBackground() {
         backgroundedAt = now()
     }

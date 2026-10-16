@@ -252,6 +252,42 @@ struct LockManagerTests {
         #expect(manager.shouldAutoUnlock)
     }
 
+    @Test func afterLoginWithoutPINGoesToSetupWithoutBiometry() {
+        let authenticator = FakeAuthenticator()
+        let manager = makeManager(authenticator: authenticator, pinStore: FakePINStore())
+
+        manager.beginAfterAccountLogin()
+
+        #expect(manager.needsSetup)
+        #expect(authenticator.passcodeAllowances.isEmpty)
+    }
+
+    @Test func afterLoginWithPINGoesHome() {
+        let manager = makeManager()
+
+        manager.beginAfterAccountLogin()
+
+        #expect(manager.phase == .unlocked)
+        #expect(!manager.needsSetup)
+        #expect(!manager.shouldAutoUnlock)
+    }
+
+    @Test func signOutResetClearsPIN() async {
+        let pinStore = FakePINStore(pin: "1234")
+        let clock = FakeClock()
+        let manager = makeManager(authenticator: FakeAuthenticator(.failure(.failed)), pinStore: pinStore, clock: clock)
+        await manager.unlock()
+        for _ in 0..<5 { manager.submitPIN("0000") }
+
+        manager.resetForSignOut()
+
+        #expect(pinStore.pin == nil)
+        #expect(!manager.hasPIN)
+        #expect(manager.phase == .locked)
+        #expect(!manager.shouldAutoUnlock)
+        #expect(manager.lockoutRemaining(at: clock.date) == nil)
+    }
+
     @Test func relocksAfterThirtySecondsInBackground() async {
         let clock = FakeClock()
         let manager = makeManager(clock: clock)

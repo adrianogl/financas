@@ -13,7 +13,6 @@ enum LockConstants {
     static let keychainAccount = "pin"
     static let failedAttemptsKey = "lock.failedAttempts"
     static let lockedUntilKey = "lock.lockedUntil"
-    static let installMarkerKey = "lock.installMarker"
 
     static let authenticationReason = "Desbloquear seus dados financeiros"
     static let fallbackTitle = "Usar PIN"

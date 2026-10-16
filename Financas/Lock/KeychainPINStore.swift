@@ -10,7 +10,6 @@ final class KeychainPINStore: PINStore {
     init(defaults: UserDefaults = .standard, service: String = LockConstants.keychainService) {
         self.defaults = defaults
         self.service = service
-        discardPINFromPreviousInstall()
     }
 
     var hasPIN: Bool {
@@ -70,12 +69,6 @@ final class KeychainPINStore: PINStore {
         var result: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess else { return nil }
         return result as? Data
-    }
-
-    private func discardPINFromPreviousInstall() {
-        guard !defaults.bool(forKey: LockConstants.installMarkerKey) else { return }
-        SecItemDelete(baseQuery as CFDictionary)
-        defaults.set(true, forKey: LockConstants.installMarkerKey)
     }
 
     private static func digest(_ pin: String, salt: Data) -> Data {
