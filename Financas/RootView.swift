@@ -1,10 +1,39 @@
 import SwiftUI
 
 struct RootView: View {
+    @Environment(AccountManager.self) private var account
     @Environment(LockManager.self) private var lockManager
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        Group {
+            switch account.state {
+            case .loading:
+                LoadingView()
+            case .signedOut:
+                AccountView()
+            case .awaitingConfirmation(let email):
+                ConfirmEmailView(email: email)
+            case .recoveringPassword:
+                NewPasswordView()
+            case .signedIn:
+                lockedContent
+            }
+        }
+        .animation(.smooth(duration: 0.35), value: account.state)
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .background:
+                lockManager.didEnterBackground()
+            case .active:
+                lockManager.willEnterForeground()
+            default:
+                break
+            }
+        }
+    }
+
+    private var lockedContent: some View {
         ZStack {
             if lockManager.needsSetup {
                 SetupView()
@@ -34,15 +63,5 @@ struct RootView: View {
             }
         }
         .animation(.smooth(duration: 0.35), value: lockManager.phase)
-        .onChange(of: scenePhase) { _, phase in
-            switch phase {
-            case .background:
-                lockManager.didEnterBackground()
-            case .active:
-                lockManager.willEnterForeground()
-            default:
-                break
-            }
-        }
     }
 }

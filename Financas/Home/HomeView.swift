@@ -3,7 +3,8 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(LockManager.self) private var lockManager
-    @AppStorage(ProfileConstants.nameKey) private var name = ""
+    @Environment(AccountManager.self) private var account
+    @State private var confirmsSignOut = false
 
     var body: some View {
         NavigationStack {
@@ -23,10 +24,22 @@ struct HomeView: View {
             .background(AppBackground())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Bloquear", systemImage: "lock") {
-                        lockManager.lock()
+                    Menu("Conta", systemImage: "person.crop.circle") {
+                        Button("Bloquear", systemImage: "lock") {
+                            lockManager.lock()
+                        }
+                        Button("Sair da conta", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                            confirmsSignOut = true
+                        }
                     }
                 }
+            }
+            .confirmationDialog("Sair da conta?", isPresented: $confirmsSignOut, titleVisibility: .visible) {
+                Button("Sair", role: .destructive) {
+                    Task { await account.signOut() }
+                }
+            } message: {
+                Text("O PIN deste aparelho será apagado. Para voltar, entre com seu e-mail e senha.")
             }
         }
     }
@@ -35,7 +48,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 4) {
             AppMark(size: 44)
                 .padding(.bottom, 10)
-            Text(Greeting.text(hour: Calendar.current.component(.hour, from: .now), name: name))
+            Text(Greeting.text(hour: Calendar.current.component(.hour, from: .now), name: account.userName ?? ""))
                 .font(.largeTitle.bold())
             Text(Greeting.dateText(for: .now))
                 .font(.subheadline)
