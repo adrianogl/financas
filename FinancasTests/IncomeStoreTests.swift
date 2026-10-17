@@ -330,6 +330,15 @@ struct IncomeStoreTests {
         #expect(ids.contains { $0.hasSuffix("-2026-10") })
     }
 
+    @Test func overdueOccurrencesBreakTiesByLocalizedName() async {
+        let first = Income(id: UUID(), name: "Zé", kind: .fixed, dayOfMonth: 1, startMonth: S.month(2026, 10))
+        let second = Income(id: UUID(), name: "Ágata", kind: .fixed, dayOfMonth: 1, startMonth: S.month(2026, 10))
+        let amounts = [first, second].map { IncomeAmount(id: UUID(), incomeID: $0.id, amount: 100, validFrom: S.month(2026, 10)) }
+        let store = await makeStore(IncomeSnapshot(incomes: [first, second], amounts: amounts, receipts: []), today: S.today)
+
+        #expect(store.overdueOccurrences.map(\.income.name) == ["Ágata", "Zé"])
+    }
+
     @Test func dueItemUsesOccurrenceTitleAndExpectedAmount() async throws {
         let (store, _) = await makeStore()
         let occurrence = try hourlyOctober(store)

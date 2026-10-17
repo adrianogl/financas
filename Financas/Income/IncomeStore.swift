@@ -75,7 +75,11 @@ final class IncomeStore {
     var overdueOccurrences: [IncomeOccurrence] {
         occurrences(in: today.yearMonth)
             .filter { $0.status == .overdue }
-            .sorted { ($0.dueDate, $0.income.name) < ($1.dueDate, $1.income.name) }
+            .sorted { lhs, rhs in
+                lhs.dueDate != rhs.dueDate
+                    ? lhs.dueDate < rhs.dueDate
+                    : lhs.income.name.localizedStandardCompare(rhs.income.name) == .orderedAscending
+            }
     }
 
     var overdueTotal: Decimal {
