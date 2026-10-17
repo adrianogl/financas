@@ -56,6 +56,13 @@ final class IncomeStore {
         IncomeSchedule.summary(for: month, snapshot: snapshot, today: today)
     }
 
+    func currentAmount(for income: Income) -> Decimal? {
+        snapshot.amounts
+            .filter { $0.incomeID == income.id && $0.validFrom <= today.yearMonth }
+            .max { $0.validFrom < $1.validFrom }?
+            .amount
+    }
+
     var activeRecurring: [Income] {
         recurring.filter { income in income.endMonth.map { $0 >= today.yearMonth } ?? true }
     }

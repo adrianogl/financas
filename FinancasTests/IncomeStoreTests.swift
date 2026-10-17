@@ -149,6 +149,16 @@ struct IncomeStoreTests {
         #expect(store.occurrences(in: S.month(2026, 11)).map(\.month) == [S.month(2026, 11)])
     }
 
+    @Test func currentAmountUsesLatestValidFrom() async {
+        var snapshot = S.snapshot
+        snapshot.amounts.append(IncomeAmount(id: UUID(), incomeID: S.hourly.id, amount: 100, validFrom: S.month(2026, 12)))
+        let (store, _) = await makeStore(snapshot)
+        #expect(store.currentAmount(for: S.hourly) == 90)
+        store.today = S.day(2026, 12, 5)
+        #expect(store.currentAmount(for: S.hourly) == 100)
+        #expect(store.currentAmount(for: S.fixed) == S.money("13020.04"))
+    }
+
     @Test func resetClearsSnapshot() async {
         let (store, _) = await makeStore()
         store.selectedMonth = S.month(2027, 1)
