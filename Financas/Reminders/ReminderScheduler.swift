@@ -1,12 +1,14 @@
 import Foundation
+import Observation
 
 @MainActor
+@Observable
 final class ReminderScheduler {
-    private let center: ReminderCenter
-    private let defaults: UserDefaults
-    private let now: () -> Date
-    private let calendar: Calendar
-    private var lastWork: Task<Void, Never>?
+    @ObservationIgnored private let center: ReminderCenter
+    @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private let now: () -> Date
+    @ObservationIgnored private let calendar: Calendar
+    @ObservationIgnored private var lastWork: Task<Void, Never>?
 
     init(center: ReminderCenter, defaults: UserDefaults = .standard, now: @escaping () -> Date = { .now }, calendar: Calendar = .current) {
         self.center = center

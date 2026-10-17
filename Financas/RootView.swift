@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(LockManager.self) private var lockManager
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(AvatarStore.self) private var avatarStore
+    @Environment(ReminderScheduler.self) private var reminders
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -37,6 +38,7 @@ struct RootView: View {
             switch phase {
             case .background:
                 lockManager.didEnterBackground()
+                BackgroundRefresh.schedule()
             case .active:
                 lockManager.willEnterForeground()
             default:
@@ -58,7 +60,14 @@ struct RootView: View {
                         guard lockManager.isUnlocked else { return }
                         async let user: Void = account.refreshUser()
                         await incomeStore.refresh()
+                        await syncReminders()
                         await user
+                    }
+                    .onChange(of: incomeStore.snapshot) {
+                        Task { await syncReminders() }
+                    }
+                    .onChange(of: incomeStore.today) {
+                        Task { await syncReminders() }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
                         Task { await incomeStore.refresh() }
@@ -84,5 +93,13 @@ struct RootView: View {
             }
         }
         .animation(.smooth(duration: 0.35), value: lockManager.phase)
+    }
+
+    private func syncReminders() async {
+        guard let items = incomeStore.dueItems else { return }
+        if lockManager.isUnlocked {
+            await reminders.requestPermissionIfNeeded(hasIncomes: !incomeStore.snapshot.incomes.isEmpty)
+        }
+        await reminders.reschedule(items: items, clearingDelivered: true)
     }
 }
