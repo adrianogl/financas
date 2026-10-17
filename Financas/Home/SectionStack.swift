@@ -11,6 +11,7 @@ struct SectionStack: View {
                     .opacity(isActive ? 1 : 0)
                     .allowsHitTesting(isActive)
                     .accessibilityHidden(!isActive)
+                    .disabled(!isActive)
             }
         }
     }

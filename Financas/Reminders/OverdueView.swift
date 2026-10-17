@@ -5,17 +5,19 @@ struct OverdueView: View {
     @Environment(ExpenseStore.self) private var expenseStore
 
     var body: some View {
+        let routes = shownIncomes.map(incomeRoute) + shownExpenses.map(expenseRoute)
+
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    content
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
-                .readableWidth(LayoutConstants.contentWidth)
+            ListDetailLayout(
+                section: .overdue,
+                title: "Atrasadas",
+                add: nil,
+                routes: routes,
+                openRoutes: routes,
+                emptyText: nil
+            ) { context in
+                content(context)
             }
-            .background(AppBackground())
-            .navigationTitle("Atrasadas")
             .refreshable {
                 async let incomes: Void = store.load()
                 async let expenses: Void = expenseStore.load()
@@ -25,8 +27,24 @@ struct OverdueView: View {
         }
     }
 
+    private var shownIncomes: [IncomeOccurrence] {
+        store.loadState == .loaded ? store.overdueOccurrences : []
+    }
+
+    private var shownExpenses: [ExpenseOccurrence] {
+        store.loadState == .loaded ? expenses : []
+    }
+
+    private func incomeRoute(_ occurrence: IncomeOccurrence) -> DetailRoute {
+        .income(id: occurrence.id, month: occurrence.month)
+    }
+
+    private func expenseRoute(_ occurrence: ExpenseOccurrence) -> DetailRoute {
+        .expense(id: occurrence.id, month: occurrence.month)
+    }
+
     @ViewBuilder
-    private var content: some View {
+    private func content(_ context: ListDetailContext) -> some View {
         if case .failed(let message) = expenseStore.loadState {
             expenseFailure(message)
         }
@@ -34,7 +52,7 @@ struct OverdueView: View {
             if summary.isEmpty {
                 emptyState
             } else {
-                list
+                list(context)
             }
         }
     }
@@ -77,52 +95,37 @@ struct OverdueView: View {
     }
 
     @ViewBuilder
-    private var list: some View {
-        let incomes = store.overdueOccurrences
-        let expenses = expenses
+    private func list(_ context: ListDetailContext) -> some View {
         let summary = summary
 
         OverdueTotalCard(incoming: summary.incoming, outgoing: summary.outgoing)
 
         if summary.showsIncomes {
-            section("Receitas", items: incomes) { occurrence in
-                NavigationLink(value: DetailRoute.income(id: occurrence.id, month: occurrence.month)) {
-                    OverdueRow(occurrence: occurrence, today: store.today)
+            section("Receitas") {
+                DetailRowList(items: store.overdueOccurrences, context: context, route: incomeRoute) { occurrence, isSelected in
+                    OverdueRow(occurrence: occurrence, today: store.today, isSelected: isSelected)
                 }
-                .buttonStyle(.plain)
             }
         }
         if summary.showsExpenses {
-            section("Despesas", items: expenses) { occurrence in
-                NavigationLink(value: DetailRoute.expense(id: occurrence.id, month: occurrence.month)) {
-                    OverdueExpenseRow(occurrence: occurrence, today: store.today)
+            section("Despesas") {
+                DetailRowList(items: expenses, context: context, route: expenseRoute) { occurrence, isSelected in
+                    OverdueExpenseRow(occurrence: occurrence, today: store.today, isSelected: isSelected)
                 }
-                .buttonStyle(.plain)
             }
         }
     }
 
-    private func section<Item: Identifiable, Row: View>(
-        _ title: String,
-        items: [Item],
-        @ViewBuilder row: @escaping (Item) -> Row
-    ) -> some View where Item.ID == String {
+    private func section<Rows: View>(_ title: String, @ViewBuilder rows: () -> Rows) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .padding(.leading, 6)
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(items) { item in
-                    row(item)
-                    if item.id != items.last?.id {
-                        Divider()
-                    }
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
-            .glassEffect(.regular, in: .rect(cornerRadius: 26))
+            rows()
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .glassEffect(.regular, in: .rect(cornerRadius: 26))
         }
     }
 }

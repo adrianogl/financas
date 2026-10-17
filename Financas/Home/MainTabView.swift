@@ -14,7 +14,7 @@ struct MainTabView: View {
         let mode = LayoutMode.make(isRegular: sizeClass == .regular, size: windowSize)
         let counts = sidebarCounts
 
-        Group {
+        ZStack {
             if windowSize == .zero {
                 Color.clear
             } else if mode == .compact {

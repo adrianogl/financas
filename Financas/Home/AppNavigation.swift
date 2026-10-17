@@ -11,6 +11,7 @@ final class AppNavigation {
     var pendingSelection: DetailRoute?
     private(set) var mode: LayoutMode = .compact
     private var isPortraitSidebarOpen = false
+    private var listDetail: [AppTab: ListDetailState] = [:]
 
     @ObservationIgnored private let defaults: UserDefaults
 
@@ -65,5 +66,29 @@ final class AppNavigation {
             isPortraitSidebarOpen = false
         }
         self.mode = mode
+    }
+
+    func selection(for section: AppTab) -> DetailRoute? {
+        listDetail[section]?.selection
+    }
+
+    func isSheetPresented(in section: AppTab) -> Bool {
+        listDetail[section]?.isSheetPresented ?? false
+    }
+
+    func select(_ route: DetailRoute, in section: AppTab, presentation: DetailPresentation) {
+        listDetail[section, default: ListDetailState()].select(route, presentation: presentation)
+    }
+
+    func applyDefaultSelection(routes: [DetailRoute], openRoutes: [DetailRoute], in section: AppTab) {
+        listDetail[section, default: ListDetailState()].applyDefault(routes: routes, openRoutes: openRoutes)
+    }
+
+    func presentationChanged(from old: DetailPresentation, to new: DetailPresentation, in section: AppTab) {
+        listDetail[section, default: ListDetailState()].presentationChanged(from: old, to: new, isActive: section == self.section)
+    }
+
+    func dismissSheet(in section: AppTab) {
+        listDetail[section]?.dismissSheet()
     }
 }

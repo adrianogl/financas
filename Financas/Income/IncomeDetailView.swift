@@ -9,23 +9,9 @@ struct IncomeDetailView: View {
     @State private var isUnmarking = false
 
     var body: some View {
-        ScrollView {
-            Group {
-                if let occurrence {
-                    content(occurrence)
-                } else {
-                    Text("Não encontrada")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 40)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 32)
-            .readableWidth(LayoutConstants.contentWidth)
+        DetailScaffold(item: occurrence) { occurrence in
+            content(occurrence)
         }
-        .navigationBarTitleDisplayMode(.inline)
         .incomeReceiptFlow(receiving: $receiving, editing: $editing)
     }
 

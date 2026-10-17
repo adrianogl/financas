@@ -53,4 +53,36 @@ struct AppNavigationTests {
         nav.enter(.compact)
         #expect(!nav.isSidebarVisible)
     }
+
+    @Test func selectionIsKeptPerSection() {
+        let nav = AppNavigation(defaults: UserDefaults(suiteName: #function)!)
+        let october = YearMonth(year: 2026, month: 10)
+        nav.select(.income(id: "a", month: october), in: .incomes, presentation: .panel)
+        nav.select(.expense(id: "b", month: october), in: .overdue, presentation: .panel)
+        #expect(nav.selection(for: .incomes) == .income(id: "a", month: october))
+        #expect(nav.selection(for: .overdue) == .expense(id: "b", month: october))
+        #expect(nav.selection(for: .expenses) == nil)
+    }
+
+    @Test func rotationOpensSheetOnlyInActiveSection() {
+        let nav = AppNavigation(defaults: UserDefaults(suiteName: #function)!)
+        let october = YearMonth(year: 2026, month: 10)
+        nav.section = .incomes
+        nav.select(.income(id: "a", month: october), in: .incomes, presentation: .panel)
+        nav.select(.expense(id: "b", month: october), in: .expenses, presentation: .panel)
+        nav.presentationChanged(from: .panel, to: .sheet, in: .incomes)
+        nav.presentationChanged(from: .panel, to: .sheet, in: .expenses)
+        #expect(nav.isSheetPresented(in: .incomes))
+        #expect(!nav.isSheetPresented(in: .expenses))
+        nav.dismissSheet(in: .incomes)
+        #expect(!nav.isSheetPresented(in: .incomes))
+    }
+
+    @Test func defaultSelectionUsesScreenOrder() {
+        let nav = AppNavigation(defaults: UserDefaults(suiteName: #function)!)
+        let october = YearMonth(year: 2026, month: 10)
+        let routes: [DetailRoute] = [.income(id: "a", month: october), .income(id: "b", month: october)]
+        nav.applyDefaultSelection(routes: routes, openRoutes: [routes[1]], in: .incomes)
+        #expect(nav.selection(for: .incomes) == routes[1])
+    }
 }
