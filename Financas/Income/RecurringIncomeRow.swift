@@ -7,7 +7,6 @@ struct RecurringIncomeRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IncomeIcon(systemImage: "arrow.trianglehead.2.clockwise", tint: income.kind.tint)
             VStack(alignment: .leading, spacing: 2) {
                 Text(income.name)
                     .font(.subheadline.weight(.semibold))

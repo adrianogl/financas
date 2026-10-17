@@ -164,7 +164,7 @@ struct HomeView: View {
             ForEach(summary.entries) { entry in
                 TransactionRow(entry: entry)
                 if entry.id != summary.entries.last?.id {
-                    Divider().padding(.leading, 48)
+                    Divider()
                 }
             }
         }

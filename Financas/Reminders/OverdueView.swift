@@ -66,7 +66,7 @@ struct OverdueView: View {
                     }
                     .buttonStyle(.plain)
                     if occurrence.id != occurrences.last?.id {
-                        Divider().padding(.leading, 48)
+                        Divider()
                     }
                 }
             }

@@ -112,7 +112,7 @@ struct IncomesView: View {
                         }
                     }
                     if occurrence.id != occurrences.last?.id {
-                        Divider().padding(.leading, 48)
+                        Divider()
                     }
                 }
             }
@@ -134,7 +134,7 @@ struct IncomesView: View {
                     }
                     .buttonStyle(.plain)
                     if income.id != store.activeRecurring.last?.id || !store.endedRecurring.isEmpty {
-                        Divider().padding(.leading, 48)
+                        Divider()
                     }
                 }
                 if !store.endedRecurring.isEmpty {

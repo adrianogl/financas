@@ -5,7 +5,6 @@ struct TransactionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IncomeIcon(systemImage: entry.kind.systemImage, tint: Theme.positive)
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.title)
                     .font(.subheadline.weight(.semibold))
