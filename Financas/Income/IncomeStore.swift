@@ -72,6 +72,24 @@ final class IncomeStore {
         return IncomeSchedule.overdue(before: month, snapshot: snapshot, today: today) + own
     }
 
+    var overdueOccurrences: [IncomeOccurrence] {
+        occurrences(in: today.yearMonth)
+            .filter { $0.status == .overdue }
+            .sorted { ($0.dueDate, $0.income.name) < ($1.dueDate, $1.income.name) }
+    }
+
+    var overdueTotal: Decimal {
+        overdueOccurrences.map(\.expectedAmount).reduce(0, +)
+    }
+
+    var dueItems: [DueItem]? {
+        guard loadState == .loaded else { return nil }
+        let upcoming = IncomeSchedule.occurrences(in: today.yearMonth.next, snapshot: snapshot, today: today)
+        return (occurrences(in: today.yearMonth) + upcoming)
+            .filter { $0.status != .received }
+            .map(DueItem.init(occurrence:))
+    }
+
     func summary(for month: YearMonth) -> MonthSummary {
         IncomeSchedule.summary(for: month, snapshot: snapshot, today: today)
     }
