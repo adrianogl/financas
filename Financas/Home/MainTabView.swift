@@ -47,6 +47,9 @@ struct MainTabView: View {
         case .incomes:
             incomeStore.showCurrentMonth()
             selectedTab = .incomes
+        case .expenses:
+            incomeStore.showCurrentMonth()
+            selectedTab = .expenses
         case nil:
             break
         }

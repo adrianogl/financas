@@ -25,26 +25,33 @@ struct ReminderSchedulerTests {
     @Test func asksOnceWhenThereAreIncomes() async {
         let center = FakeReminderCenter()
         let scheduler = makeScheduler(center)
-        await scheduler.requestPermissionIfNeeded(hasIncomes: true)
-        await scheduler.requestPermissionIfNeeded(hasIncomes: true)
+        await scheduler.requestPermissionIfNeeded(hasEntries: true)
+        await scheduler.requestPermissionIfNeeded(hasEntries: true)
+        #expect(center.requests == 1)
+    }
+
+    @Test func permissionAskedWithOnlyExpenses() async {
+        let center = FakeReminderCenter()
+        let scheduler = makeScheduler(center)
+        await scheduler.requestPermissionIfNeeded(hasEntries: true)
         #expect(center.requests == 1)
     }
 
     @Test func doesNotAskWithoutIncomes() async {
         let center = FakeReminderCenter()
         let scheduler = makeScheduler(center)
-        await scheduler.requestPermissionIfNeeded(hasIncomes: false)
+        await scheduler.requestPermissionIfNeeded(hasEntries: false)
         #expect(center.requests == 0)
-        await scheduler.requestPermissionIfNeeded(hasIncomes: true)
+        await scheduler.requestPermissionIfNeeded(hasEntries: true)
         #expect(center.requests == 1)
     }
 
     @Test func doesNotAskAgainAfterDenied() async {
         let center = FakeReminderCenter(status: .denied)
         let scheduler = makeScheduler(center)
-        await scheduler.requestPermissionIfNeeded(hasIncomes: true)
+        await scheduler.requestPermissionIfNeeded(hasEntries: true)
         center.status = .notDetermined
-        await scheduler.requestPermissionIfNeeded(hasIncomes: true)
+        await scheduler.requestPermissionIfNeeded(hasEntries: true)
         #expect(center.requests == 0)
     }
 
@@ -109,7 +116,7 @@ struct ReminderSchedulerTests {
     @Test func settingsPermissionRequestIgnoresAskedFlag() async {
         let center = FakeReminderCenter(status: .notDetermined)
         let scheduler = makeScheduler(center)
-        await scheduler.requestPermissionIfNeeded(hasIncomes: false)
+        await scheduler.requestPermissionIfNeeded(hasEntries: false)
         await scheduler.requestPermissionFromSettings()
         #expect(center.requests == 1)
     }
@@ -124,7 +131,7 @@ struct ReminderSchedulerTests {
         let center = FakeReminderCenter(status: .notDetermined, grantsOnRequest: false)
         let scheduler = makeScheduler(center)
         await scheduler.requestPermissionFromSettings()
-        await scheduler.requestPermissionIfNeeded(hasIncomes: true)
+        await scheduler.requestPermissionIfNeeded(hasEntries: true)
         #expect(center.requests == 1)
     }
 

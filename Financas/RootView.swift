@@ -63,7 +63,7 @@ struct RootView: View {
                         async let user: Void = account.refreshUser()
                         async let expenses = expenseStore.refresh()
                         await incomeStore.refresh()
-                        await expenses
+                        _ = await expenses
                         await syncReminders()
                         await user
                     }
@@ -80,7 +80,7 @@ struct RootView: View {
                         Task {
                             async let expenses = expenseStore.refresh()
                             await incomeStore.refresh()
-                            await expenses
+                            _ = await expenses
                         }
                     }
             }
@@ -109,11 +109,12 @@ struct RootView: View {
     private func syncReminders() async {
         guard let mode = ReminderSyncMode.current(phase: scenePhase, isUnlocked: lockManager.isUnlocked) else { return }
         incomeStore.moveToday()
-        guard incomeStore.dueItems != nil else { return }
+        guard incomeStore.dueItems != nil, expenseStore.dueItems(today: incomeStore.today) != nil else { return }
         if mode.asksPermission {
-            await reminders.requestPermissionIfNeeded(hasIncomes: !incomeStore.snapshot.incomes.isEmpty)
+            let hasEntries = !incomeStore.snapshot.incomes.isEmpty || !expenseStore.snapshot.expenses.isEmpty
+            await reminders.requestPermissionIfNeeded(hasEntries: hasEntries)
         }
-        guard let items = incomeStore.dueItems else { return }
-        await reminders.reschedule(items: items, settings: incomeStore.snapshot.settings, clearingDelivered: mode.clearingDelivered)
+        guard let incomeItems = incomeStore.dueItems, let expenseItems = expenseStore.dueItems(today: incomeStore.today) else { return }
+        await reminders.reschedule(items: incomeItems + expenseItems, settings: incomeStore.snapshot.settings, clearingDelivered: mode.clearingDelivered)
     }
 }
