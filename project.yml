@@ -46,6 +46,8 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: dev.aglv.financas.auth
             CFBundleURLSchemes: [financas]
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [dev.aglv.financas.refresh]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.aglv.financas

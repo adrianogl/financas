@@ -39,17 +39,20 @@ final class IncomeStore {
         }
     }
 
-    func refresh() async {
+    @discardableResult
+    func refresh() async -> Bool {
         switch loadState {
         case .idle, .failed:
             await load()
+            return loadState == .loaded
         case .loading:
-            return
+            return false
         case .loaded:
             moveToday()
             let started = generation
-            guard let loaded = try? await service.load(), started == generation else { return }
+            guard let loaded = try? await service.load(), started == generation else { return false }
             snapshot = loaded
+            return true
         }
     }
 
@@ -62,6 +65,14 @@ final class IncomeStore {
         selectedMonth = today.yearMonth
     }
 
+    func moveToday() {
+        let previous = today
+        today = currentDay()
+        if selectedMonth == previous.yearMonth {
+            selectedMonth = today.yearMonth
+        }
+    }
+
     func showCurrentMonth() {
         selectedMonth = today.yearMonth
     }
@@ -70,6 +81,30 @@ final class IncomeStore {
         let own = IncomeSchedule.occurrences(in: month, snapshot: snapshot, today: today)
         guard month == today.yearMonth else { return own }
         return IncomeSchedule.overdue(before: month, snapshot: snapshot, today: today) + own
+    }
+
+    var overdueOccurrences: [IncomeOccurrence] {
+        occurrences(in: today.yearMonth)
+            .filter { $0.status == .overdue }
+            .sorted { lhs, rhs in
+                lhs.dueDate != rhs.dueDate
+                    ? lhs.dueDate < rhs.dueDate
+                    : lhs.income.name.localizedStandardCompare(rhs.income.name) == .orderedAscending
+            }
+    }
+
+    var overdueTotal: Decimal {
+        overdueOccurrences.map(\.expectedAmount).reduce(0, +)
+    }
+
+    var dueItems: [DueItem]? {
+        guard loadState == .loaded else { return nil }
+        let previous = IncomeSchedule.occurrences(in: today.yearMonth.previous, snapshot: snapshot, today: today)
+        let upcoming = IncomeSchedule.occurrences(in: today.yearMonth.next, snapshot: snapshot, today: today)
+        var seen = Set<String>()
+        return (previous + occurrences(in: today.yearMonth) + upcoming)
+            .filter { $0.status != .received && seen.insert($0.id).inserted }
+            .map(DueItem.init(occurrence:))
     }
 
     func summary(for month: YearMonth) -> MonthSummary {
@@ -145,14 +180,6 @@ final class IncomeStore {
             try await service.deleteReceipt(id: receipt.id)
         } onSuccess: {
             self.snapshot.receipts.removeAll { $0.id == receipt.id }
-        }
-    }
-
-    private func moveToday() {
-        let previous = today
-        today = currentDay()
-        if selectedMonth == previous.yearMonth {
-            selectedMonth = today.yearMonth
         }
     }
 

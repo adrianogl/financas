@@ -4,7 +4,6 @@ struct IncomesView: View {
     @Environment(IncomeStore.self) private var store
     @State private var editing: IncomeDraft?
     @State private var receiving: IncomeOccurrence?
-    @State private var pendingEdit: Income?
 
     var body: some View {
         @Bindable var store = store
@@ -29,42 +28,12 @@ struct IncomesView: View {
                 }
             }
             .refreshable { await store.load() }
-            .sheet(isPresented: isEditing) {
-                if let draft = editing {
-                    IncomeFormView(
-                        draft: draft,
-                        income: store.snapshot.incomes.first { $0.id == draft.incomeID },
-                        today: store.today
-                    )
-                }
-            }
-            .sheet(item: $receiving, onDismiss: openPendingEdit) { occurrence in
-                ReceiptSheet(occurrence: occurrence, today: store.today) { income in
-                    pendingEdit = income
-                }
-            }
+            .incomeReceiptFlow(receiving: $receiving, editing: $editing)
         }
     }
 
-    @ViewBuilder
     private var content: some View {
-        switch store.loadState {
-        case .idle, .loading:
-            ProgressView()
-                .frame(maxWidth: .infinity, minHeight: 160)
-        case .failed(let message):
-            VStack(spacing: 12) {
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                Button("Tentar de novo") {
-                    Task { await store.load() }
-                }
-                .buttonStyle(.glass)
-            }
-            .frame(maxWidth: .infinity, minHeight: 160)
-        case .loaded:
+        IncomeLoadContent {
             if store.snapshot.incomes.isEmpty {
                 emptyState
             } else {
@@ -203,15 +172,5 @@ struct IncomesView: View {
 
     private func edit(_ income: Income) {
         editing = IncomeDraft(income: income, snapshot: store.snapshot, today: store.today)
-    }
-
-    private func openPendingEdit() {
-        guard let income = pendingEdit else { return }
-        pendingEdit = nil
-        edit(income)
-    }
-
-    private var isEditing: Binding<Bool> {
-        Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })
     }
 }

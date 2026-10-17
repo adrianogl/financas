@@ -46,4 +46,10 @@ struct YearMonthTests {
         #expect(CalendarDay(year: 2026, month: 11, day: 15).weekday == 1)
         #expect(last.yearMonth == YearMonth(year: 2026, month: 12))
     }
+
+    @Test func daysUntilCountsCalendarDays() {
+        let sample = IncomeSamples.day
+        #expect(sample(2026, 9, 20).days(until: sample(2026, 10, 8)) == 18)
+        #expect(sample(2026, 10, 8).days(until: sample(2026, 10, 8)) == 0)
+    }
 }

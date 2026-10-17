@@ -56,6 +56,10 @@ struct CalendarDay: Hashable, Comparable, Codable, Sendable {
         return CalendarDay(date: moved, calendar: Self.calendar)
     }
 
+    func days(until other: CalendarDay) -> Int {
+        Self.calendar.dateComponents([.day], from: date, to: other.date).day ?? 0
+    }
+
     static func < (lhs: CalendarDay, rhs: CalendarDay) -> Bool {
         (lhs.year, lhs.month, lhs.day) < (rhs.year, rhs.month, rhs.day)
     }
