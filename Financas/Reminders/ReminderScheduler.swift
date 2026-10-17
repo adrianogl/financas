@@ -10,7 +10,7 @@ final class ReminderScheduler {
     @ObservationIgnored private let calendar: Calendar
     @ObservationIgnored private var lastWork: Task<Void, Never>?
 
-    init(center: ReminderCenter, defaults: UserDefaults = .standard, now: @escaping () -> Date = { .now }, calendar: Calendar = .current) {
+    init(center: ReminderCenter, defaults: UserDefaults = .standard, now: @escaping () -> Date = { .now }, calendar: Calendar = .autoupdatingCurrent) {
         self.center = center
         self.defaults = defaults
         self.now = now
