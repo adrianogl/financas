@@ -164,7 +164,9 @@ struct IncomesView: View {
                         RecurringIncomeRow(income: income, rate: store.currentAmount(for: income))
                     }
                     .buttonStyle(.plain)
-                    Divider().padding(.leading, 48)
+                    if income.id != store.activeRecurring.last?.id || !store.endedRecurring.isEmpty {
+                        Divider().padding(.leading, 48)
+                    }
                 }
                 if !store.endedRecurring.isEmpty {
                     NavigationLink {

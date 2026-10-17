@@ -4,6 +4,7 @@ struct IncomeFormView: View {
     @Environment(IncomeStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var draft: IncomeDraft
+    private let initialDraft: IncomeDraft
     @State private var endsIncome = false
     @State private var endMonth: YearMonth
     @State private var confirmsDelete = false
@@ -12,6 +13,7 @@ struct IncomeFormView: View {
 
     init(draft: IncomeDraft, income: Income?, today: CalendarDay) {
         _draft = State(initialValue: draft)
+        initialDraft = draft
         _endMonth = State(initialValue: max(today.yearMonth, draft.startMonth))
         self.income = income
     }
@@ -49,7 +51,7 @@ struct IncomeFormView: View {
                     recurringFields
                 }
 
-                if let message = draft.validationMessage ?? store.errorMessage {
+                if let message = (draft == initialDraft ? nil : draft.validationMessage) ?? store.errorMessage {
                     Section {
                         Text(message)
                             .font(.footnote)
