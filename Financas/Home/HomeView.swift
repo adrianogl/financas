@@ -4,6 +4,8 @@ import SwiftUI
 struct HomeView: View {
     @Environment(LockManager.self) private var lockManager
     @Environment(AccountManager.self) private var account
+    @Environment(IncomeStore.self) private var incomeStore
+    @Binding var selectedTab: AppTab
     @State private var confirmsSignOut = false
 
     var body: some View {
@@ -12,8 +14,12 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     header
                     balanceCard
+                    IncomeSummaryCard {
+                        incomeStore.showCurrentMonth()
+                        selectedTab = .incomes
+                    }
                     transactionsCard
-                    Text("Valores de exemplo")
+                    Text("Saldo e lançamentos com valores de exemplo")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)

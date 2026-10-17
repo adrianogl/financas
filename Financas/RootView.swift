@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(AccountManager.self) private var account
     @Environment(LockManager.self) private var lockManager
+    @Environment(IncomeStore.self) private var incomeStore
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -39,9 +40,18 @@ struct RootView: View {
                 SetupView()
                     .transition(.opacity)
             } else if lockManager.showsHome {
-                HomeView()
+                MainTabView()
                     .blur(radius: lockManager.isUnlocked ? 0 : 28)
                     .allowsHitTesting(lockManager.isUnlocked)
+                    .task(id: lockManager.isUnlocked) {
+                        guard lockManager.isUnlocked else { return }
+                        switch incomeStore.loadState {
+                        case .idle, .failed:
+                            await incomeStore.load()
+                        case .loading, .loaded:
+                            break
+                        }
+                    }
             }
 
             switch lockManager.phase {

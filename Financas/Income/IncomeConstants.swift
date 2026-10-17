@@ -9,4 +9,5 @@ enum IncomeConstants {
     static let amountsTable = "income_amounts"
     static let receiptsTable = "income_receipts"
     static let defaultHoursPerDay: Decimal = 8
+    static let currencyCode = "BRL"
 }
