@@ -30,7 +30,11 @@ struct IncomesView: View {
             .refreshable { await store.load() }
             .sheet(isPresented: isEditing) {
                 if let draft = editing {
-                    Text(draft.name)
+                    IncomeFormView(
+                        draft: draft,
+                        income: store.snapshot.incomes.first { $0.id == draft.incomeID },
+                        today: store.today
+                    )
                 }
             }
             .sheet(item: $receiving) { occurrence in

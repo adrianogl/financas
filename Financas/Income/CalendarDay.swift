@@ -47,6 +47,10 @@ struct CalendarDay: Hashable, Comparable, Codable, Sendable {
         Self.calendar.component(.weekday, from: date)
     }
 
+    func date(in calendar: Calendar = .current) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: 12)) ?? .distantPast
+    }
+
     func adding(days: Int) -> CalendarDay {
         let moved = Self.calendar.date(byAdding: .day, value: days, to: date) ?? date
         return CalendarDay(date: moved, calendar: Self.calendar)

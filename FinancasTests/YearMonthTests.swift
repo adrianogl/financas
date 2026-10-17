@@ -32,6 +32,13 @@ struct YearMonthTests {
         #expect(decodedDay == CalendarDay(year: 2026, month: 11, day: 3))
     }
 
+    @Test func roundTripsThroughLocalDate() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Sao_Paulo")!
+        let day = CalendarDay(year: 2026, month: 11, day: 20)
+        #expect(CalendarDay(date: day.date(in: calendar), calendar: calendar) == day)
+    }
+
     @Test func calendarDayOrdersAndAddsDays() {
         let last = CalendarDay(year: 2026, month: 12, day: 31)
         #expect(last.adding(days: 1) == CalendarDay(year: 2027, month: 1, day: 1))
