@@ -30,7 +30,11 @@ struct OverdueView: View {
         }
     }
 
+    @ViewBuilder
     private var content: some View {
+        if case .failed(let message) = expenseStore.loadState {
+            expenseFailure(message)
+        }
         IncomeLoadContent {
             if summary.isEmpty {
                 emptyState
@@ -51,6 +55,21 @@ struct OverdueView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(24)
+        .glassEffect(.regular, in: .rect(cornerRadius: 26))
+    }
+
+    private func expenseFailure(_ message: String) -> some View {
+        HStack(spacing: 12) {
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Button("Tentar de novo") {
+                Task { await expenseStore.load() }
+            }
+            .buttonStyle(.glass)
+        }
+        .padding(18)
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
     }
 
