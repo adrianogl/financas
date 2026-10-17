@@ -1,0 +1,61 @@
+import Foundation
+import Supabase
+
+@MainActor
+final class SupabaseExpenseService: ExpenseService {
+    private let client: SupabaseClient
+
+    init(client: SupabaseClient) {
+        self.client = client
+    }
+
+    func load() async throws(IncomeError) -> ExpenseSnapshot {
+        do {
+            async let expenses: [Expense] = client.from(ExpenseConstants.expensesTable).select().execute().value
+            async let terms: [ExpenseTerm] = client.from(ExpenseConstants.termsTable).select().execute().value
+            async let bills: [ExpenseBill] = client.from(ExpenseConstants.billsTable).select().execute().value
+            return try await ExpenseSnapshot(expenses: expenses, terms: terms, bills: bills)
+        } catch {
+            throw SupabaseIncomeService.incomeError(from: error)
+        }
+    }
+
+    func save(_ expense: Expense, term: ExpenseTerm?) async throws(IncomeError) {
+        do {
+            try await client.from(ExpenseConstants.expensesTable).upsert(expense, returning: .minimal).execute()
+            if let term {
+                try await client.from(ExpenseConstants.termsTable)
+                    .upsert(term, onConflict: "expense_id,valid_from", returning: .minimal)
+                    .execute()
+            }
+        } catch {
+            throw SupabaseIncomeService.incomeError(from: error)
+        }
+    }
+
+    func delete(expenseID: UUID) async throws(IncomeError) {
+        do {
+            try await client.from(ExpenseConstants.expensesTable).delete().eq("id", value: expenseID.uuidString).execute()
+        } catch {
+            throw SupabaseIncomeService.incomeError(from: error)
+        }
+    }
+
+    func save(_ bill: ExpenseBill) async throws(IncomeError) {
+        do {
+            try await client.from(ExpenseConstants.billsTable)
+                .upsert(bill, onConflict: "expense_id,month", returning: .minimal)
+                .execute()
+        } catch {
+            throw SupabaseIncomeService.incomeError(from: error)
+        }
+    }
+
+    func deleteBill(id: UUID) async throws(IncomeError) {
+        do {
+            try await client.from(ExpenseConstants.billsTable).delete().eq("id", value: id.uuidString).execute()
+        } catch {
+            throw SupabaseIncomeService.incomeError(from: error)
+        }
+    }
+}
