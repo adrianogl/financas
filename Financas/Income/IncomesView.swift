@@ -3,7 +3,6 @@ import SwiftUI
 struct IncomesView: View {
     @Environment(IncomeStore.self) private var store
     @State private var editing: IncomeDraft?
-    @State private var receiving: IncomeOccurrence?
 
     var body: some View {
         @Bindable var store = store
@@ -28,7 +27,8 @@ struct IncomesView: View {
                 }
             }
             .refreshable { await store.load() }
-            .incomeReceiptFlow(receiving: $receiving, editing: $editing)
+            .incomeReceiptFlow(receiving: .constant(nil), editing: $editing)
+            .detailDestination()
         }
     }
 
@@ -100,9 +100,7 @@ struct IncomesView: View {
             sectionTitle(title)
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(occurrences) { occurrence in
-                    Button {
-                        receiving = occurrence
-                    } label: {
+                    NavigationLink(value: DetailRoute.income(id: occurrence.id, month: occurrence.month)) {
                         OccurrenceRow(occurrence: occurrence)
                     }
                     .buttonStyle(.plain)

@@ -3,10 +3,6 @@ import SwiftUI
 struct OverdueView: View {
     @Environment(IncomeStore.self) private var store
     @Environment(ExpenseStore.self) private var expenseStore
-    @State private var editing: IncomeDraft?
-    @State private var receiving: IncomeOccurrence?
-    @State private var editingExpense: ExpenseDraft?
-    @State private var paying: ExpenseSheetTarget?
 
     var body: some View {
         NavigationStack {
@@ -25,8 +21,7 @@ struct OverdueView: View {
                 async let expenses: Void = expenseStore.load()
                 _ = await (incomes, expenses)
             }
-            .incomeReceiptFlow(receiving: $receiving, editing: $editing)
-            .expenseFlow(paying: $paying, editing: $editingExpense)
+            .detailDestination()
         }
     }
 
@@ -91,9 +86,7 @@ struct OverdueView: View {
 
         if summary.showsIncomes {
             section("Receitas", items: incomes) { occurrence in
-                Button {
-                    receiving = occurrence
-                } label: {
+                NavigationLink(value: DetailRoute.income(id: occurrence.id, month: occurrence.month)) {
                     OverdueRow(occurrence: occurrence, today: store.today)
                 }
                 .buttonStyle(.plain)
@@ -101,9 +94,7 @@ struct OverdueView: View {
         }
         if summary.showsExpenses {
             section("Despesas", items: expenses) { occurrence in
-                Button {
-                    paying = ExpenseSheetTarget(occurrence: occurrence, mode: .payment)
-                } label: {
+                NavigationLink(value: DetailRoute.expense(id: occurrence.id, month: occurrence.month)) {
                     OverdueExpenseRow(occurrence: occurrence, today: store.today)
                 }
                 .buttonStyle(.plain)

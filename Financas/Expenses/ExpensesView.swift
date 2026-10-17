@@ -4,7 +4,6 @@ struct ExpensesView: View {
     @Environment(ExpenseStore.self) private var store
     @Environment(IncomeStore.self) private var incomeStore
     @State private var editing: ExpenseDraft?
-    @State private var paying: ExpenseSheetTarget?
 
     var body: some View {
         @Bindable var incomeStore = incomeStore
@@ -29,7 +28,8 @@ struct ExpensesView: View {
                 }
             }
             .refreshable { await store.load() }
-            .expenseFlow(paying: $paying, editing: $editing)
+            .expenseFlow(paying: .constant(nil), editing: $editing)
+            .detailDestination()
         }
     }
 
@@ -102,9 +102,7 @@ struct ExpensesView: View {
             sectionTitle(title)
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(occurrences) { occurrence in
-                    Button {
-                        paying = ExpenseSheetTarget(occurrence: occurrence, mode: nil)
-                    } label: {
+                    NavigationLink(value: DetailRoute.expense(id: occurrence.id, month: occurrence.month)) {
                         ExpenseOccurrenceRow(occurrence: occurrence, today: incomeStore.today)
                     }
                     .buttonStyle(.plain)

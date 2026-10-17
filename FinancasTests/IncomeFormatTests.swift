@@ -10,6 +10,11 @@ struct IncomeFormatTests {
         #expect(IncomeFormat.monthName(S.month(2026, 9)) == "setembro")
     }
 
+    @Test func shortMonthYear() {
+        #expect(IncomeFormat.shortMonthYear(S.month(2026, 1)) == "jan/2026")
+        #expect(IncomeFormat.shortMonthYear(S.month(2025, 9)) == "set/2025")
+    }
+
     @Test func shortDate() {
         #expect(IncomeFormat.shortDate(S.day(2026, 10, 15)) == "qui, 15 out")
         #expect(IncomeFormat.shortDate(S.day(2026, 11, 3)) == "ter, 3 nov")
