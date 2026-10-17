@@ -12,7 +12,7 @@ struct AccountView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                AppMark(size: 56)
+                AppLogo(layout: .horizontal, markSize: 44)
                     .padding(.top, 24)
                 Text(mode.title)
                     .font(.largeTitle.bold())

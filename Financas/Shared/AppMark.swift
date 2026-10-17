@@ -2,6 +2,9 @@ import SwiftUI
 
 struct AppMark: View {
     var size: CGFloat = 64
+    var lineProgress: CGFloat = 1
+    var areaOpacity: Double = 1
+    var dotScale: CGFloat = 1
 
     var body: some View {
         RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
@@ -9,11 +12,14 @@ struct AppMark: View {
             .overlay {
                 BalanceLineShape(closesArea: true)
                     .fill(LinearGradient(colors: [Theme.accent.opacity(0.35), Theme.accent.opacity(0)], startPoint: .top, endPoint: .bottom))
+                    .opacity(areaOpacity)
                 BalanceLineShape()
+                    .trim(from: 0, to: lineProgress)
                     .stroke(Theme.accent, style: StrokeStyle(lineWidth: size * 0.055, lineCap: .round))
                 Circle()
                     .fill(Theme.accent)
                     .frame(width: size * 0.12, height: size * 0.12)
+                    .scaleEffect(dotScale)
                     .position(x: size * 0.86, y: size * 0.28)
             }
             .frame(width: size, height: size)

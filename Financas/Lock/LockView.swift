@@ -7,10 +7,8 @@ struct LockView: View {
         VStack(spacing: 12) {
             Spacer()
 
-            AppMark(size: 88)
-                .padding(.bottom, 8)
-            Text("Finanças")
-                .font(.title.bold())
+            AppLogo(markSize: 88)
+                .padding(.bottom, 4)
             Text("Bloqueado")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

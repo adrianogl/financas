@@ -7,7 +7,7 @@ struct PINEntryView: View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let remaining = lockManager.lockoutRemaining(at: context.date)
             VStack(spacing: 24) {
-                AppMark(size: 52)
+                AppLogo(markSize: 52)
                     .padding(.top, 32)
 
                 PINPadView(
