@@ -27,6 +27,5 @@ struct AvatarView: View {
         }
         .frame(width: size, height: size)
         .clipShape(.circle)
-        .accessibilityHidden(true)
     }
 }

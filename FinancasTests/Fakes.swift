@@ -197,12 +197,12 @@ final class FakeIncomeService: IncomeService {
 
 @MainActor
 final class FakeAvatarService: AvatarService {
-    var stored: Data?
+    var files: [Int: Data] = [:]
     var nextError: AvatarError?
     var holdsResponses = false
-    private(set) var uploads: [Data] = []
-    private(set) var downloads = 0
-    private(set) var removals = 0
+    private(set) var uploads: [(version: Int, data: Data)] = []
+    private(set) var downloadedVersions: [Int] = []
+    private(set) var removedVersions: [Int] = []
     private var pending: [CheckedContinuation<Void, Never>] = []
 
     func release() {
@@ -211,23 +211,23 @@ final class FakeAvatarService: AvatarService {
         pending.removeAll()
     }
 
-    func upload(_ data: Data, userID: String) async throws(AvatarError) {
-        uploads.append(data)
+    func upload(_ data: Data, userID: String, version: Int) async throws(AvatarError) {
+        uploads.append((version, data))
         try await respond()
-        stored = data
+        files[version] = data
     }
 
-    func download(userID: String) async throws(AvatarError) -> Data {
-        downloads += 1
+    func download(userID: String, version: Int) async throws(AvatarError) -> Data {
+        downloadedVersions.append(version)
         try await respond()
-        guard let stored else { throw .unknown }
-        return stored
+        guard let data = files[version] else { throw .unknown }
+        return data
     }
 
-    func remove(userID: String) async throws(AvatarError) {
-        removals += 1
+    func remove(userID: String, version: Int) async throws(AvatarError) {
+        removedVersions.append(version)
         try await respond()
-        stored = nil
+        files[version] = nil
     }
 
     private func respond() async throws(AvatarError) {
@@ -239,4 +239,10 @@ final class FakeAvatarService: AvatarService {
             throw error
         }
     }
+}
+
+@MainActor
+final class AvatarVersionRecorder {
+    var versions: [Int?] = []
+    var error: AccountError?
 }

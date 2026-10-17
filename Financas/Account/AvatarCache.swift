@@ -12,30 +12,28 @@ struct AvatarCache {
         return AvatarCache(directory: caches.appending(path: AvatarConstants.cacheFolder))
     }
 
-    func load() -> (version: Int, data: Data)? {
+    func load() -> (version: Int, userID: String, data: Data)? {
         guard
-            let versionText = try? String(contentsOf: versionURL, encoding: .utf8),
+            let versionText = try? String(contentsOf: url(AvatarConstants.versionFileName), encoding: .utf8),
             let version = Int(versionText),
-            let data = try? Data(contentsOf: imageURL)
+            let userID = try? String(contentsOf: url(AvatarConstants.ownerFileName), encoding: .utf8),
+            let data = try? Data(contentsOf: url(AvatarConstants.fileName))
         else { return nil }
-        return (version, data)
+        return (version, userID, data)
     }
 
-    func save(_ data: Data, version: Int) {
+    func save(_ data: Data, version: Int, userID: String) {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try? data.write(to: imageURL, options: .atomic)
-        try? String(version).write(to: versionURL, atomically: true, encoding: .utf8)
+        try? data.write(to: url(AvatarConstants.fileName), options: .atomic)
+        try? String(version).write(to: url(AvatarConstants.versionFileName), atomically: true, encoding: .utf8)
+        try? userID.write(to: url(AvatarConstants.ownerFileName), atomically: true, encoding: .utf8)
     }
 
     func clear() {
         try? FileManager.default.removeItem(at: directory)
     }
 
-    private var imageURL: URL {
-        directory.appending(path: AvatarConstants.fileName)
-    }
-
-    private var versionURL: URL {
-        directory.appending(path: AvatarConstants.versionFileName)
+    private func url(_ name: String) -> URL {
+        directory.appending(path: name)
     }
 }

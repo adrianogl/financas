@@ -12,6 +12,7 @@ final class AvatarStore {
     private let cache: AvatarCache
     private let now: () -> Date
     private let updateVersion: (Int?) async throws(AccountError) -> AccountUser
+    private var generation = 0
 
     init(
         service: AvatarService,
@@ -37,16 +38,16 @@ final class AvatarStore {
             imageData = nil
             return
         }
-        let cached = cache.load()
+        let cached = cache.load().flatMap { $0.userID == user.id ? $0 : nil }
         if let cached, cached.version == version {
             imageData = cached.data
             return
         }
-        if imageData == nil {
-            imageData = cached?.data
-        }
-        guard let data = try? await service.download(userID: user.id) else { return }
-        cache.save(data, version: version)
+        imageData = cached?.data
+        let started = generation
+        guard let data = try? await service.download(userID: user.id, version: version),
+              started == generation, !Task.isCancelled else { return }
+        cache.save(data, version: version, userID: user.id)
         imageData = data
     }
 
@@ -59,20 +60,28 @@ final class AvatarStore {
         isUploading = true
         errorMessage = nil
         defer { isUploading = false }
+        let started = generation
+        let version = Int(now().timeIntervalSince1970)
 
         do throws(AvatarError) {
-            try await service.upload(jpeg, userID: user.id)
-            let version = Int(now().timeIntervalSince1970)
+            try await service.upload(jpeg, userID: user.id, version: version)
+            guard started == generation else { return nil }
             let updated: AccountUser
             do {
                 updated = try await updateVersion(version)
             } catch {
+                try? await service.remove(userID: user.id, version: version)
                 throw AvatarError(error)
             }
-            cache.save(jpeg, version: version)
+            guard started == generation else { return nil }
+            cache.save(jpeg, version: version, userID: user.id)
             imageData = jpeg
+            if let previous = user.avatarVersion, previous != version {
+                try? await service.remove(userID: user.id, version: previous)
+            }
             return updated
         } catch {
+            guard started == generation else { return nil }
             errorMessage = error.uploadMessage
             return nil
         }
@@ -83,25 +92,31 @@ final class AvatarStore {
         isUploading = true
         errorMessage = nil
         defer { isUploading = false }
+        let started = generation
 
         do throws(AvatarError) {
-            try await service.remove(userID: user.id)
+            if let version = user.avatarVersion {
+                try await service.remove(userID: user.id, version: version)
+            }
             let updated: AccountUser
             do {
                 updated = try await updateVersion(nil)
             } catch {
                 throw AvatarError(error)
             }
+            guard started == generation else { return nil }
             cache.clear()
             imageData = nil
             return updated
         } catch {
+            guard started == generation else { return nil }
             errorMessage = error.removeMessage
             return nil
         }
     }
 
     func reset() {
+        generation += 1
         cache.clear()
         imageData = nil
         errorMessage = nil

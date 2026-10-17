@@ -9,25 +9,25 @@ final class SupabaseAvatarService: AvatarService {
         self.client = client
     }
 
-    func upload(_ data: Data, userID: String) async throws(AvatarError) {
+    func upload(_ data: Data, userID: String, version: Int) async throws(AvatarError) {
         do {
-            try await bucket.upload(path(userID), data: data, options: FileOptions(contentType: AvatarConstants.contentType, upsert: true))
+            try await bucket.upload(path(userID, version), data: data, options: FileOptions(contentType: AvatarConstants.contentType, upsert: true))
         } catch {
             throw Self.avatarError(from: error)
         }
     }
 
-    func download(userID: String) async throws(AvatarError) -> Data {
+    func download(userID: String, version: Int) async throws(AvatarError) -> Data {
         do {
-            return try await bucket.download(path: path(userID))
+            return try await bucket.download(path: path(userID, version))
         } catch {
             throw Self.avatarError(from: error)
         }
     }
 
-    func remove(userID: String) async throws(AvatarError) {
+    func remove(userID: String, version: Int) async throws(AvatarError) {
         do {
-            try await bucket.remove(paths: [path(userID)])
+            try await bucket.remove(paths: [path(userID, version)])
         } catch {
             throw Self.avatarError(from: error)
         }
@@ -37,8 +37,8 @@ final class SupabaseAvatarService: AvatarService {
         client.storage.from(AvatarConstants.bucket)
     }
 
-    private func path(_ userID: String) -> String {
-        "\(userID.lowercased())/\(AvatarConstants.fileName)"
+    private func path(_ userID: String, _ version: Int) -> String {
+        "\(userID.lowercased())/\(version).\(AvatarConstants.fileExtension)"
     }
 
     nonisolated static func avatarError(from error: any Error) -> AvatarError {

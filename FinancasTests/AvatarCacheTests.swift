@@ -8,9 +8,10 @@ struct AvatarCacheTests {
         let cache = AvatarCache(directory: directory)
         #expect(cache.load() == nil)
 
-        cache.save(Data([1, 2, 3]), version: 9)
+        cache.save(Data([1, 2, 3]), version: 9, userID: "u1")
         let loaded = try #require(cache.load())
         #expect(loaded.version == 9)
+        #expect(loaded.userID == "u1")
         #expect(loaded.data == Data([1, 2, 3]))
 
         cache.clear()
