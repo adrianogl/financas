@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 protocol AccountService {
     func currentUser() -> AccountUser?
+    func hasSession() async -> Bool
     func events() -> AsyncStream<AccountEvent>
     func signUp(name: String, email: String, password: String) async throws(AccountError) -> AccountUser?
     func signIn(email: String, password: String) async throws(AccountError) -> AccountUser

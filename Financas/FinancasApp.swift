@@ -66,8 +66,7 @@ struct FinancasApp: App {
     @MainActor
     private func refreshReminders() async {
         BackgroundRefresh.schedule()
-        await incomeStore.refresh()
-        if let items = incomeStore.dueItems {
+        await BackgroundReminderRefresh.run(hasSession: { await accountManager.hasSession() }, store: incomeStore) { items in
             await reminders.reschedule(items: items, clearingDelivered: false)
         }
     }

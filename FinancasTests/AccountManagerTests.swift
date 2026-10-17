@@ -313,4 +313,13 @@ struct AccountManagerTests {
         #expect(harness.manager.user?.avatarVersion == 42)
         #expect(harness.service.updatedAvatarVersions == [42])
     }
+
+    @Test func hasSessionAsksService() async {
+        let harness = AccountManagerHarness()
+        #expect(await harness.manager.hasSession())
+
+        harness.service.hasValidSession = false
+
+        #expect(await harness.manager.hasSession() == false)
+    }
 }

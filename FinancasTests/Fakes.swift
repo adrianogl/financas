@@ -62,6 +62,7 @@ extension AccountUser {
 @MainActor
 final class FakeAccountService: AccountService {
     var storedUser: AccountUser?
+    var hasValidSession = true
     var signUpResult: Result<AccountUser?, AccountError> = .success(nil)
     var signInResult: Result<AccountUser, AccountError> = .success(.sample)
     var resetResult: Result<Void, AccountError> = .success(())
@@ -87,6 +88,8 @@ final class FakeAccountService: AccountService {
     }
 
     func currentUser() -> AccountUser? { storedUser }
+
+    func hasSession() async -> Bool { hasValidSession }
 
     func events() -> AsyncStream<AccountEvent> { stream }
 

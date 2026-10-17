@@ -219,6 +219,18 @@ struct IncomeStoreTests {
         #expect(store.selectedMonth == S.month(2027, 3))
     }
 
+    @Test func refreshReportsWhetherItLoaded() async {
+        let (store, service) = await makeStore()
+        #expect(await store.refresh())
+
+        service.nextError = .network
+        #expect(await store.refresh() == false)
+
+        store.reset()
+        service.nextError = .network
+        #expect(await store.refresh() == false)
+    }
+
     @Test func refreshFailureKeepsData() async {
         let (store, service) = await makeStore()
         service.nextError = .network

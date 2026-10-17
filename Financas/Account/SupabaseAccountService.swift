@@ -13,6 +13,10 @@ final class SupabaseAccountService: AccountService {
         client.auth.currentUser.map(Self.accountUser)
     }
 
+    func hasSession() async -> Bool {
+        (try? await client.auth.session) != nil
+    }
+
     func events() -> AsyncStream<AccountEvent> {
         let changes = client.auth.authStateChanges
         return AsyncStream { continuation in

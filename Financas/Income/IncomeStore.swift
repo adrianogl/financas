@@ -39,17 +39,20 @@ final class IncomeStore {
         }
     }
 
-    func refresh() async {
+    @discardableResult
+    func refresh() async -> Bool {
         switch loadState {
         case .idle, .failed:
             await load()
+            return loadState == .loaded
         case .loading:
-            return
+            return false
         case .loaded:
             moveToday()
             let started = generation
-            guard let loaded = try? await service.load(), started == generation else { return }
+            guard let loaded = try? await service.load(), started == generation else { return false }
             snapshot = loaded
+            return true
         }
     }
 
