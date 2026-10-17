@@ -41,6 +41,7 @@ struct RootView: View {
                 BackgroundRefresh.schedule()
             case .active:
                 lockManager.willEnterForeground()
+                Task { await syncReminders() }
             default:
                 break
             }
@@ -96,10 +97,12 @@ struct RootView: View {
     }
 
     private func syncReminders() async {
-        guard let items = incomeStore.dueItems else { return }
-        if lockManager.isUnlocked {
+        guard let mode = ReminderSyncMode.current(phase: scenePhase, isUnlocked: lockManager.isUnlocked),
+              incomeStore.dueItems != nil else { return }
+        if mode.asksPermission {
             await reminders.requestPermissionIfNeeded(hasIncomes: !incomeStore.snapshot.incomes.isEmpty)
         }
-        await reminders.reschedule(items: items, clearingDelivered: true)
+        guard let items = incomeStore.dueItems else { return }
+        await reminders.reschedule(items: items, clearingDelivered: mode.clearingDelivered)
     }
 }
