@@ -84,9 +84,11 @@ final class IncomeStore {
 
     var dueItems: [DueItem]? {
         guard loadState == .loaded else { return nil }
+        let previous = IncomeSchedule.occurrences(in: today.yearMonth.previous, snapshot: snapshot, today: today)
         let upcoming = IncomeSchedule.occurrences(in: today.yearMonth.next, snapshot: snapshot, today: today)
-        return (occurrences(in: today.yearMonth) + upcoming)
-            .filter { $0.status != .received }
+        var seen = Set<String>()
+        return (previous + occurrences(in: today.yearMonth) + upcoming)
+            .filter { $0.status != .received && seen.insert($0.id).inserted }
             .map(DueItem.init(occurrence:))
     }
 

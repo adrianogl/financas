@@ -316,6 +316,20 @@ struct IncomeStoreTests {
         #expect(months?.contains(S.month(2026, 11)) == true)
     }
 
+    @Test func dueItemsIncludePreviousMonthDueThisMonth() async {
+        let store = await makeStore(sampleSnapshot(fixedStart: S.month(2026, 10), day: 31), today: S.day(2026, 11, 1))
+
+        #expect(store.dueItems?.map(\.dueDate).contains(S.day(2026, 11, 3)) == true)
+    }
+
+    @Test func dueItemsHaveNoDuplicates() async throws {
+        let store = await makeStore(sampleSnapshot(fixedStart: S.month(2026, 10), day: 31), today: S.day(2026, 11, 4))
+
+        let ids = try #require(store.dueItems).map(\.id)
+        #expect(ids.count == Set(ids).count)
+        #expect(ids.contains { $0.hasSuffix("-2026-10") })
+    }
+
     @Test func dueItemUsesOccurrenceTitleAndExpectedAmount() async throws {
         let (store, _) = await makeStore()
         let occurrence = try hourlyOctober(store)
