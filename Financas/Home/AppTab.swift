@@ -1,4 +1,4 @@
-enum AppTab: Hashable {
+enum AppTab: Hashable, CaseIterable {
     case home
     case incomes
     case expenses

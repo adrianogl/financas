@@ -1,5 +1,4 @@
 import Charts
-import PhotosUI
 import SwiftUI
 
 struct HomeView: View {
@@ -8,11 +7,7 @@ struct HomeView: View {
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(ExpenseStore.self) private var expenseStore
     @Environment(AvatarStore.self) private var avatarStore
-    @Binding var selectedTab: AppTab
-    @State private var confirmsSignOut = false
-    @State private var photoItem: PhotosPickerItem?
-    @State private var showsPhotoPicker = false
-    @State private var showsSettings = false
+    @Environment(AppNavigation.self) private var navigation
 
     var body: some View {
         @Bindable var incomeStore = incomeStore
@@ -26,8 +21,8 @@ struct HomeView: View {
                     MonthPicker(month: $incomeStore.selectedMonth)
                     balanceCard(summary)
                     MonthBalanceCard(
-                        openIncomes: { selectedTab = .incomes },
-                        openExpenses: { selectedTab = .expenses }
+                        openIncomes: { navigation.section = .incomes },
+                        openExpenses: { navigation.section = .expenses }
                     )
                     entriesCard(summary)
                 }
@@ -37,51 +32,15 @@ struct HomeView: View {
             }
             .background(AppBackground())
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button("Escolher foto", systemImage: "photo") {
-                            showsPhotoPicker = true
+                if !navigation.isSidebarVisible {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        AccountMenu {
+                            AccountAvatar()
+                                .accessibilityLabel("Conta")
                         }
-                        if avatarStore.imageData != nil {
-                            Button("Remover foto", systemImage: "trash") {
-                                removePhoto()
-                            }
-                        }
-                        Button("Configurações", systemImage: "gearshape") {
-                            showsSettings = true
-                        }
-                        Button("Bloquear", systemImage: "lock") {
-                            lockManager.lock()
-                        }
-                        Button("Sair da conta", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
-                            confirmsSignOut = true
-                        }
-                    } label: {
-                        AvatarView(
-                            initial: account.user.map(AvatarStore.initial) ?? "?",
-                            imageData: avatarStore.imageData,
-                            isUploading: avatarStore.isUploading
-                        )
-                        .accessibilityLabel("Conta")
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
-                .sharedBackgroundVisibility(.hidden)
-            }
-            .sheet(isPresented: $showsSettings) {
-                SettingsView()
-            }
-            .photosPicker(isPresented: $showsPhotoPicker, selection: $photoItem, matching: .images)
-            .onChange(of: photoItem) { _, item in
-                guard let item else { return }
-                photoItem = nil
-                uploadPhoto(item)
-            }
-            .confirmationDialog("Sair da conta?", isPresented: $confirmsSignOut, titleVisibility: .visible) {
-                Button("Sair", role: .destructive) {
-                    Task { await account.signOut() }
-                }
-            } message: {
-                Text("O PIN deste aparelho será apagado. Para voltar, entre com seu e-mail e senha.")
             }
         }
     }
@@ -102,19 +61,6 @@ struct HomeView: View {
                     .padding(.top, 4)
             }
         }
-    }
-
-    private func uploadPhoto(_ item: PhotosPickerItem) {
-        guard let user = account.user else { return }
-        Task {
-            guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-            _ = await avatarStore.upload(data, for: user)
-        }
-    }
-
-    private func removePhoto() {
-        guard let user = account.user else { return }
-        Task { _ = await avatarStore.remove(for: user) }
     }
 
     private func balanceCard(_ summary: HomeMonthSummary) -> some View {

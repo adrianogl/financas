@@ -9,6 +9,7 @@ struct FinancasApp: App {
     @State private var expenseStore: ExpenseStore
     @State private var avatarStore: AvatarStore
     @State private var reminders: ReminderScheduler
+    @State private var navigation = AppNavigation()
 
     init() {
         let lock = LockManager(authenticator: BiometricAuthenticator(), pinStore: KeychainPINStore())
@@ -58,6 +59,7 @@ struct FinancasApp: App {
                 .environment(avatarStore)
                 .environment(reminders)
                 .environment(appDelegate.router)
+                .environment(navigation)
                 .task { await accountManager.start() }
                 .onOpenURL { url in
                     Task { await accountManager.handle(url: url) }

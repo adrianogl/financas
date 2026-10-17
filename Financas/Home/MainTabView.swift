@@ -5,56 +5,72 @@ struct MainTabView: View {
     @Environment(ExpenseStore.self) private var expenseStore
     @Environment(LockManager.self) private var lockManager
     @Environment(ReminderRouter.self) private var router
-    @State private var selectedTab = AppTab.home
+    @Environment(AppNavigation.self) private var navigation
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var windowSize = CGSize.zero
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            Tab(value: AppTab.home) {
-                HomeView(selectedTab: $selectedTab)
-            } label: {
-                Label("Início", systemImage: "house")
-                    .labelStyle(.iconOnly)
+        let mode = LayoutMode.make(isRegular: sizeClass == .regular, size: windowSize)
+        let counts = sidebarCounts
+
+        Group {
+            if windowSize == .zero {
+                Color.clear
+            } else if mode == .compact {
+                compactTabs(overdueCount: counts.overdue)
+            } else {
+                SidebarNavigation(mode: mode, counts: counts)
             }
-            Tab(value: AppTab.incomes) {
-                IncomesView()
-            } label: {
-                Label("Receitas", systemImage: "arrow.down.circle")
-                    .labelStyle(.iconOnly)
-            }
-            Tab(value: AppTab.expenses) {
-                ExpensesView()
-            } label: {
-                Label("Despesas", systemImage: "arrow.up.circle")
-                    .labelStyle(.iconOnly)
-            }
-            Tab(value: AppTab.overdue) {
-                OverdueView()
-            } label: {
-                Label("Atrasadas", systemImage: "exclamationmark.circle")
-                    .labelStyle(.iconOnly)
-            }
-            .badge(overdueCount)
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .onChange(of: proxy.size, initial: true) { windowSize = proxy.size }
+            }
+            .ignoresSafeArea()
+        }
+        .onChange(of: mode, initial: true) { navigation.enter(mode) }
         .onAppear(perform: applyPendingRoute)
         .onChange(of: router.pendingRoute, applyPendingRoute)
         .onChange(of: lockManager.isUnlocked, applyPendingRoute)
     }
 
-    private var overdueCount: Int {
-        incomeStore.overdueOccurrences.count + expenseStore.overdueOccurrences(today: incomeStore.today).count
+    private func compactTabs(overdueCount: Int) -> some View {
+        @Bindable var navigation = navigation
+        return TabView(selection: $navigation.section) {
+            ForEach(AppTab.allCases, id: \.self) { section in
+                Tab(value: section) {
+                    AppSectionView(section: section)
+                } label: {
+                    Label(section.title, systemImage: section.systemImage)
+                        .labelStyle(.iconOnly)
+                }
+                .badge(section == .overdue ? overdueCount : 0)
+            }
+        }
+        .tabBarMinimizeBehavior(.onScrollDown)
+    }
+
+    private var sidebarCounts: SidebarCounts {
+        let month = incomeStore.selectedMonth
+        let today = incomeStore.today
+        return SidebarCounts(
+            incomes: incomeStore.occurrences(in: month),
+            expenses: expenseStore.occurrences(in: month, today: today),
+            overdue: incomeStore.overdueOccurrences.count + expenseStore.overdueOccurrences(today: today).count
+        )
     }
 
     private func applyPendingRoute() {
         switch router.take(isUnlocked: lockManager.isUnlocked) {
         case .overdue:
-            selectedTab = .overdue
+            navigation.section = .overdue
         case .incomes:
             incomeStore.showCurrentMonth()
-            selectedTab = .incomes
+            navigation.section = .incomes
         case .expenses:
             incomeStore.showCurrentMonth()
-            selectedTab = .expenses
+            navigation.section = .expenses
         case nil:
             break
         }
