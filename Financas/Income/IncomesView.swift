@@ -4,6 +4,7 @@ struct IncomesView: View {
     @Environment(IncomeStore.self) private var store
     @State private var editing: IncomeDraft?
     @State private var receiving: IncomeOccurrence?
+    @State private var pendingEdit: Income?
 
     var body: some View {
         @Bindable var store = store
@@ -37,8 +38,10 @@ struct IncomesView: View {
                     )
                 }
             }
-            .sheet(item: $receiving) { occurrence in
-                Text(IncomeFormat.occurrenceTitle(occurrence))
+            .sheet(item: $receiving, onDismiss: openPendingEdit) { occurrence in
+                ReceiptSheet(occurrence: occurrence, today: store.today) { income in
+                    pendingEdit = income
+                }
             }
         }
     }
@@ -198,6 +201,12 @@ struct IncomesView: View {
 
     private func edit(_ income: Income) {
         editing = IncomeDraft(income: income, snapshot: store.snapshot, today: store.today)
+    }
+
+    private func openPendingEdit() {
+        guard let income = pendingEdit else { return }
+        pendingEdit = nil
+        edit(income)
     }
 
     private var isEditing: Binding<Bool> {
