@@ -125,6 +125,28 @@ struct ExpenseScheduleTests {
         #expect(ExpenseSchedule.overdue(before: S.month(2026, 10), snapshot: data, today: today).contains { $0.id == item.id })
     }
 
+    @Test func previousMonthDueThisMonthStaysVisibleUntilOverdue() throws {
+        let aluguel = Expense(id: UUID(), name: "Aluguel", startMonth: S.month(2026, 10))
+        let term = S.term(aluguel, from: S.month(2026, 10), day: 31, estimated: 900)
+        let data = ExpenseSnapshot(expenses: [aluguel], terms: [term], bills: [])
+        let october = S.month(2026, 10)
+        let november = S.month(2026, 11)
+
+        let dueDay = S.day(2026, 11, 3)
+        let onDueDay = ExpenseSchedule.carried(into: november, snapshot: data, today: dueDay)
+        #expect(onDueDay.map(\.month) == [october])
+        #expect(onDueDay.first?.status == .pending)
+        #expect(onDueDay.first?.dueDate == dueDay)
+
+        let firstDay = ExpenseSchedule.summary(for: november, snapshot: data, today: S.day(2026, 11, 1))
+        #expect(firstDay.remaining == 1800)
+        #expect(firstDay.next?.month == october)
+
+        let afterDue = ExpenseSchedule.carried(into: november, snapshot: data, today: S.day(2026, 11, 4))
+        #expect(afterDue.map(\.month) == [october])
+        #expect(afterDue.first?.status == .overdue)
+    }
+
     @Test func summaryForOctober() {
         let bills = luzPaid([(2026, 7, "196.40"), (2026, 8, "201.10"), (2026, 9, "219.80")])
             + [S.bill(S.luz, S.month(2026, 10), S.money("212.30"), due: S.day(2026, 10, 13)),

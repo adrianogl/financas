@@ -38,18 +38,17 @@ enum ExpenseSchedule {
     }
 
     static func overdue(before month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> [ExpenseOccurrence] {
-        let earlier = snapshot.expenses.flatMap { expense in
-            months(of: expense, before: month).compactMap { occurrence(of: expense, in: $0, snapshot: snapshot, today: today) }
-        }
-        return (earlier + early(in: month, snapshot: snapshot, today: today))
+        (earlier(than: month, snapshot: snapshot, today: today) + early(in: month, snapshot: snapshot, today: today))
             .filter { $0.status == .overdue }
             .sorted(by: ordered)
     }
 
     static func carried(into month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> [ExpenseOccurrence] {
         let late = overdue(before: month, snapshot: snapshot, today: today)
+        let dueLater = earlier(than: month, snapshot: snapshot, today: today)
+            .filter { $0.status == .pending && $0.dueDate.yearMonth >= month }
         let dueThisMonth = early(in: month, snapshot: snapshot, today: today).filter { $0.status == .pending }
-        return (late + dueThisMonth).sorted(by: ordered)
+        return (late + dueLater + dueThisMonth).sorted(by: ordered)
     }
 
     static func summary(for month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> ExpenseMonthSummary {
@@ -58,7 +57,7 @@ enum ExpenseSchedule {
         let open = (own + carried).filter { $0.status != .paid }
         let paid = own.compactMap { $0.bill?.paidAmount }.reduce(0, +)
         let remaining = open.map(\.amount).reduce(0, +)
-        let upcoming = (own + occurrences(in: month.next, snapshot: snapshot, today: today))
+        let upcoming = (own + carried + occurrences(in: month.next, snapshot: snapshot, today: today))
             .filter { $0.status == .pending && $0.dueDate >= today }
             .sorted(by: ordered)
 
@@ -69,6 +68,12 @@ enum ExpenseSchedule {
             overdueCount: open.filter { $0.status == .overdue }.count,
             next: upcoming.first
         )
+    }
+
+    private static func earlier(than month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> [ExpenseOccurrence] {
+        snapshot.expenses.flatMap { expense in
+            months(of: expense, before: month).compactMap { occurrence(of: expense, in: $0, snapshot: snapshot, today: today) }
+        }
     }
 
     private static func early(in month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> [ExpenseOccurrence] {
