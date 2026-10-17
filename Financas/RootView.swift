@@ -45,7 +45,9 @@ struct RootView: View {
                     .allowsHitTesting(lockManager.isUnlocked)
                     .task(id: lockManager.isUnlocked) {
                         guard lockManager.isUnlocked else { return }
+                        async let user: Void = account.refreshUser()
                         await incomeStore.refresh()
+                        await user
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
                         Task { await incomeStore.refresh() }

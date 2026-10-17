@@ -67,4 +67,12 @@ struct HomeMonthSummaryTests {
         #expect(result.balance == S.money("27420.04"))
         #expect(result.entries.count == 2)
     }
+
+    @Test func chartDomainPadsAroundValues() {
+        let result = summary(S.month(2026, 10), snapshot())
+        let high = double("27420.04")
+        #expect(result.chartDomain.lowerBound == -high * 0.05)
+        #expect(result.chartDomain.upperBound == high * 1.05)
+        #expect(summary(S.month(2026, 9), snapshot()).chartDomain == 0...1)
+    }
 }

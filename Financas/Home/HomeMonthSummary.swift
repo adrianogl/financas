@@ -37,6 +37,15 @@ struct HomeMonthSummary: Equatable {
         return HomeMonthSummary(month: month, balance: balance, points: points, entries: entries)
     }
 
+    var chartDomain: ClosedRange<Double> {
+        let values = points.map(\.balance)
+        guard let low = values.min(), let high = values.max(), high > low else {
+            return 0...max(1, values.max() ?? 1)
+        }
+        let padding = (high - low) * HomeConstants.chartPadding
+        return (low - padding)...(high + padding)
+    }
+
     private static func double(_ value: Decimal) -> Double {
         NSDecimalNumber(decimal: value).doubleValue
     }

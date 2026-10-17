@@ -9,20 +9,20 @@ struct HomeView: View {
     @State private var confirmsSignOut = false
 
     var body: some View {
+        @Bindable var incomeStore = incomeStore
+        let month = incomeStore.selectedMonth
+        let summary = HomeMonthSummary.make(month: month, snapshot: incomeStore.snapshot, today: incomeStore.today)
+
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     header
-                    balanceCard
+                    MonthPicker(month: $incomeStore.selectedMonth)
+                    balanceCard(summary)
                     IncomeSummaryCard {
-                        incomeStore.showCurrentMonth()
                         selectedTab = .incomes
                     }
-                    transactionsCard
-                    Text("Saldo e lançamentos com valores de exemplo")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
+                    entriesCard(summary)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
@@ -63,52 +63,61 @@ struct HomeView: View {
         }
     }
 
-    private var balanceCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(HomeConstants.sampleMonthLabel)
+    private func balanceCard(_ summary: HomeMonthSummary) -> some View {
+        let domain = summary.chartDomain
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Saldo até \(IncomeFormat.monthName(summary.month))")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text(HomeConstants.sampleBalance, format: .currency(code: HomeConstants.currencyCode))
+            Text(IncomeFormat.currency(summary.balance))
                 .font(.system(size: 34, weight: .semibold))
                 .monospacedDigit()
-            Chart(HomeConstants.balancePoints) { point in
+                .contentTransition(.numericText())
+            Chart(summary.points) { point in
                 AreaMark(
                     x: .value("Dia", point.day),
-                    yStart: .value("Base", HomeConstants.balanceFloor),
+                    yStart: .value("Base", domain.lowerBound),
                     yEnd: .value("Saldo", point.balance)
                 )
                 .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.28), Theme.accent.opacity(0)], startPoint: .top, endPoint: .bottom))
-                .interpolationMethod(.catmullRom)
 
                 LineMark(x: .value("Dia", point.day), y: .value("Saldo", point.balance))
                     .foregroundStyle(Theme.accent)
                     .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                    .interpolationMethod(.catmullRom)
             }
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
-            .chartYScale(domain: HomeConstants.balanceFloor...HomeConstants.balanceCeiling)
+            .chartXScale(domain: 1...summary.month.dayCount)
+            .chartYScale(domain: domain)
             .frame(height: 96)
             .padding(.top, 8)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
+        .animation(.smooth, value: summary)
     }
 
-    private var transactionsCard: some View {
+    private func entriesCard(_ summary: HomeMonthSummary) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Últimos lançamentos")
+            Text("Lançamentos de \(IncomeFormat.monthName(summary.month))")
                 .font(.headline)
                 .padding(.bottom, 6)
-            ForEach(HomeConstants.sampleTransactions) { transaction in
-                TransactionRow(transaction: transaction)
-                if transaction.id != HomeConstants.sampleTransactions.last?.id {
+            if summary.entries.isEmpty {
+                Text("Nenhum lançamento em \(IncomeFormat.monthName(summary.month)).")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 6)
+            }
+            ForEach(summary.entries) { entry in
+                TransactionRow(entry: entry)
+                if entry.id != summary.entries.last?.id {
                     Divider().padding(.leading, 48)
                 }
             }
         }
         .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
     }
 }

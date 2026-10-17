@@ -265,4 +265,52 @@ struct AccountManagerTests {
         #expect(harness.signedOutCount == 1)
         #expect(harness.manager.state == .signedOut)
     }
+
+    @Test func refreshUserUpdatesNameAndAvatar() async {
+        let harness = AccountManagerHarness()
+        harness.service.storedUser = .sample
+        await harness.manager.start()
+        var fresh = AccountUser.sample
+        fresh = AccountUser(id: fresh.id, email: fresh.email, name: "Novo", avatarVersion: 7)
+        harness.service.refreshResult = .success(fresh)
+
+        await harness.manager.refreshUser()
+
+        #expect(harness.manager.state == .signedIn(fresh))
+        #expect(harness.manager.user?.avatarVersion == 7)
+    }
+
+    @Test func refreshUserNetworkErrorKeepsUser() async {
+        let harness = AccountManagerHarness()
+        harness.service.storedUser = .sample
+        await harness.manager.start()
+        harness.service.refreshResult = .failure(.network)
+
+        await harness.manager.refreshUser()
+
+        #expect(harness.manager.state == .signedIn(.sample))
+        #expect(harness.signedOutCount == 0)
+    }
+
+    @Test func refreshUserIgnoredWhenSignedOut() async {
+        let harness = AccountManagerHarness()
+        await harness.manager.start()
+        harness.service.refreshResult = .success(.sample)
+
+        await harness.manager.refreshUser()
+
+        #expect(harness.manager.state == .signedOut)
+    }
+
+    @Test func updateAvatarVersionAppliesUser() async throws {
+        let harness = AccountManagerHarness()
+        harness.service.storedUser = .sample
+        await harness.manager.start()
+
+        let user = try await harness.manager.updateAvatarVersion(42)
+
+        #expect(user.avatarVersion == 42)
+        #expect(harness.manager.user?.avatarVersion == 42)
+        #expect(harness.service.updatedAvatarVersions == [42])
+    }
 }

@@ -68,6 +68,9 @@ final class FakeAccountService: AccountService {
     var handleResult: Result<AccountUser, AccountError> = .success(.sample)
     var updateResult: Result<Void, AccountError> = .success(())
     var suspendsSignIn = false
+    var refreshResult: Result<AccountUser, AccountError> = .success(.sample)
+    var avatarUpdateResult: Result<Void, AccountError> = .success(())
+    private(set) var updatedAvatarVersions: [Int?] = []
 
     private(set) var signInCalls: [(email: String, password: String)] = []
     private(set) var signUpCalls: [(name: String, email: String, password: String)] = []
@@ -116,6 +119,18 @@ final class FakeAccountService: AccountService {
     func handle(url: URL) async throws(AccountError) -> AccountUser {
         handledURLs.append(url)
         return try handleResult.get()
+    }
+
+    func refreshUser() async throws(AccountError) -> AccountUser {
+        try refreshResult.get()
+    }
+
+    func updateAvatarVersion(_ version: Int?) async throws(AccountError) -> AccountUser {
+        updatedAvatarVersions.append(version)
+        try avatarUpdateResult.get()
+        var user = storedUser ?? .sample
+        user.avatarVersion = version
+        return user
     }
 
     func updatePassword(_ password: String) async throws(AccountError) {
