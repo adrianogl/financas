@@ -246,3 +246,39 @@ final class AvatarVersionRecorder {
     var versions: [Int?] = []
     var error: AccountError?
 }
+
+@MainActor
+final class FakeReminderCenter: ReminderCenter {
+    var status: ReminderAuthorization
+    var grantsOnRequest: Bool
+    private(set) var requests = 0
+    private(set) var pending: [Reminder] = []
+    private(set) var replaceCalls = 0
+    private(set) var deliveredRemoved = 0
+    private(set) var removedAll = 0
+
+    init(status: ReminderAuthorization = .notDetermined, grantsOnRequest: Bool = true) {
+        self.status = status
+        self.grantsOnRequest = grantsOnRequest
+    }
+
+    func authorization() async -> ReminderAuthorization { status }
+
+    func requestAuthorization() async -> Bool {
+        requests += 1
+        status = grantsOnRequest ? .allowed : .denied
+        return grantsOnRequest
+    }
+
+    func replacePending(with reminders: [Reminder]) async {
+        replaceCalls += 1
+        pending = reminders
+    }
+
+    func removeDelivered() async { deliveredRemoved += 1 }
+
+    func removeAll() async {
+        removedAll += 1
+        pending = []
+    }
+}
