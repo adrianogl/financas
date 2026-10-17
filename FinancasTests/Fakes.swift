@@ -194,3 +194,49 @@ final class FakeIncomeService: IncomeService {
         }
     }
 }
+
+@MainActor
+final class FakeAvatarService: AvatarService {
+    var stored: Data?
+    var nextError: AvatarError?
+    var holdsResponses = false
+    private(set) var uploads: [Data] = []
+    private(set) var downloads = 0
+    private(set) var removals = 0
+    private var pending: [CheckedContinuation<Void, Never>] = []
+
+    func release() {
+        holdsResponses = false
+        pending.forEach { $0.resume() }
+        pending.removeAll()
+    }
+
+    func upload(_ data: Data, userID: String) async throws(AvatarError) {
+        uploads.append(data)
+        try await respond()
+        stored = data
+    }
+
+    func download(userID: String) async throws(AvatarError) -> Data {
+        downloads += 1
+        try await respond()
+        guard let stored else { throw .unknown }
+        return stored
+    }
+
+    func remove(userID: String) async throws(AvatarError) {
+        removals += 1
+        try await respond()
+        stored = nil
+    }
+
+    private func respond() async throws(AvatarError) {
+        if holdsResponses {
+            await withCheckedContinuation { pending.append($0) }
+        }
+        if let error = nextError {
+            nextError = nil
+            throw error
+        }
+    }
+}
