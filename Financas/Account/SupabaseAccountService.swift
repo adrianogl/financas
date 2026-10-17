@@ -5,17 +5,8 @@ import Supabase
 final class SupabaseAccountService: AccountService {
     private let client: SupabaseClient
 
-    init(config: SupabaseConfig) {
-        client = SupabaseClient(
-            supabaseURL: config.url,
-            supabaseKey: config.key,
-            options: SupabaseClientOptions(
-                auth: .init(
-                    redirectToURL: AccountConstants.redirectURL,
-                    emitLocalSessionAsInitialSession: true
-                )
-            )
-        )
+    init(client: SupabaseClient) {
+        self.client = client
     }
 
     func currentUser() -> AccountUser? {

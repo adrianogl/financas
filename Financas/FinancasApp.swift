@@ -16,7 +16,7 @@ struct FinancasApp: App {
 
         _lockManager = State(initialValue: lock)
         _accountManager = State(initialValue: AccountManager(
-            service: SupabaseAccountService(config: config),
+            service: SupabaseAccountService(client: SupabaseClientFactory.make(config: config)),
             hasDevicePIN: { lock.hasPIN },
             onAuthenticated: { lock.beginAfterAccountLogin() },
             onSignedOut: { lock.resetForSignOut() }

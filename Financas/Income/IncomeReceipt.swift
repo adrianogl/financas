@@ -18,4 +18,15 @@ struct IncomeReceipt: Identifiable, Hashable, Codable, Sendable {
         case workedDays = "worked_days"
         case workedHours = "worked_hours"
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(incomeID, forKey: .incomeID)
+        try container.encode(month, forKey: .month)
+        try container.encode(receivedOn, forKey: .receivedOn)
+        try container.encode(amount, forKey: .amount)
+        try container.encode(workedDays, forKey: .workedDays)
+        try container.encode(workedHours, forKey: .workedHours)
+    }
 }

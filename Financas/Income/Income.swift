@@ -22,4 +22,17 @@ struct Income: Identifiable, Hashable, Codable, Sendable {
         case oneOffDate = "one_off_date"
         case oneOffAmount = "one_off_amount"
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(dayOfMonth, forKey: .dayOfMonth)
+        try container.encode(hoursPerDay, forKey: .hoursPerDay)
+        try container.encode(startMonth, forKey: .startMonth)
+        try container.encode(endMonth, forKey: .endMonth)
+        try container.encode(oneOffDate, forKey: .oneOffDate)
+        try container.encode(oneOffAmount, forKey: .oneOffAmount)
+    }
 }
