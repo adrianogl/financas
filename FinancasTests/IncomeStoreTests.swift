@@ -219,6 +219,18 @@ struct IncomeStoreTests {
         #expect(store.selectedMonth == S.month(2027, 3))
     }
 
+    @Test func refreshReportsWhetherItLoaded() async {
+        let (store, service) = await makeStore()
+        #expect(await store.refresh())
+
+        service.nextError = .network
+        #expect(await store.refresh() == false)
+
+        store.reset()
+        service.nextError = .network
+        #expect(await store.refresh() == false)
+    }
+
     @Test func refreshFailureKeepsData() async {
         let (store, service) = await makeStore()
         service.nextError = .network
@@ -248,5 +260,121 @@ struct IncomeStoreTests {
         #expect(store.snapshot == .empty)
         #expect(store.loadState == .idle)
         #expect(store.selectedMonth == S.month(2026, 10))
+    }
+
+    private func sampleSnapshot(
+        fixedStart: YearMonth = S.month(2026, 9),
+        day: Int = 1,
+        receipts: [IncomeReceipt] = []
+    ) -> IncomeSnapshot {
+        var income = S.fixed
+        income.startMonth = fixedStart
+        income.dayOfMonth = day
+        let amount = IncomeAmount(id: UUID(), incomeID: income.id, amount: 1000, validFrom: fixedStart)
+        return IncomeSnapshot(incomes: [income], amounts: [amount], receipts: receipts)
+    }
+
+    private func makeStore(_ snapshot: IncomeSnapshot, today: CalendarDay) async -> IncomeStore {
+        let store = IncomeStore(service: FakeIncomeService(snapshot: snapshot), today: { today })
+        await store.load()
+        return store
+    }
+
+    @Test func overdueOccurrencesOrderedOldestFirst() async {
+        let store = await makeStore(sampleSnapshot(), today: S.today)
+
+        #expect(store.overdueOccurrences.map(\.month) == [S.month(2026, 9), S.month(2026, 10)])
+        #expect(store.overdueTotal == 2000)
+    }
+
+    @Test func overdueOccurrencesSkipReceived() async {
+        let receipt = S.receipt(S.fixed, S.month(2026, 10), amount: 1000)
+        let store = await makeStore(sampleSnapshot(receipts: [receipt]), today: S.today)
+
+        #expect(store.overdueOccurrences.map(\.month) == [S.month(2026, 9)])
+        #expect(store.overdueTotal == 1000)
+    }
+
+    @Test func dueItemsNilBeforeLoad() async {
+        let store = IncomeStore(service: FakeIncomeService(snapshot: S.snapshot), today: { S.today })
+        #expect(store.dueItems == nil)
+
+        await store.load()
+        #expect(store.dueItems != nil)
+
+        store.reset()
+        #expect(store.dueItems == nil)
+    }
+
+    @Test func dueItemsIncludeNextMonth() async {
+        let store = await makeStore(sampleSnapshot(fixedStart: S.month(2026, 10)), today: S.day(2026, 10, 25))
+
+        #expect(store.dueItems?.map(\.dueDate).contains(S.day(2026, 11, 3)) == true)
+    }
+
+    @Test func dueItemsUseBusinessDay() async {
+        let store = await makeStore(sampleSnapshot(fixedStart: S.month(2026, 12), day: 5), today: S.day(2026, 12, 1))
+
+        #expect(store.dueItems?.map(\.dueDate).first == S.day(2026, 12, 7))
+    }
+
+    @Test func dueItemsSkipReceived() async {
+        let receipt = S.receipt(S.fixed, S.month(2026, 10), amount: 1000)
+        let store = await makeStore(sampleSnapshot(receipts: [receipt]), today: S.today)
+
+        let months = store.dueItems?.map(\.dueDate.yearMonth)
+        #expect(months?.contains(S.month(2026, 10)) == false)
+        #expect(months?.contains(S.month(2026, 9)) == true)
+        #expect(months?.contains(S.month(2026, 11)) == true)
+    }
+
+    @Test func dueItemsIncludePreviousMonthDueThisMonth() async {
+        let store = await makeStore(sampleSnapshot(fixedStart: S.month(2026, 10), day: 31), today: S.day(2026, 11, 1))
+
+        #expect(store.dueItems?.map(\.dueDate).contains(S.day(2026, 11, 3)) == true)
+    }
+
+    @Test func dueItemsHaveNoDuplicates() async throws {
+        let store = await makeStore(sampleSnapshot(fixedStart: S.month(2026, 10), day: 31), today: S.day(2026, 11, 4))
+
+        let ids = try #require(store.dueItems).map(\.id)
+        #expect(ids.count == Set(ids).count)
+        #expect(ids.contains { $0.hasSuffix("-2026-10") })
+    }
+
+    @Test func overdueOccurrencesBreakTiesByLocalizedName() async {
+        let first = Income(id: UUID(), name: "Zé", kind: .fixed, dayOfMonth: 1, startMonth: S.month(2026, 10))
+        let second = Income(id: UUID(), name: "Ágata", kind: .fixed, dayOfMonth: 1, startMonth: S.month(2026, 10))
+        let amounts = [first, second].map { IncomeAmount(id: UUID(), incomeID: $0.id, amount: 100, validFrom: S.month(2026, 10)) }
+        let store = await makeStore(IncomeSnapshot(incomes: [first, second], amounts: amounts, receipts: []), today: S.today)
+
+        #expect(store.overdueOccurrences.map(\.income.name) == ["Ágata", "Zé"])
+    }
+
+    @Test func moveTodayUpdatesDueItemsWithoutReload() async {
+        var day = S.today
+        let service = FakeIncomeService(snapshot: sampleSnapshot(fixedStart: S.month(2026, 10)))
+        let store = IncomeStore(service: service, today: { day })
+        await store.load()
+        day = S.day(2027, 1, 10)
+
+        store.moveToday()
+
+        #expect(store.today == S.day(2027, 1, 10))
+        #expect(store.dueItems?.map(\.dueDate.yearMonth).contains(S.month(2027, 2)) == true)
+        #expect(service.calls == ["load"])
+    }
+
+    @Test func dueItemUsesOccurrenceTitleAndExpectedAmount() async throws {
+        let (store, _) = await makeStore()
+        let occurrence = try hourlyOctober(store)
+
+        let item = DueItem(occurrence: occurrence)
+
+        #expect(item.id == occurrence.id)
+        #expect(item.kind == .income)
+        #expect(item.title == "Por hora · setembro")
+        #expect(item.amount == occurrence.expectedAmount)
+        #expect(item.dueDate == occurrence.dueDate)
     }
 }

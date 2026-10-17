@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(LockManager.self) private var lockManager
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(AvatarStore.self) private var avatarStore
+    @Environment(ReminderScheduler.self) private var reminders
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -37,8 +38,10 @@ struct RootView: View {
             switch phase {
             case .background:
                 lockManager.didEnterBackground()
+                BackgroundRefresh.schedule()
             case .active:
                 lockManager.willEnterForeground()
+                Task { await syncReminders() }
             default:
                 break
             }
@@ -58,7 +61,14 @@ struct RootView: View {
                         guard lockManager.isUnlocked else { return }
                         async let user: Void = account.refreshUser()
                         await incomeStore.refresh()
+                        await syncReminders()
                         await user
+                    }
+                    .onChange(of: incomeStore.snapshot) {
+                        Task { await syncReminders() }
+                    }
+                    .onChange(of: incomeStore.today) {
+                        Task { await syncReminders() }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
                         Task { await incomeStore.refresh() }
@@ -84,5 +94,16 @@ struct RootView: View {
             }
         }
         .animation(.smooth(duration: 0.35), value: lockManager.phase)
+    }
+
+    private func syncReminders() async {
+        guard let mode = ReminderSyncMode.current(phase: scenePhase, isUnlocked: lockManager.isUnlocked) else { return }
+        incomeStore.moveToday()
+        guard incomeStore.dueItems != nil else { return }
+        if mode.asksPermission {
+            await reminders.requestPermissionIfNeeded(hasIncomes: !incomeStore.snapshot.incomes.isEmpty)
+        }
+        guard let items = incomeStore.dueItems else { return }
+        await reminders.reschedule(items: items, clearingDelivered: mode.clearingDelivered)
     }
 }

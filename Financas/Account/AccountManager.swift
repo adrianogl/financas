@@ -38,6 +38,10 @@ final class AccountManager {
         return user
     }
 
+    func hasSession() async -> Bool {
+        await service.hasSession()
+    }
+
     func refreshUser() async {
         guard user != nil, let fresh = try? await service.refreshUser() else { return }
         apply(fresh)
