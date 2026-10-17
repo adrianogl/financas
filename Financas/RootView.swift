@@ -111,7 +111,7 @@ struct RootView: View {
         incomeStore.moveToday()
         guard incomeStore.dueItems != nil, expenseStore.dueItems(today: incomeStore.today) != nil else { return }
         if mode.asksPermission {
-            let hasEntries = !incomeStore.snapshot.incomes.isEmpty || !expenseStore.snapshot.expenses.isEmpty
+            let hasEntries = ReminderEntries.exist(incomes: incomeStore.snapshot, expenses: expenseStore.snapshot)
             await reminders.requestPermissionIfNeeded(hasEntries: hasEntries)
         }
         guard let incomeItems = incomeStore.dueItems, let expenseItems = expenseStore.dueItems(today: incomeStore.today) else { return }

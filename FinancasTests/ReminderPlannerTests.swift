@@ -290,8 +290,20 @@ struct ReminderPlannerTests {
         #expect(ReminderText.dueToday(items).title == "Hoje: 2 receitas e 1 conta")
     }
 
-    @Test func paidExpenseHasNoReminder() {
-        let reminders = ReminderPlanner.plan(items: [], settings: .standard, now: planningNow, calendar: calendar)
+    @MainActor @Test func paidExpenseHasNoReminder() async {
+        var snapshot = ExpenseSnapshot(expenses: [ExpenseSamples.condominio], terms: [ExpenseSamples.condominioTerm], bills: [])
+        let paidDay = ExpenseSamples.day(2026, 10, 12)
+        let store = ExpenseStore(service: FakeExpenseService(snapshot: snapshot))
+        await store.load()
+        let unpaid = ReminderPlanner.plan(items: store.dueItems(today: ExpenseSamples.today) ?? [], settings: .standard, now: planningNow, calendar: calendar)
+        #expect(!unpaid.isEmpty)
+
+        snapshot.bills = [ExpenseSamples.paid(ExpenseSamples.condominio, ExpenseSamples.month(2026, 10), 1150, on: paidDay)]
+        let paidStore = ExpenseStore(service: FakeExpenseService(snapshot: snapshot))
+        await paidStore.load()
+        let items = paidStore.dueItems(today: ExpenseSamples.today) ?? []
+        let reminders = ReminderPlanner.plan(items: items, settings: .standard, now: planningNow, calendar: calendar)
+        #expect(!items.contains { $0.dueDate.yearMonth == ExpenseSamples.month(2026, 10) })
         #expect(reminders.isEmpty)
     }
 
@@ -314,6 +326,6 @@ struct ReminderPlannerTests {
         items += (0..<14).map { item("inc\($0)", 50, due: today.adding(days: $0)) }
         let reminders = ReminderPlanner.plan(items: items, settings: .standard, now: planningNow, calendar: calendar)
         #expect(reminders.count <= 56)
-        #expect(reminders.count > 42)
+        #expect(reminders.count == 56)
     }
 }

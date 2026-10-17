@@ -22,7 +22,7 @@ struct ReminderSchedulerTests {
         return ReminderScheduler(center: center, defaults: defaults, now: { now }, calendar: calendar)
     }
 
-    @Test func asksOnceWhenThereAreIncomes() async {
+    @Test func asksOnceWhenThereAreEntries() async {
         let center = FakeReminderCenter()
         let scheduler = makeScheduler(center)
         await scheduler.requestPermissionIfNeeded(hasEntries: true)
@@ -30,11 +30,16 @@ struct ReminderSchedulerTests {
         #expect(center.requests == 1)
     }
 
-    @Test func permissionAskedWithOnlyExpenses() async {
-        let center = FakeReminderCenter()
-        let scheduler = makeScheduler(center)
-        await scheduler.requestPermissionIfNeeded(hasEntries: true)
-        #expect(center.requests == 1)
+    @Test func entriesExistWithOnlyExpenses() {
+        #expect(ReminderEntries.exist(incomes: .empty, expenses: ExpenseSamples.snapshot))
+    }
+
+    @Test func entriesExistWithOnlyIncomes() {
+        #expect(ReminderEntries.exist(incomes: IncomeSamples.snapshot, expenses: .empty))
+    }
+
+    @Test func noEntriesWithoutIncomesAndExpenses() {
+        #expect(!ReminderEntries.exist(incomes: .empty, expenses: .empty))
     }
 
     @Test func doesNotAskWithoutIncomes() async {
