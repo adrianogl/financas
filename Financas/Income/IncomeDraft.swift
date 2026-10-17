@@ -10,7 +10,9 @@ struct IncomeDraft: Equatable {
     var startMonth: YearMonth
     var endMonth: YearMonth?
     var oneOffDate: CalendarDay
-    let incomeID: UUID?
+    let incomeID: UUID
+    let isNew: Bool
+    private let amountID: UUID
     private let originalAmount: Decimal?
 
     init(today: CalendarDay) {
@@ -23,7 +25,9 @@ struct IncomeDraft: Equatable {
         startMonth = today.yearMonth
         endMonth = nil
         oneOffDate = today
-        incomeID = nil
+        incomeID = UUID()
+        isNew = true
+        amountID = UUID()
         originalAmount = nil
     }
 
@@ -42,11 +46,9 @@ struct IncomeDraft: Equatable {
         endMonth = income.endMonth
         oneOffDate = income.oneOffDate ?? today
         incomeID = income.id
+        isNew = false
+        amountID = UUID()
         originalAmount = amount
-    }
-
-    var isNew: Bool {
-        incomeID == nil
     }
 
     var amountChanged: Bool {
@@ -70,7 +72,7 @@ struct IncomeDraft: Equatable {
     }
 
     func build() -> (Income, IncomeAmount?) {
-        let id = incomeID ?? UUID()
+        let id = incomeID
         let value = amount ?? 0
 
         guard kind != .oneOff else {
@@ -96,7 +98,7 @@ struct IncomeDraft: Equatable {
         } else {
             return (income, nil)
         }
-        return (income, IncomeAmount(id: UUID(), incomeID: id, amount: value, validFrom: validFrom))
+        return (income, IncomeAmount(id: amountID, incomeID: id, amount: value, validFrom: validFrom))
     }
 
     private var trimmedName: String {

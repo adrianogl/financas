@@ -10,4 +10,13 @@ enum IncomeError: Error, Equatable {
             "Não foi possível salvar. Tente de novo."
         }
     }
+
+    var loadMessage: String {
+        switch self {
+        case .network:
+            message
+        case .unknown:
+            "Não foi possível carregar suas receitas. Tente de novo."
+        }
+    }
 }

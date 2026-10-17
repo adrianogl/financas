@@ -13,6 +13,7 @@ final class IncomeStore {
 
     private let service: IncomeService
     private let currentDay: () -> CalendarDay
+    private var generation = 0
 
     init(service: IncomeService, today: @escaping () -> CalendarDay = { CalendarDay(date: .now) }) {
         self.service = service
@@ -24,17 +25,36 @@ final class IncomeStore {
 
     func load() async {
         guard loadState != .loading else { return }
-        today = currentDay()
+        moveToday()
         loadState = .loading
+        let started = generation
         do {
-            snapshot = try await service.load()
+            let loaded = try await service.load()
+            guard started == generation else { return }
+            snapshot = loaded
             loadState = .loaded
         } catch {
-            loadState = .failed(error.message)
+            guard started == generation else { return }
+            loadState = .failed(error.loadMessage)
+        }
+    }
+
+    func refresh() async {
+        switch loadState {
+        case .idle, .failed:
+            await load()
+        case .loading:
+            return
+        case .loaded:
+            moveToday()
+            let started = generation
+            guard let loaded = try? await service.load(), started == generation else { return }
+            snapshot = loaded
         }
     }
 
     func reset() {
+        generation += 1
         snapshot = .empty
         loadState = .idle
         errorMessage = nil
@@ -128,6 +148,14 @@ final class IncomeStore {
         }
     }
 
+    private func moveToday() {
+        let previous = today
+        today = currentDay()
+        if selectedMonth == previous.yearMonth {
+            selectedMonth = today.yearMonth
+        }
+    }
+
     private var recurring: [Income] {
         snapshot.incomes
             .filter { $0.kind != .oneOff }
@@ -157,12 +185,15 @@ final class IncomeStore {
         isSaving = true
         errorMessage = nil
         defer { isSaving = false }
+        let started = generation
 
         do {
             try await operation()
+            guard started == generation else { return false }
             onSuccess()
             return true
         } catch {
+            guard started == generation else { return false }
             errorMessage = error.message
             return false
         }

@@ -64,6 +64,17 @@ struct IncomeDraftTests {
         #expect(amount.amount == 100)
     }
 
+    @Test func retryingNewDraftKeepsSameID() {
+        var draft = IncomeDraft(today: S.today)
+        draft.name = "Fixa"
+        draft.amount = 10
+        let first = draft.build()
+        let second = draft.build()
+        #expect(draft.isNew)
+        #expect(first.0.id == second.0.id)
+        #expect(first.1?.id == second.1?.id)
+    }
+
     @Test func validation() {
         var draft = IncomeDraft(today: S.today)
         draft.amount = 10

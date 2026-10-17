@@ -159,6 +159,86 @@ struct IncomeStoreTests {
         #expect(store.currentAmount(for: S.fixed) == S.money("13020.04"))
     }
 
+    @Test func resetDiscardsLoadInFlight() async {
+        let service = FakeIncomeService()
+        service.holdsResponses = true
+        let store = IncomeStore(service: service, today: { S.today })
+
+        let loading = Task { await store.load() }
+        await settle()
+        store.reset()
+        service.release()
+        await loading.value
+
+        #expect(store.snapshot == .empty)
+        #expect(store.loadState == .idle)
+    }
+
+    @Test func resetDiscardsSaveInFlight() async throws {
+        let (store, service) = await makeStore()
+        let item = try hourlyOctober(store)
+        service.holdsResponses = true
+
+        let saving = Task { await store.markReceived(item, with: ReceiptDraft(occurrence: item, today: S.today)) }
+        await settle()
+        store.reset()
+        service.release()
+        _ = await saving.value
+
+        #expect(store.snapshot == .empty)
+    }
+
+    @Test func refreshMovesTodayAndReloads() async {
+        var day = S.today
+        let service = FakeIncomeService()
+        let store = IncomeStore(service: service, today: { day })
+        await store.load()
+        var snapshot = S.snapshot
+        snapshot.receipts = [S.receipt(S.fixed, S.month(2026, 11), amount: 1)]
+        service.snapshot = snapshot
+        day = S.day(2026, 11, 2)
+
+        await store.refresh()
+
+        #expect(store.today == S.day(2026, 11, 2))
+        #expect(store.selectedMonth == S.month(2026, 11))
+        #expect(store.snapshot == snapshot)
+        #expect(store.loadState == .loaded)
+        #expect(service.calls == ["load", "load"])
+    }
+
+    @Test func refreshKeepsChosenMonth() async {
+        var day = S.today
+        let store = IncomeStore(service: FakeIncomeService(), today: { day })
+        await store.load()
+        store.selectedMonth = S.month(2027, 3)
+        day = S.day(2026, 11, 2)
+
+        await store.refresh()
+
+        #expect(store.selectedMonth == S.month(2027, 3))
+    }
+
+    @Test func refreshFailureKeepsData() async {
+        let (store, service) = await makeStore()
+        service.nextError = .network
+
+        await store.refresh()
+
+        #expect(store.snapshot == S.snapshot)
+        #expect(store.loadState == .loaded)
+    }
+
+    @Test func loadFailureWithUnknownErrorSaysLoad() async {
+        let service = FakeIncomeService()
+        service.nextError = .unknown
+        let store = IncomeStore(service: service, today: { S.today })
+        await store.load()
+        #expect(store.loadState == .failed(IncomeError.unknown.loadMessage))
+        #expect(IncomeError.unknown.loadMessage == "Não foi possível carregar suas receitas. Tente de novo.")
+        #expect(IncomeError.network.loadMessage == IncomeError.network.message)
+    }
+
     @Test func resetClearsSnapshot() async {
         let (store, _) = await makeStore()
         store.selectedMonth = S.month(2027, 1)

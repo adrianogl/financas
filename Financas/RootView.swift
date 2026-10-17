@@ -45,12 +45,10 @@ struct RootView: View {
                     .allowsHitTesting(lockManager.isUnlocked)
                     .task(id: lockManager.isUnlocked) {
                         guard lockManager.isUnlocked else { return }
-                        switch incomeStore.loadState {
-                        case .idle, .failed:
-                            await incomeStore.load()
-                        case .loading, .loaded:
-                            break
-                        }
+                        await incomeStore.refresh()
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                        Task { await incomeStore.refresh() }
                     }
             }
 
