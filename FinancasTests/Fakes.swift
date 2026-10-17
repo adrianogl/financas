@@ -256,6 +256,8 @@ final class FakeReminderCenter: ReminderCenter {
     private(set) var replaceCalls = 0
     private(set) var deliveredRemoved = 0
     private(set) var removedAll = 0
+    private(set) var replaceLog: [String] = []
+    var replaceSuspensions = 0
 
     init(status: ReminderAuthorization = .notDetermined, grantsOnRequest: Bool = true) {
         self.status = status
@@ -272,7 +274,12 @@ final class FakeReminderCenter: ReminderCenter {
 
     func replacePending(with reminders: [Reminder]) async {
         replaceCalls += 1
+        replaceLog.append("start")
+        for _ in 0..<replaceSuspensions {
+            await Task.yield()
+        }
         pending = reminders
+        replaceLog.append("end")
     }
 
     func removeDelivered() async { deliveredRemoved += 1 }

@@ -6,6 +6,7 @@ final class ReminderScheduler {
     private let defaults: UserDefaults
     private let now: () -> Date
     private let calendar: Calendar
+    private var lastWork: Task<Void, Never>?
 
     init(center: ReminderCenter, defaults: UserDefaults = .standard, now: @escaping () -> Date = { .now }, calendar: Calendar = .current) {
         self.center = center
@@ -23,14 +24,28 @@ final class ReminderScheduler {
     }
 
     func reschedule(items: [DueItem], clearingDelivered: Bool) async {
-        guard await center.authorization() == .allowed else { return }
-        await center.replacePending(with: ReminderPlanner.plan(items: items, now: now(), calendar: calendar))
-        if clearingDelivered {
-            await center.removeDelivered()
+        await enqueue {
+            guard await self.center.authorization() == .allowed else { return }
+            await self.center.replacePending(with: ReminderPlanner.plan(items: items, now: self.now(), calendar: self.calendar))
+            if clearingDelivered {
+                await self.center.removeDelivered()
+            }
         }
     }
 
     func reset() async {
-        await center.removeAll()
+        await enqueue {
+            await self.center.removeAll()
+        }
+    }
+
+    private func enqueue(_ work: @escaping @MainActor () async -> Void) async {
+        let previous = lastWork
+        let current = Task {
+            await previous?.value
+            await work()
+        }
+        lastWork = current
+        await current.value
     }
 }

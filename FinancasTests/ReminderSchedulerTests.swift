@@ -91,4 +91,18 @@ struct ReminderSchedulerTests {
         #expect(center.removedAll == 1)
         #expect(center.pending.isEmpty)
     }
+
+    @Test func concurrentReschedulesRunOneAtATime() async {
+        let center = FakeReminderCenter(status: .allowed)
+        center.replaceSuspensions = 5
+        let scheduler = makeScheduler(center)
+        let today = CalendarDay(date: now, calendar: calendar)
+        let later = [DueItem(id: "b", kind: .income, title: "Aluguel", amount: 50, dueDate: today)]
+        let first = Task { await scheduler.reschedule(items: items, clearingDelivered: false) }
+        let second = Task { await scheduler.reschedule(items: later, clearingDelivered: false) }
+        await first.value
+        await second.value
+        #expect(center.replaceLog == ["start", "end", "start", "end"])
+        #expect(center.pending == ReminderPlanner.plan(items: later, now: now, calendar: calendar))
+    }
 }
