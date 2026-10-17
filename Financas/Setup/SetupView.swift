@@ -27,6 +27,7 @@ struct SetupView: View {
         }
         .padding(.top, 48)
         .id(step)
+        .readableWidth()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(AppBackground())
         .animation(.smooth, value: step)

@@ -32,6 +32,7 @@ struct ConfirmEmailView: View {
                     .frame(maxWidth: .infinity)
             }
             .padding(24)
+            .readableWidth()
         }
         .scrollDismissesKeyboard(.interactively)
         .background(AppBackground())

@@ -37,6 +37,7 @@ struct LockView: View {
             .controlSize(.large)
         }
         .padding(32)
+        .readableWidth()
         .background(AppBackground())
         .onAppear { lockManager.autoUnlockIfNeeded() }
     }

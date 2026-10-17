@@ -51,6 +51,7 @@ struct AccountView: View {
                 }
             }
             .padding(24)
+            .readableWidth()
         }
         .scrollDismissesKeyboard(.interactively)
         .background(AppBackground())

@@ -20,6 +20,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
+                .readableWidth(LayoutConstants.contentWidth)
             }
             .background(AppBackground())
             .toolbar {

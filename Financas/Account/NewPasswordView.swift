@@ -40,6 +40,7 @@ struct NewPasswordView: View {
                 .disabled(account.isWorking)
             }
             .padding(24)
+            .readableWidth()
         }
         .scrollDismissesKeyboard(.interactively)
         .background(AppBackground())
