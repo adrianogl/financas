@@ -62,6 +62,14 @@ final class IncomeStore {
         selectedMonth = today.yearMonth
     }
 
+    func moveToday() {
+        let previous = today
+        today = currentDay()
+        if selectedMonth == previous.yearMonth {
+            selectedMonth = today.yearMonth
+        }
+    }
+
     func showCurrentMonth() {
         selectedMonth = today.yearMonth
     }
@@ -169,14 +177,6 @@ final class IncomeStore {
             try await service.deleteReceipt(id: receipt.id)
         } onSuccess: {
             self.snapshot.receipts.removeAll { $0.id == receipt.id }
-        }
-    }
-
-    private func moveToday() {
-        let previous = today
-        today = currentDay()
-        if selectedMonth == previous.yearMonth {
-            selectedMonth = today.yearMonth
         }
     }
 

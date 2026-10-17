@@ -339,6 +339,20 @@ struct IncomeStoreTests {
         #expect(store.overdueOccurrences.map(\.income.name) == ["Ágata", "Zé"])
     }
 
+    @Test func moveTodayUpdatesDueItemsWithoutReload() async {
+        var day = S.today
+        let service = FakeIncomeService(snapshot: sampleSnapshot(fixedStart: S.month(2026, 10)))
+        let store = IncomeStore(service: service, today: { day })
+        await store.load()
+        day = S.day(2027, 1, 10)
+
+        store.moveToday()
+
+        #expect(store.today == S.day(2027, 1, 10))
+        #expect(store.dueItems?.map(\.dueDate.yearMonth).contains(S.month(2027, 2)) == true)
+        #expect(service.calls == ["load"])
+    }
+
     @Test func dueItemUsesOccurrenceTitleAndExpectedAmount() async throws {
         let (store, _) = await makeStore()
         let occurrence = try hourlyOctober(store)

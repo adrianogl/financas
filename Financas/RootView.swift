@@ -97,8 +97,9 @@ struct RootView: View {
     }
 
     private func syncReminders() async {
-        guard let mode = ReminderSyncMode.current(phase: scenePhase, isUnlocked: lockManager.isUnlocked),
-              incomeStore.dueItems != nil else { return }
+        guard let mode = ReminderSyncMode.current(phase: scenePhase, isUnlocked: lockManager.isUnlocked) else { return }
+        incomeStore.moveToday()
+        guard incomeStore.dueItems != nil else { return }
         if mode.asksPermission {
             await reminders.requestPermissionIfNeeded(hasIncomes: !incomeStore.snapshot.incomes.isEmpty)
         }
