@@ -6,3 +6,5 @@ build/
 Financas/Info.plist
 .omc/
 Config/Secrets.xcconfig
+.mcp.json
+.superpowers/
