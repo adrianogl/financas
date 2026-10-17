@@ -47,7 +47,7 @@ struct HomeView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            AppMark(size: 44)
+            CollapsingAppLogo(markSize: 44, isVisible: lockManager.isUnlocked)
                 .padding(.bottom, 10)
             Text(Greeting.text(hour: Calendar.current.component(.hour, from: .now), name: account.userName ?? ""))
                 .font(.largeTitle.bold())

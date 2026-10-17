@@ -1,11 +1,19 @@
 import SwiftUI
 
 struct AppLogo: View {
-    var layout: AppLogoLayout = .stacked
-    var markSize: CGFloat = 88
+    let layout: AppLogoLayout
+    let markSize: CGFloat
+    let animated: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var reveal = AppLogoReveal.hidden
+    @State private var reveal: AppLogoReveal
+
+    init(layout: AppLogoLayout = .stacked, markSize: CGFloat = 88, animated: Bool = true) {
+        self.layout = layout
+        self.markSize = markSize
+        self.animated = animated
+        _reveal = State(initialValue: animated ? .hidden : .complete)
+    }
 
     var body: some View {
         Group {
@@ -39,7 +47,7 @@ struct AppLogo: View {
     }
 
     private func animateIn() {
-        guard !reduceMotion else {
+        guard animated, !reduceMotion else {
             reveal = .complete
             return
         }
