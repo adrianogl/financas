@@ -9,12 +9,11 @@ struct HomeMonthSummary: Equatable {
     static func make(month: YearMonth, snapshot: IncomeSnapshot, today: CalendarDay) -> HomeMonthSummary {
         let incomes = Dictionary(uniqueKeysWithValues: snapshot.incomes.map { ($0.id, $0) })
         let receipts = snapshot.receipts.filter { incomes[$0.incomeID] != nil }
-        let opening = receipts.filter { $0.receivedOn.yearMonth < month }.map(\.amount).reduce(0, +)
         let inMonth = receipts.filter { $0.receivedOn.yearMonth == month }
-        let balance = opening + inMonth.map(\.amount).reduce(0, +)
+        let balance = inMonth.map(\.amount).reduce(0, +)
 
-        var points = [BalancePoint(day: 1, balance: double(opening))]
-        var running = opening
+        var points = [BalancePoint(day: 1, balance: 0)]
+        var running: Decimal = 0
         for (day, items) in Dictionary(grouping: inMonth, by: \.receivedOn.day).sorted(by: { $0.key < $1.key }) {
             running += items.map(\.amount).reduce(0, +)
             points.append(BalancePoint(day: day, balance: double(running)))

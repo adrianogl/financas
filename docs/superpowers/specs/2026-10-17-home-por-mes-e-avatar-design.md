@@ -64,14 +64,14 @@ textos em português; testes com Swift Testing.
 
 ### Saldo
 
-- Rótulo "Saldo até \(mês)" ("Saldo até outubro").
-- Valor: soma dos recebimentos com `receivedOn` até o último dia do mês escolhido. O `DatePicker`
+- Fechamento do mês, não acumulado. Rótulo "Saldo de \(mês)" ("Saldo de outubro").
+- Valor: soma dos recebimentos com `receivedOn` dentro do mês escolhido. O `DatePicker`
   "Recebido em" do `ReceiptSheet` passa a aceitar só datas até hoje, então não existe recebimento no
   futuro. (Decisão de quem desenhou.) Usa a data em que
   o dinheiro entrou, não o mês da ocorrência (decisão de quem desenhou: uma receita de outubro paga em
   3/11 entra no saldo de novembro, como na conta corrente).
-- Gráfico do mês: começa no saldo do fim do mês anterior e sobe em cada dia com recebimento, até o fim
-  do mês (ou até hoje, no mês atual). Sem recebimentos no mês, a linha é reta no saldo anterior.
+- Gráfico do mês: começa em zero no dia 1 e sobe em cada dia com recebimento, até o fim do mês (ou até
+  hoje, no mês atual). Sem recebimentos no mês, a linha é reta em zero.
 - Quando as despesas existirem, o saldo passa a ser recebimentos menos despesas, com a mesma regra de
   data.
 
@@ -121,7 +121,7 @@ regra de atrasadas de meses anteriores continua valendo só no mês atual.
 ### Arquitetura
 
 - `HomeMonthSummary` (função pura, testável): a partir do `IncomeSnapshot`, do mês e de hoje, calcula
-  o saldo até o mês, os pontos do gráfico e os lançamentos do mês.
+  o saldo do mês, os pontos do gráfico e os lançamentos do mês.
 - `AvatarStore` (`@MainActor @Observable`) dono da imagem do avatar e das ações escolher e remover.
   Fala com o Supabase por um protocolo, com fake nos testes, como `IncomeService`. Também recebe
   `reset()` no `onSignedOut`.
@@ -131,7 +131,7 @@ regra de atrasadas de meses anteriores continua valendo só no mês atual.
 
 ## Como validar
 
-- Testes do `HomeMonthSummary`: saldo até setembro, outubro e novembro com recebimentos em datas
+- Testes do `HomeMonthSummary`: saldo de setembro, outubro e novembro com recebimentos em datas
   diferentes; receita de outubro paga em 3/11 conta em novembro; lançamentos ordenados; mês sem
   recebimento; pontos do gráfico.
 - Testes do `AvatarStore` com fake: inicial do nome e do e-mail; escolher foto grava e atualiza a

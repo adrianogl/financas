@@ -41,12 +41,12 @@ struct HomeMonthSummaryTests {
         #expect(result.points.map(\.balance) == [0, double("13020.04"), double("27420.04"), double("27420.04")])
     }
 
-    @Test func novemberCarriesBalance() {
+    @Test func novemberStartsFromZero() {
         let result = summary(S.month(2026, 11), snapshot())
-        #expect(result.balance == S.money("27420.04"))
+        #expect(result.balance == 0)
         #expect(result.entries.isEmpty)
         #expect(result.points.map(\.day) == [1, 30])
-        #expect(result.points.map(\.balance) == [double("27420.04"), double("27420.04")])
+        #expect(result.points.map(\.balance) == [0, 0])
     }
 
     @Test func paidInNovemberCountsInNovember() {
@@ -55,9 +55,10 @@ struct HomeMonthSummaryTests {
         let november = summary(S.month(2026, 11), data, today: S.day(2026, 11, 5))
         #expect(october.balance == 14400)
         #expect(october.entries.map(\.kind) == [.hourly])
-        #expect(november.balance == S.money("27420.04"))
+        #expect(november.balance == S.money("13020.04"))
         #expect(november.entries.first?.receivedOn == S.day(2026, 11, 3))
         #expect(november.points.map(\.day) == [1, 3, 5])
+        #expect(november.points.map(\.balance) == [0, double("13020.04"), double("13020.04")])
     }
 
     @Test func ignoresReceiptOfDeletedIncome() {

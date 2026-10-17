@@ -109,7 +109,7 @@ struct HomeView: View {
     private func balanceCard(_ summary: HomeMonthSummary) -> some View {
         let domain = summary.chartDomain
         return VStack(alignment: .leading, spacing: 6) {
-            Text("Saldo até \(IncomeFormat.monthName(summary.month))")
+            Text("Saldo de \(IncomeFormat.monthName(summary.month))")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Text(IncomeFormat.currency(summary.balance))
