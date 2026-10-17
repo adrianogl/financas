@@ -8,17 +8,27 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            Tab("Início", systemImage: "house", value: AppTab.home) {
+            Tab(value: AppTab.home) {
                 HomeView(selectedTab: $selectedTab)
+            } label: {
+                Label("Início", systemImage: "house")
+                    .labelStyle(.iconOnly)
             }
-            Tab("Receitas", systemImage: "arrow.down.circle", value: AppTab.incomes) {
+            Tab(value: AppTab.incomes) {
                 IncomesView()
+            } label: {
+                Label("Receitas", systemImage: "arrow.down.circle")
+                    .labelStyle(.iconOnly)
             }
-            Tab("Atrasadas", systemImage: "exclamationmark.circle", value: AppTab.overdue) {
+            Tab(value: AppTab.overdue) {
                 OverdueView()
+            } label: {
+                Label("Atrasadas", systemImage: "exclamationmark.circle")
+                    .labelStyle(.iconOnly)
             }
             .badge(incomeStore.overdueOccurrences.count)
         }
+        .tabBarMinimizeBehavior(.onScrollDown)
         .onAppear(perform: applyPendingRoute)
         .onChange(of: router.pendingRoute, applyPendingRoute)
         .onChange(of: lockManager.isUnlocked, applyPendingRoute)
