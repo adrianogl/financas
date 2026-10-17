@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct RecurringIncomeRow: View {
+    @Environment(IncomeStore.self) private var store
     let income: Income
     let rate: Decimal?
 
@@ -10,7 +11,7 @@ struct RecurringIncomeRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(income.name)
                     .font(.subheadline.weight(.semibold))
-                Text(IncomeFormat.rule(for: income, rate: rate))
+                Text(IncomeFormat.rule(for: income, rate: rate, nonBusinessDay: store.snapshot.settings.nonBusinessDay))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

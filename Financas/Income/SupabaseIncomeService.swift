@@ -17,7 +17,8 @@ final class SupabaseIncomeService: IncomeService {
             async let incomes: [Income] = client.from(IncomeConstants.incomesTable).select().execute().value
             async let amounts: [IncomeAmount] = client.from(IncomeConstants.amountsTable).select().execute().value
             async let receipts: [IncomeReceipt] = client.from(IncomeConstants.receiptsTable).select().execute().value
-            return try await IncomeSnapshot(incomes: incomes, amounts: amounts, receipts: receipts)
+            async let settings: [AccountSettings] = client.from(SettingsConstants.table).select().limit(1).execute().value
+            return try await IncomeSnapshot(incomes: incomes, amounts: amounts, receipts: receipts, settings: settings.first ?? .standard)
         } catch {
             throw Self.incomeError(from: error)
         }
@@ -57,6 +58,18 @@ final class SupabaseIncomeService: IncomeService {
     func deleteReceipt(id: UUID) async throws(IncomeError) {
         do {
             try await client.from(IncomeConstants.receiptsTable).delete().eq("id", value: id.uuidString).execute()
+        } catch {
+            throw Self.incomeError(from: error)
+        }
+    }
+
+    func saveSettings(_ settings: AccountSettings, previous: AccountSettings) async throws(IncomeError) {
+        let columns = settings.changedColumns(from: previous)
+        guard !columns.isEmpty else { return }
+        do {
+            try await client.from(SettingsConstants.table)
+                .upsert(columns, onConflict: "user_id", returning: .minimal)
+                .execute()
         } catch {
             throw Self.incomeError(from: error)
         }

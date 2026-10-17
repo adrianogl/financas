@@ -23,7 +23,7 @@ struct IncomesView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Nova receita", systemImage: "plus") {
-                        editing = IncomeDraft(today: store.today)
+                        editing = IncomeDraft(today: store.today, kind: store.settings.orderedEnabledKinds.first ?? .fixed)
                     }
                 }
             }
@@ -51,7 +51,7 @@ struct IncomesView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             GlassPrimaryButton(title: "Cadastrar receita") {
-                editing = IncomeDraft(today: store.today)
+                editing = IncomeDraft(today: store.today, kind: store.settings.orderedEnabledKinds.first ?? .fixed)
             }
             .padding(.top, 6)
         }

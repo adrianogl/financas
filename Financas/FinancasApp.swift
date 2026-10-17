@@ -67,7 +67,7 @@ struct FinancasApp: App {
     private func refreshReminders() async {
         BackgroundRefresh.schedule()
         await BackgroundReminderRefresh.run(hasSession: { await accountManager.hasSession() }, store: incomeStore) { items in
-            await reminders.reschedule(items: items, clearingDelivered: false)
+            await reminders.reschedule(items: items, settings: incomeStore.snapshot.settings, clearingDelivered: false)
         }
     }
 }

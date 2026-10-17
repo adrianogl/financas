@@ -37,6 +37,22 @@ enum BusinessCalendar {
         return current
     }
 
+    static func businessDayOnOrBefore(_ day: CalendarDay) -> CalendarDay {
+        var current = day
+        while !isBusinessDay(current) {
+            current = current.adding(days: -1)
+        }
+        return current
+    }
+
+    static func dueDate(for day: CalendarDay, rule: NonBusinessDayRule) -> CalendarDay {
+        switch rule {
+        case .next: businessDayOnOrAfter(day)
+        case .previous: businessDayOnOrBefore(day)
+        case .keep: day
+        }
+    }
+
     static func businessDays(in month: YearMonth) -> Int {
         (1...month.dayCount).filter { isBusinessDay(month.day($0)) }.count
     }

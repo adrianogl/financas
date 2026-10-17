@@ -44,4 +44,27 @@ struct BusinessCalendarTests {
         #expect(BusinessCalendar.businessDays(in: YearMonth(year: 2026, month: 11)) == 19)
         #expect(BusinessCalendar.businessDays(in: YearMonth(year: 2026, month: 2)) == 18)
     }
+
+    @Test func nextRuleMovesWeekendForward() {
+        #expect(BusinessCalendar.dueDate(for: day(2026, 11, 1), rule: .next) == day(2026, 11, 3))
+    }
+
+    @Test func previousRuleCrossesMonth() {
+        #expect(BusinessCalendar.dueDate(for: day(2026, 11, 1), rule: .previous) == day(2026, 10, 30))
+    }
+
+    @Test func keepRuleKeepsDay() {
+        #expect(BusinessCalendar.dueDate(for: day(2026, 11, 1), rule: .keep) == day(2026, 11, 1))
+    }
+
+    @Test func businessDayUnchangedByAnyRule() {
+        for rule in NonBusinessDayRule.allCases {
+            #expect(BusinessCalendar.dueDate(for: day(2026, 10, 16), rule: rule) == day(2026, 10, 16))
+        }
+    }
+
+    @Test func previousRuleSkipsHoliday() {
+        #expect(BusinessCalendar.dueDate(for: day(2026, 11, 15), rule: .previous) == day(2026, 11, 13))
+        #expect(BusinessCalendar.dueDate(for: day(2026, 11, 2), rule: .previous) == day(2026, 10, 30))
+    }
 }

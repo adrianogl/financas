@@ -26,7 +26,7 @@ final class SystemReminderCenter: ReminderCenter {
             content.body = reminder.body
             content.sound = .default
             content.userInfo = [ReminderConstants.routeKey: reminder.route.rawValue]
-            let components = DateComponents(year: reminder.day.year, month: reminder.day.month, day: reminder.day.day, hour: reminder.hour, minute: 0)
+            let components = DateComponents(year: reminder.day.year, month: reminder.day.month, day: reminder.day.day, hour: reminder.time.hour, minute: reminder.time.minute)
             let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
             try? await center.add(UNNotificationRequest(identifier: reminder.id, content: content, trigger: trigger))
         }

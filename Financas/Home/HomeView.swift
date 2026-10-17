@@ -11,6 +11,7 @@ struct HomeView: View {
     @State private var confirmsSignOut = false
     @State private var photoItem: PhotosPickerItem?
     @State private var showsPhotoPicker = false
+    @State private var showsSettings = false
 
     var body: some View {
         @Bindable var incomeStore = incomeStore
@@ -44,6 +45,9 @@ struct HomeView: View {
                                 removePhoto()
                             }
                         }
+                        Button("Configurações", systemImage: "gearshape") {
+                            showsSettings = true
+                        }
                         Button("Bloquear", systemImage: "lock") {
                             lockManager.lock()
                         }
@@ -60,6 +64,9 @@ struct HomeView: View {
                     }
                 }
                 .sharedBackgroundVisibility(.hidden)
+            }
+            .sheet(isPresented: $showsSettings) {
+                SettingsView()
             }
             .photosPicker(isPresented: $showsPhotoPicker, selection: $photoItem, matching: .images)
             .onChange(of: photoItem) { _, item in
