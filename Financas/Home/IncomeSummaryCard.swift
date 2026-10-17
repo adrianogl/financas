@@ -35,7 +35,7 @@ struct IncomeSummaryCard: View {
             if store.snapshot.incomes.isEmpty {
                 emptyState
             } else {
-                summary(store.summary(for: store.today.yearMonth))
+                summary(store.summary(for: store.selectedMonth))
             }
         }
     }
@@ -56,7 +56,7 @@ struct IncomeSummaryCard: View {
     private func summary(_ summary: MonthSummary) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Falta receber em \(IncomeFormat.monthName(store.today.yearMonth))")
+                Text("Falta receber em \(IncomeFormat.monthName(store.selectedMonth))")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()

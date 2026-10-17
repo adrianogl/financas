@@ -1,37 +1,24 @@
 import SwiftUI
 
 struct TransactionRow: View {
-    let transaction: SampleTransaction
+    let entry: HomeEntry
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: transaction.systemImage)
-                .font(.footnote.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 36, height: 36)
-                .background(tint, in: .circle)
+            IncomeIcon(systemImage: entry.kind.systemImage, tint: Theme.positive)
             VStack(alignment: .leading, spacing: 2) {
-                Text(transaction.name)
+                Text(entry.title)
                     .font(.subheadline.weight(.semibold))
-                Text("\(transaction.category) · \(transaction.dateLabel)")
+                Text("Receita · \(IncomeFormat.shortDate(entry.receivedOn))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text(amountText)
+            Text("+ \(IncomeFormat.currency(entry.amount))")
                 .font(.subheadline.weight(.semibold))
                 .monospacedDigit()
-                .foregroundStyle(transaction.isIncome ? Theme.positive : .primary)
+                .foregroundStyle(Theme.positive)
         }
         .padding(.vertical, 6)
-    }
-
-    private var tint: Color {
-        Theme.categoryTints.indices.contains(transaction.tintIndex) ? Theme.categoryTints[transaction.tintIndex] : Theme.positive
-    }
-
-    private var amountText: String {
-        let value = abs(transaction.amount).formatted(.currency(code: HomeConstants.currencyCode))
-        return transaction.isIncome ? "+ \(value)" : value
     }
 }

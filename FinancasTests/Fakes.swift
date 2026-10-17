@@ -68,6 +68,9 @@ final class FakeAccountService: AccountService {
     var handleResult: Result<AccountUser, AccountError> = .success(.sample)
     var updateResult: Result<Void, AccountError> = .success(())
     var suspendsSignIn = false
+    var refreshResult: Result<AccountUser, AccountError> = .success(.sample)
+    var avatarUpdateResult: Result<Void, AccountError> = .success(())
+    private(set) var updatedAvatarVersions: [Int?] = []
 
     private(set) var signInCalls: [(email: String, password: String)] = []
     private(set) var signUpCalls: [(name: String, email: String, password: String)] = []
@@ -116,6 +119,18 @@ final class FakeAccountService: AccountService {
     func handle(url: URL) async throws(AccountError) -> AccountUser {
         handledURLs.append(url)
         return try handleResult.get()
+    }
+
+    func refreshUser() async throws(AccountError) -> AccountUser {
+        try refreshResult.get()
+    }
+
+    func updateAvatarVersion(_ version: Int?) async throws(AccountError) -> AccountUser {
+        updatedAvatarVersions.append(version)
+        try avatarUpdateResult.get()
+        var user = storedUser ?? .sample
+        user.avatarVersion = version
+        return user
     }
 
     func updatePassword(_ password: String) async throws(AccountError) {
@@ -178,4 +193,56 @@ final class FakeIncomeService: IncomeService {
             throw error
         }
     }
+}
+
+@MainActor
+final class FakeAvatarService: AvatarService {
+    var files: [Int: Data] = [:]
+    var nextError: AvatarError?
+    var holdsResponses = false
+    private(set) var uploads: [(version: Int, data: Data)] = []
+    private(set) var downloadedVersions: [Int] = []
+    private(set) var removedVersions: [Int] = []
+    private var pending: [CheckedContinuation<Void, Never>] = []
+
+    func release() {
+        holdsResponses = false
+        pending.forEach { $0.resume() }
+        pending.removeAll()
+    }
+
+    func upload(_ data: Data, userID: String, version: Int) async throws(AvatarError) {
+        uploads.append((version, data))
+        try await respond()
+        files[version] = data
+    }
+
+    func download(userID: String, version: Int) async throws(AvatarError) -> Data {
+        downloadedVersions.append(version)
+        try await respond()
+        guard let data = files[version] else { throw .unknown }
+        return data
+    }
+
+    func remove(userID: String, version: Int) async throws(AvatarError) {
+        removedVersions.append(version)
+        try await respond()
+        files[version] = nil
+    }
+
+    private func respond() async throws(AvatarError) {
+        if holdsResponses {
+            await withCheckedContinuation { pending.append($0) }
+        }
+        if let error = nextError {
+            nextError = nil
+            throw error
+        }
+    }
+}
+
+@MainActor
+final class AvatarVersionRecorder {
+    var versions: [Int?] = []
+    var error: AccountError?
 }

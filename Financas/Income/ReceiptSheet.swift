@@ -40,7 +40,7 @@ struct ReceiptSheet: View {
                 }
 
                 Section {
-                    DatePicker("Recebido em", selection: receivedOn, displayedComponents: .date)
+                    DatePicker("Recebido em", selection: receivedOn, in: ...store.today.date(), displayedComponents: .date)
                     LabeledContent("Valor recebido") {
                         TextField("Valor recebido", value: $draft.amount, format: .currency(code: IncomeConstants.currencyCode))
                             .keyboardType(.decimalPad)

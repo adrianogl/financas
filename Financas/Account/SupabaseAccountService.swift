@@ -78,6 +78,24 @@ final class SupabaseAccountService: AccountService {
         }
     }
 
+    func refreshUser() async throws(AccountError) -> AccountUser {
+        do {
+            return Self.accountUser(from: try await client.auth.user())
+        } catch {
+            throw Self.accountError(from: error)
+        }
+    }
+
+    func updateAvatarVersion(_ version: Int?) async throws(AccountError) -> AccountUser {
+        do {
+            let value: AnyJSON = version.map { .integer($0) } ?? .null
+            let user = try await client.auth.update(user: UserAttributes(data: [AccountConstants.avatarVersionMetadataKey: value]))
+            return Self.accountUser(from: user)
+        } catch {
+            throw Self.accountError(from: error)
+        }
+    }
+
     func signOut(scope: Financas.SignOutScope) async {
         try? await client.auth.signOut(scope: scope == .local ? .local : .others)
     }
@@ -86,7 +104,8 @@ final class SupabaseAccountService: AccountService {
         AccountUser(
             id: user.id.uuidString,
             email: user.email ?? "",
-            name: user.userMetadata[AccountConstants.nameMetadataKey]?.stringValue ?? ""
+            name: user.userMetadata[AccountConstants.nameMetadataKey]?.stringValue ?? "",
+            avatarVersion: user.userMetadata[AccountConstants.avatarVersionMetadataKey].flatMap { $0.intValue ?? $0.doubleValue.map { Int($0) } }
         )
     }
 

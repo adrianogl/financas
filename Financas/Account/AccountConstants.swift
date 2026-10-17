@@ -8,6 +8,7 @@ enum AccountConstants {
     static let installMarkerKey = "install.v2"
     static let legacyNameKey = "profile.name"
     static let nameMetadataKey = "name"
+    static let avatarVersionMetadataKey = "avatar_version"
     static let urlInfoKey = "SupabaseURL"
     static let keyInfoKey = "SupabaseKey"
 }

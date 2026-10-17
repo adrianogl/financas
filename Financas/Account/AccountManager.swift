@@ -30,8 +30,28 @@ final class AccountManager {
     }
 
     var userName: String? {
+        user?.name
+    }
+
+    var user: AccountUser? {
         guard case .signedIn(let user) = state else { return nil }
-        return user.name
+        return user
+    }
+
+    func refreshUser() async {
+        guard user != nil, let fresh = try? await service.refreshUser() else { return }
+        apply(fresh)
+    }
+
+    func updateAvatarVersion(_ version: Int?) async throws(AccountError) -> AccountUser {
+        let updated = try await service.updateAvatarVersion(version)
+        apply(updated)
+        return updated
+    }
+
+    func apply(_ updated: AccountUser) {
+        guard case .signedIn(let current) = state, current.id == updated.id else { return }
+        state = .signedIn(updated)
     }
 
     func start() async {
