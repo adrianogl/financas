@@ -128,3 +128,54 @@ final class FakeAccountService: AccountService {
         storedUser = nil
     }
 }
+
+@MainActor
+final class FakeIncomeService: IncomeService {
+    var snapshot: IncomeSnapshot
+    var nextError: IncomeError?
+    var holdsResponses = false
+    private(set) var calls: [String] = []
+    private var pending: [CheckedContinuation<Void, Never>] = []
+
+    init(snapshot: IncomeSnapshot = IncomeSamples.snapshot) {
+        self.snapshot = snapshot
+    }
+
+    func release() {
+        holdsResponses = false
+        pending.forEach { $0.resume() }
+        pending.removeAll()
+    }
+
+    func load() async throws(IncomeError) -> IncomeSnapshot {
+        try await respond("load")
+        return snapshot
+    }
+
+    func save(_ income: Income, amount: IncomeAmount?) async throws(IncomeError) {
+        try await respond("saveIncome")
+    }
+
+    func delete(incomeID: UUID) async throws(IncomeError) {
+        try await respond("deleteIncome")
+    }
+
+    func save(_ receipt: IncomeReceipt) async throws(IncomeError) {
+        try await respond("saveReceipt")
+    }
+
+    func deleteReceipt(id: UUID) async throws(IncomeError) {
+        try await respond("deleteReceipt")
+    }
+
+    private func respond(_ call: String) async throws(IncomeError) {
+        calls.append(call)
+        if holdsResponses {
+            await withCheckedContinuation { pending.append($0) }
+        }
+        if let error = nextError {
+            nextError = nil
+            throw error
+        }
+    }
+}
