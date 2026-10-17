@@ -1,34 +1,19 @@
-import Charts
 import SwiftUI
 
 struct HomeView: View {
-    @Environment(LockManager.self) private var lockManager
-    @Environment(AccountManager.self) private var account
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(ExpenseStore.self) private var expenseStore
-    @Environment(AvatarStore.self) private var avatarStore
     @Environment(AppNavigation.self) private var navigation
 
     var body: some View {
-        @Bindable var incomeStore = incomeStore
-        let month = incomeStore.selectedMonth
-        let summary = HomeMonthSummary.make(month: month, snapshot: incomeStore.snapshot, expenses: expenseStore.snapshot, today: incomeStore.today)
-
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    MonthPicker(month: $incomeStore.selectedMonth)
-                    balanceCard(summary)
-                    MonthBalanceCard(
-                        openIncomes: { navigation.section = .incomes },
-                        openExpenses: { navigation.section = .expenses }
-                    )
-                    entriesCard(summary)
+            Group {
+                if navigation.mode == .compact {
+                    compact
+                } else {
+                    HomeWideView()
+                        .toolbar(navigation.isSidebarVisible ? .hidden : .automatic, for: .navigationBar)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
-                .readableWidth(LayoutConstants.contentWidth)
             }
             .background(AppBackground())
             .toolbar {
@@ -45,57 +30,26 @@ struct HomeView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            CollapsingAppLogo(markSize: 44, isVisible: lockManager.isUnlocked)
-                .padding(.bottom, 10)
-            Text(Greeting.text(hour: Calendar.current.component(.hour, from: .now), name: account.userName ?? ""))
-                .font(.largeTitle.bold())
-            Text(Greeting.dateText(for: .now))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            if let message = avatarStore.errorMessage {
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.warning)
-                    .padding(.top, 4)
-            }
-        }
-    }
+    private var compact: some View {
+        @Bindable var incomeStore = incomeStore
+        let month = incomeStore.selectedMonth
+        let summary = HomeMonthSummary.make(month: month, snapshot: incomeStore.snapshot, expenses: expenseStore.snapshot, today: incomeStore.today)
 
-    private func balanceCard(_ summary: HomeMonthSummary) -> some View {
-        let domain = summary.chartDomain
-        return VStack(alignment: .leading, spacing: 6) {
-            Text("Saldo de \(IncomeFormat.monthName(summary.month))")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text(IncomeFormat.currency(summary.balance))
-                .font(.system(size: 34, weight: .semibold))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-            Chart(summary.points) { point in
-                AreaMark(
-                    x: .value("Dia", point.day),
-                    yStart: .value("Base", domain.lowerBound),
-                    yEnd: .value("Saldo", point.balance)
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HomeHeader()
+                MonthPicker(month: $incomeStore.selectedMonth)
+                BalanceChartCard(summary: summary, chartHeight: 96, showsDayScale: false)
+                MonthBalanceCard(
+                    openIncomes: { navigation.section = .incomes },
+                    openExpenses: { navigation.section = .expenses }
                 )
-                .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.28), Theme.accent.opacity(0)], startPoint: .top, endPoint: .bottom))
-
-                LineMark(x: .value("Dia", point.day), y: .value("Saldo", point.balance))
-                    .foregroundStyle(Theme.accent)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                entriesCard(summary)
             }
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
-            .chartXScale(domain: 1...summary.month.dayCount)
-            .chartYScale(domain: domain)
-            .frame(height: 96)
-            .padding(.top, 8)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 32)
+            .readableWidth(LayoutConstants.contentWidth)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular, in: .rect(cornerRadius: 26))
-        .animation(.smooth, value: summary)
     }
 
     private func entriesCard(_ summary: HomeMonthSummary) -> some View {

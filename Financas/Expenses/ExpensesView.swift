@@ -7,8 +7,9 @@ struct ExpensesView: View {
 
     var body: some View {
         @Bindable var incomeStore = incomeStore
-        let open = openOccurrences
-        let paid = paidOccurrences
+        let list = monthList
+        let open = list.open
+        let paid = list.paid
 
         NavigationStack {
             ListDetailLayout(
@@ -37,12 +38,8 @@ struct ExpensesView: View {
         hasMonthList ? store.occurrences(in: incomeStore.selectedMonth, today: incomeStore.today) : []
     }
 
-    private var openOccurrences: [ExpenseOccurrence] {
-        monthOccurrences.filter { $0.status != .paid }.sorted(by: openOrder)
-    }
-
-    private var paidOccurrences: [ExpenseOccurrence] {
-        monthOccurrences.filter { $0.status == .paid }
+    private var monthList: ExpenseMonthList {
+        ExpenseMonthList(occurrences: monthOccurrences)
     }
 
     private var emptyMonthText: String {
@@ -179,18 +176,6 @@ struct ExpensesView: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.secondary)
             .padding(.leading, 6)
-    }
-
-    private func openOrder(_ lhs: ExpenseOccurrence, _ rhs: ExpenseOccurrence) -> Bool {
-        let lhsOverdue = lhs.status == .overdue
-        let rhsOverdue = rhs.status == .overdue
-        if lhsOverdue != rhsOverdue {
-            return lhsOverdue
-        }
-        if lhsOverdue, lhs.month != rhs.month {
-            return lhs.month < rhs.month
-        }
-        return (lhs.dueDate, lhs.expense.name) < (rhs.dueDate, rhs.expense.name)
     }
 
     private func create() {

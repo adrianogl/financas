@@ -6,8 +6,9 @@ struct IncomesView: View {
 
     var body: some View {
         @Bindable var store = store
-        let open = openOccurrences
-        let received = receivedOccurrences
+        let list = monthList
+        let open = list.open
+        let received = list.received
 
         NavigationStack {
             ListDetailLayout(
@@ -36,14 +37,8 @@ struct IncomesView: View {
         hasMonthList ? store.occurrences(in: store.selectedMonth) : []
     }
 
-    private var openOccurrences: [IncomeOccurrence] {
-        monthOccurrences
-            .filter { $0.status != .received }
-            .sorted { ($0.status == .overdue ? 0 : 1, $0.dueDate) < ($1.status == .overdue ? 0 : 1, $1.dueDate) }
-    }
-
-    private var receivedOccurrences: [IncomeOccurrence] {
-        monthOccurrences.filter { $0.status == .received }
+    private var monthList: IncomeMonthList {
+        IncomeMonthList(occurrences: monthOccurrences)
     }
 
     private var emptyMonthText: String {
