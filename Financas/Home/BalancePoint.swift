@@ -1,6 +1,6 @@
-struct BalancePoint: Identifiable {
+struct BalancePoint: Identifiable, Equatable {
     let day: Int
     let balance: Double
 
-    var id: Int { day }
+    var id: String { "\(day)-\(balance)" }
 }
