@@ -20,6 +20,12 @@ struct MainTabView: View {
                 Label("Receitas", systemImage: "arrow.down.circle")
                     .labelStyle(.iconOnly)
             }
+            Tab(value: AppTab.expenses) {
+                ExpensesView()
+            } label: {
+                Label("Despesas", systemImage: "arrow.up.circle")
+                    .labelStyle(.iconOnly)
+            }
             Tab(value: AppTab.overdue) {
                 OverdueView()
             } label: {
