@@ -6,6 +6,7 @@ struct HomeView: View {
     @Environment(LockManager.self) private var lockManager
     @Environment(AccountManager.self) private var account
     @Environment(IncomeStore.self) private var incomeStore
+    @Environment(ExpenseStore.self) private var expenseStore
     @Environment(AvatarStore.self) private var avatarStore
     @Binding var selectedTab: AppTab
     @State private var confirmsSignOut = false
@@ -16,7 +17,7 @@ struct HomeView: View {
     var body: some View {
         @Bindable var incomeStore = incomeStore
         let month = incomeStore.selectedMonth
-        let summary = HomeMonthSummary.make(month: month, snapshot: incomeStore.snapshot, today: incomeStore.today)
+        let summary = HomeMonthSummary.make(month: month, snapshot: incomeStore.snapshot, expenses: expenseStore.snapshot, today: incomeStore.today)
 
         NavigationStack {
             ScrollView {
@@ -24,9 +25,10 @@ struct HomeView: View {
                     header
                     MonthPicker(month: $incomeStore.selectedMonth)
                     balanceCard(summary)
-                    IncomeSummaryCard {
-                        selectedTab = .incomes
-                    }
+                    MonthBalanceCard(
+                        openIncomes: { selectedTab = .incomes },
+                        openExpenses: { selectedTab = .expenses }
+                    )
                     entriesCard(summary)
                 }
                 .padding(.horizontal, 20)

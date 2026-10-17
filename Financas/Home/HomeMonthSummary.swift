@@ -6,15 +6,23 @@ struct HomeMonthSummary: Equatable {
     let points: [BalancePoint]
     let entries: [HomeEntry]
 
-    static func make(month: YearMonth, snapshot: IncomeSnapshot, today: CalendarDay) -> HomeMonthSummary {
+    static func make(month: YearMonth, snapshot: IncomeSnapshot, expenses: ExpenseSnapshot, today: CalendarDay) -> HomeMonthSummary {
         let incomes = Dictionary(uniqueKeysWithValues: snapshot.incomes.map { ($0.id, $0) })
         let receipts = snapshot.receipts.filter { incomes[$0.incomeID] != nil }
         let inMonth = receipts.filter { $0.receivedOn.yearMonth == month }
-        let balance = inMonth.map(\.amount).reduce(0, +)
+        let names = Dictionary(uniqueKeysWithValues: expenses.expenses.map { ($0.id, $0.name) })
+        let payments = expenses.bills.compactMap { bill -> (bill: ExpenseBill, name: String, paidOn: CalendarDay, amount: Decimal)? in
+            guard let name = names[bill.expenseID], let paidOn = bill.paidOn, let amount = bill.paidAmount, paidOn.yearMonth == month else { return nil }
+            return (bill, name, paidOn, amount)
+        }
+
+        var movements = inMonth.map { (day: $0.receivedOn.day, amount: $0.amount) }
+        movements += payments.map { (day: $0.paidOn.day, amount: -$0.amount) }
+        let balance = movements.map(\.amount).reduce(0, +)
 
         var points = [BalancePoint(day: 1, balance: 0)]
         var running: Decimal = 0
-        for (day, items) in Dictionary(grouping: inMonth, by: \.receivedOn.day).sorted(by: { $0.key < $1.key }) {
+        for (day, items) in Dictionary(grouping: movements, by: \.day).sorted(by: { $0.key < $1.key }) {
             running += items.map(\.amount).reduce(0, +)
             points.append(BalancePoint(day: day, balance: double(running)))
         }
@@ -23,15 +31,17 @@ struct HomeMonthSummary: Equatable {
             points.append(BalancePoint(day: lastDay, balance: double(balance)))
         }
 
-        let entries = inMonth
-            .sorted { $0.receivedOn > $1.receivedOn }
-            .compactMap { receipt -> HomeEntry? in
-                guard let income = incomes[receipt.incomeID] else { return nil }
-                let title = income.kind == .hourly
-                    ? "\(income.name) · \(IncomeFormat.monthName(receipt.month.previous))"
-                    : income.name
-                return HomeEntry(id: receipt.id, title: title, kind: income.kind, receivedOn: receipt.receivedOn, amount: receipt.amount)
-            }
+        let incomeEntries = inMonth.compactMap { receipt -> HomeEntry? in
+            guard let income = incomes[receipt.incomeID] else { return nil }
+            let title = income.kind == .hourly
+                ? "\(income.name) · \(IncomeFormat.monthName(receipt.month.previous))"
+                : income.name
+            return HomeEntry(id: receipt.id, title: title, kind: .income, date: receipt.receivedOn, amount: receipt.amount)
+        }
+        let expenseEntries = payments.map {
+            HomeEntry(id: $0.bill.id, title: $0.name, kind: .expense, date: $0.paidOn, amount: $0.amount)
+        }
+        let entries = (incomeEntries + expenseEntries).sorted { $0.date > $1.date }
 
         return HomeMonthSummary(month: month, balance: balance, points: points, entries: entries)
     }
