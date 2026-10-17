@@ -4,6 +4,7 @@ struct RootView: View {
     @Environment(AccountManager.self) private var account
     @Environment(LockManager.self) private var lockManager
     @Environment(IncomeStore.self) private var incomeStore
+    @Environment(AvatarStore.self) private var avatarStore
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -22,6 +23,16 @@ struct RootView: View {
             }
         }
         .animation(.smooth(duration: 0.35), value: account.state)
+        .task(id: account.state) {
+            switch account.state {
+            case .signedIn(let user):
+                await avatarStore.sync(user: user)
+            case .signedOut:
+                avatarStore.reset()
+            case .loading, .awaitingConfirmation, .recoveringPassword:
+                break
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .background:

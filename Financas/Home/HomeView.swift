@@ -1,12 +1,15 @@
 import Charts
+import PhotosUI
 import SwiftUI
 
 struct HomeView: View {
     @Environment(LockManager.self) private var lockManager
     @Environment(AccountManager.self) private var account
     @Environment(IncomeStore.self) private var incomeStore
+    @Environment(AvatarStore.self) private var avatarStore
     @Binding var selectedTab: AppTab
     @State private var confirmsSignOut = false
+    @State private var photoItem: PhotosPickerItem?
 
     var body: some View {
         @Bindable var incomeStore = incomeStore
@@ -31,15 +34,36 @@ struct HomeView: View {
             .background(AppBackground())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu("Conta", systemImage: "person.crop.circle") {
+                    Menu {
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Label("Escolher foto", systemImage: "photo")
+                        }
+                        if avatarStore.imageData != nil {
+                            Button("Remover foto", systemImage: "trash") {
+                                removePhoto()
+                            }
+                        }
                         Button("Bloquear", systemImage: "lock") {
                             lockManager.lock()
                         }
                         Button("Sair da conta", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
                             confirmsSignOut = true
                         }
+                    } label: {
+                        AvatarView(
+                            initial: account.user.map(AvatarStore.initial) ?? "?",
+                            imageData: avatarStore.imageData,
+                            isUploading: avatarStore.isUploading
+                        )
+                        .accessibilityLabel("Conta")
                     }
                 }
+                .sharedBackgroundVisibility(.hidden)
+            }
+            .onChange(of: photoItem) { _, item in
+                guard let item else { return }
+                photoItem = nil
+                uploadPhoto(item)
             }
             .confirmationDialog("Sair da conta?", isPresented: $confirmsSignOut, titleVisibility: .visible) {
                 Button("Sair", role: .destructive) {
@@ -60,7 +84,26 @@ struct HomeView: View {
             Text(Greeting.dateText(for: .now))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+            if let message = avatarStore.errorMessage {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.warning)
+                    .padding(.top, 4)
+            }
         }
+    }
+
+    private func uploadPhoto(_ item: PhotosPickerItem) {
+        guard let user = account.user else { return }
+        Task {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+            _ = await avatarStore.upload(data, for: user)
+        }
+    }
+
+    private func removePhoto() {
+        guard let user = account.user else { return }
+        Task { _ = await avatarStore.remove(for: user) }
     }
 
     private func balanceCard(_ summary: HomeMonthSummary) -> some View {
