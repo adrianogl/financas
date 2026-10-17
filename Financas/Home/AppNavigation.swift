@@ -80,11 +80,11 @@ final class AppNavigation {
         listDetail[section, default: ListDetailState()].select(route, presentation: presentation)
     }
 
-    func applyDefaultSelection(routes: [DetailRoute], openRoutes: [DetailRoute], in section: AppTab) {
-        listDetail[section, default: ListDetailState()].applyDefault(routes: routes, openRoutes: openRoutes)
+    func applyDefaultSelection(routes: [DetailRoute], openRoutes: [DetailRoute], isLoaded: Bool = true, in section: AppTab) {
+        listDetail[section, default: ListDetailState()].applyDefault(routes: routes, openRoutes: openRoutes, isLoaded: isLoaded)
     }
 
-    func presentationChanged(from old: DetailPresentation, to new: DetailPresentation, in section: AppTab) {
+    func presentationChanged(from old: DetailPresentation?, to new: DetailPresentation, in section: AppTab) {
         listDetail[section, default: ListDetailState()].presentationChanged(from: old, to: new, isActive: section == self.section)
     }
 

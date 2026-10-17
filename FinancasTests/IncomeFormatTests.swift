@@ -46,6 +46,13 @@ struct IncomeFormatTests {
         #expect(IncomeFormat.occurrenceTitle(fixed) == "Fixa")
     }
 
+    @Test func occurrenceMonthNameUsesReferenceMonth() throws {
+        let hourly = try #require(IncomeSchedule.occurrence(of: S.hourly, in: S.month(2026, 10), snapshot: S.snapshot, today: S.today))
+        let fixed = try #require(IncomeSchedule.occurrence(of: S.fixed, in: S.month(2026, 10), snapshot: S.snapshot, today: S.today))
+        #expect(IncomeFormat.occurrenceMonthName(hourly) == "setembro")
+        #expect(IncomeFormat.occurrenceMonthName(fixed) == "outubro")
+    }
+
     @Test func currency() {
         #expect(IncomeFormat.currency(S.money("13020.04")) == "R$\u{00A0}13.020,04")
         #expect(IncomeFormat.currency(15120) == "R$\u{00A0}15.120,00")

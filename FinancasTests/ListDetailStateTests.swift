@@ -101,4 +101,29 @@ struct ListDetailStateTests {
         state.dismissSheet()
         #expect(state.isSelectedByUser)
     }
+
+    @Test func emptyRoutesWhileLoadingDoNotClearSelection() {
+        var state = ListDetailState()
+        state.select(income("a"), presentation: .panel)
+        state.applyDefault(routes: [], openRoutes: [], isLoaded: false)
+        #expect(state.selection == income("a"))
+        #expect(state.isSelectedByUser)
+        state.applyDefault(routes: [income("b"), income("a")], openRoutes: [income("b")])
+        #expect(state.selection == income("a"))
+    }
+
+    @Test func unknownPreviousPresentationClosesSheetInCompact() {
+        var state = ListDetailState()
+        state.select(income("a"), presentation: .sheet)
+        state.presentationChanged(from: nil, to: .push, isActive: true)
+        #expect(!state.isSheetPresented)
+        #expect(state.selection == income("a"))
+    }
+
+    @Test func unknownPreviousPresentationDoesNotOpenSheet() {
+        var state = ListDetailState()
+        state.select(income("a"), presentation: .panel)
+        state.presentationChanged(from: nil, to: .sheet, isActive: true)
+        #expect(!state.isSheetPresented)
+    }
 }

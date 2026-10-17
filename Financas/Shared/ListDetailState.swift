@@ -9,7 +9,8 @@ struct ListDetailState: Equatable {
         isSheetPresented = presentation == .sheet
     }
 
-    mutating func applyDefault(routes: [DetailRoute], openRoutes: [DetailRoute]) {
+    mutating func applyDefault(routes: [DetailRoute], openRoutes: [DetailRoute], isLoaded: Bool = true) {
+        guard isLoaded else { return }
         let id = DetailSelection.resolve(
             current: selection?.occurrenceID,
             ids: routes.map(\.occurrenceID),
@@ -21,7 +22,7 @@ struct ListDetailState: Equatable {
         isSelectedByUser = false
     }
 
-    mutating func presentationChanged(from old: DetailPresentation, to new: DetailPresentation, isActive: Bool) {
+    mutating func presentationChanged(from old: DetailPresentation?, to new: DetailPresentation, isActive: Bool) {
         switch new {
         case .panel, .push:
             isSheetPresented = false

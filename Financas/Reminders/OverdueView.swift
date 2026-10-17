@@ -14,6 +14,7 @@ struct OverdueView: View {
                 add: nil,
                 routes: routes,
                 openRoutes: routes,
+                isLoaded: isLoaded,
                 emptyText: nil
             ) { context in
                 content(context)
@@ -25,6 +26,10 @@ struct OverdueView: View {
             }
             .detailDestination()
         }
+    }
+
+    private var isLoaded: Bool {
+        store.loadState == .loaded && expenseStore.loadState != .idle && expenseStore.loadState != .loading
     }
 
     private var shownIncomes: [IncomeOccurrence] {

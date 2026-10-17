@@ -78,7 +78,7 @@ struct IncomeDetailView: View {
 
     @ViewBuilder
     private func amountBox(_ occurrence: IncomeOccurrence) -> some View {
-        let monthName = IncomeFormat.monthName(occurrence.month)
+        let monthName = IncomeFormat.occurrenceMonthName(occurrence)
         if let receipt = occurrence.receipt, occurrence.status == .received {
             DetailAmountBox(
                 title: "Recebido em \(monthName)",

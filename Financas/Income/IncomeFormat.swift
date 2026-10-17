@@ -40,6 +40,10 @@ enum IncomeFormat {
         return "\(day) · \(rateText)/h · \(hours.formatted(.number.locale(locale)))h/dia"
     }
 
+    static func occurrenceMonthName(_ occurrence: IncomeOccurrence, locale: Locale = locale) -> String {
+        monthName(occurrence.referenceMonth ?? occurrence.month, locale: locale)
+    }
+
     static func occurrenceTitle(_ occurrence: IncomeOccurrence, locale: Locale = locale) -> String {
         guard let reference = occurrence.referenceMonth else { return occurrence.income.name }
         return "\(occurrence.income.name) · \(monthName(reference, locale: locale))"

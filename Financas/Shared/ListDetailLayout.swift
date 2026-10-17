@@ -8,6 +8,7 @@ struct ListDetailLayout<List: View>: View {
     let add: SectionAddAction?
     let routes: [DetailRoute]
     let openRoutes: [DetailRoute]
+    let isLoaded: Bool
     let emptyText: String?
     @ViewBuilder let list: (ListDetailContext) -> List
 
@@ -32,13 +33,14 @@ struct ListDetailLayout<List: View>: View {
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .onChange(of: presentation, initial: true) { old, new in
-            if let old, let new, old != new {
+            if let new, old != new {
                 navigation.presentationChanged(from: old, to: new, in: section)
             }
             refresh()
         }
         .onChange(of: routes) { refresh() }
         .onChange(of: openRoutes) { refresh() }
+        .onChange(of: isLoaded) { refresh() }
         .onChange(of: navigation.pendingSelection) { refresh() }
         .sheet(isPresented: isSheetPresented) {
             if let route = navigation.selection(for: section) {
@@ -142,7 +144,7 @@ struct ListDetailLayout<List: View>: View {
             navigation.select(route, in: section, presentation: presentation)
         }
         if presentation == .panel {
-            navigation.applyDefaultSelection(routes: routes, openRoutes: openRoutes, in: section)
+            navigation.applyDefaultSelection(routes: routes, openRoutes: openRoutes, isLoaded: isLoaded, in: section)
         }
     }
 }

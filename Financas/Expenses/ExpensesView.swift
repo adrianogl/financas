@@ -17,6 +17,7 @@ struct ExpensesView: View {
                 add: SectionAddAction(title: "Nova despesa", action: create),
                 routes: (open + paid).map(route),
                 openRoutes: open.map(route),
+                isLoaded: store.loadState == .loaded,
                 emptyText: hasMonthList ? emptyMonthText : nil
             ) { context in
                 MonthPicker(month: $incomeStore.selectedMonth)
