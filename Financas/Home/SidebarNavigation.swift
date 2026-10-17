@@ -9,17 +9,20 @@ struct SidebarNavigation: View {
         @Bindable var navigation = navigation
         let isOpen = navigation.showsSidebar(in: mode)
 
-        VStack(spacing: 0) {
-            if !isOpen {
-                SectionTabBar(selection: $navigation.section, overdueCount: counts.overdue)
-                    .padding(.top, NavigationConstants.tabBarTopPadding)
-            }
-            NavigationSplitView(columnVisibility: visibility) {
+        HStack(spacing: 0) {
+            if isOpen {
                 AppSidebar(counts: counts)
-            } detail: {
-                AppSectionView(section: navigation.section)
+                    .frame(width: LayoutConstants.sidebarWidth)
+                    .padding(NavigationConstants.sidebarInset)
+                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
-            .toolbar(removing: .sidebarToggle)
+            VStack(spacing: 0) {
+                if !isOpen {
+                    SectionTabBar(selection: $navigation.section, overdueCount: counts.overdue)
+                        .padding(.top, NavigationConstants.tabBarTopPadding)
+                }
+                SectionStack(selection: navigation.section)
+            }
         }
         .background(AppBackground())
         .overlay(alignment: .bottomLeading) {
@@ -30,12 +33,5 @@ struct SidebarNavigation: View {
                 .padding(NavigationConstants.toggleMargin)
             }
         }
-    }
-
-    private var visibility: Binding<NavigationSplitViewVisibility> {
-        Binding(
-            get: { navigation.showsSidebar(in: mode) ? .all : .detailOnly },
-            set: { navigation.setSidebar(open: $0 != .detailOnly, in: mode) }
-        )
     }
 }

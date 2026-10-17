@@ -14,4 +14,11 @@ enum NavigationConstants {
     static let selectedTabOpacity = 0.14
     static let badgePadding: CGFloat = 5
     static let badgeMinSize: CGFloat = 18
+    static let sidebarInset: CGFloat = 12
+    static let sidebarPadding: CGFloat = 14
+    static let sidebarCornerRadius: CGFloat = 30
+    static let sidebarIconWidth: CGFloat = 24
+    static let sidebarRowHorizontalPadding: CGFloat = 14
+    static let sidebarRowVerticalPadding: CGFloat = 11
+    static let sidebarRowCornerRadius: CGFloat = 14
 }

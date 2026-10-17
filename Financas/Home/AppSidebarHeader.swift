@@ -8,8 +8,9 @@ struct AppSidebarHeader: View {
                 .font(.title2.bold())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
+        .padding(.bottom, 18)
         .accessibilityElement(children: .combine)
     }
 }

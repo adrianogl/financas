@@ -5,18 +5,18 @@ struct AppSidebar: View {
     let counts: SidebarCounts
 
     var body: some View {
-        List(selection: selection) {
-            ForEach(AppTab.allCases, id: \.self) { section in
-                AppSidebarRow(section: section, count: count(for: section))
-                    .tag(section)
-            }
-        }
-        .listStyle(.sidebar)
-        .scrollContentBackground(.hidden)
-        .safeAreaInset(edge: .top, spacing: 0) {
+        VStack(alignment: .leading, spacing: 2) {
             AppSidebarHeader()
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+            ForEach(AppTab.allCases, id: \.self) { section in
+                AppSidebarRow(
+                    section: section,
+                    count: count(for: section),
+                    isSelected: navigation.section == section
+                ) {
+                    navigation.section = section
+                }
+            }
+            Spacer(minLength: 0)
             HStack {
                 AppSidebarFooter()
                 Spacer(minLength: 8)
@@ -24,19 +24,10 @@ struct AppSidebar: View {
                     withAnimation { navigation.toggleSidebar() }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
         }
-        .toolbar(removing: .sidebarToggle)
-        .toolbar(.hidden, for: .navigationBar)
-        .navigationSplitViewColumnWidth(LayoutConstants.sidebarWidth)
-    }
-
-    private var selection: Binding<AppTab?> {
-        Binding(
-            get: { navigation.section },
-            set: { if let section = $0 { navigation.section = section } }
-        )
+        .padding(NavigationConstants.sidebarPadding)
+        .frame(maxHeight: .infinity)
+        .glassEffect(.regular, in: .rect(cornerRadius: NavigationConstants.sidebarCornerRadius))
     }
 
     private func count(for section: AppTab) -> Int {

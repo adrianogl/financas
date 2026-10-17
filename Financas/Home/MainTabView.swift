@@ -8,6 +8,7 @@ struct MainTabView: View {
     @Environment(AppNavigation.self) private var navigation
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var windowSize = CGSize.zero
+    @State private var accountMenu = AccountMenuState()
 
     var body: some View {
         let mode = LayoutMode.make(isRegular: sizeClass == .regular, size: windowSize)
@@ -29,6 +30,7 @@ struct MainTabView: View {
             }
             .ignoresSafeArea()
         }
+        .accountPresentations(accountMenu)
         .onChange(of: mode, initial: true) { navigation.enter(mode) }
         .onAppear(perform: applyPendingRoute)
         .onChange(of: router.pendingRoute, applyPendingRoute)
