@@ -10,6 +10,7 @@ struct HomeView: View {
     @Binding var selectedTab: AppTab
     @State private var confirmsSignOut = false
     @State private var photoItem: PhotosPickerItem?
+    @State private var showsPhotoPicker = false
 
     var body: some View {
         @Bindable var incomeStore = incomeStore
@@ -35,8 +36,8 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        PhotosPicker(selection: $photoItem, matching: .images) {
-                            Label("Escolher foto", systemImage: "photo")
+                        Button("Escolher foto", systemImage: "photo") {
+                            showsPhotoPicker = true
                         }
                         if avatarStore.imageData != nil {
                             Button("Remover foto", systemImage: "trash") {
@@ -60,6 +61,7 @@ struct HomeView: View {
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
+            .photosPicker(isPresented: $showsPhotoPicker, selection: $photoItem, matching: .images)
             .onChange(of: photoItem) { _, item in
                 guard let item else { return }
                 photoItem = nil

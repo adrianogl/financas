@@ -2,6 +2,8 @@ import SwiftUI
 
 struct LockView: View {
     @Environment(LockManager.self) private var lockManager
+    @Environment(AccountManager.self) private var account
+    @State private var confirmsSignOut = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -33,10 +35,23 @@ struct LockView: View {
             }
             .buttonStyle(.glass)
             .controlSize(.large)
+
+            Button("Sair da conta", role: .destructive) {
+                confirmsSignOut = true
+            }
+            .font(.subheadline)
+            .padding(.top, 8)
         }
         .padding(32)
         .readableWidth()
         .background(AppBackground())
         .onAppear { lockManager.autoUnlockIfNeeded() }
+        .confirmationDialog("Sair da conta?", isPresented: $confirmsSignOut, titleVisibility: .visible) {
+            Button("Sair", role: .destructive) {
+                Task { await account.signOut() }
+            }
+        } message: {
+            Text("O PIN deste aparelho será apagado. Para voltar, entre com seu e-mail e senha.")
+        }
     }
 }
