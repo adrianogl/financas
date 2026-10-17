@@ -21,9 +21,9 @@ struct IncomeFormView: View {
     var body: some View {
         NavigationStack {
             Form {
-                if draft.isNew {
+                if draft.isNew, store.settings.orderedEnabledKinds.count > 1 {
                     Picker("Tipo", selection: $draft.kind) {
-                        ForEach(IncomeFormConstants.kinds, id: \.self) { kind in
+                        ForEach(store.settings.orderedEnabledKinds, id: \.self) { kind in
                             Text(kind.title).tag(kind)
                         }
                     }
@@ -109,9 +109,7 @@ struct IncomeFormView: View {
                     .keyboardType(.decimalPad)
             }
         } footer: {
-            Text(draft.kind == .hourly
-                ? "Se o dia não for útil, cai no próximo dia útil. O pagamento cobre os dias úteis do mês anterior."
-                : "Se o dia não for útil, cai no próximo dia útil.")
+            Text(store.settings.nonBusinessDay.formHint(hourly: draft.kind == .hourly))
         }
 
         Section {

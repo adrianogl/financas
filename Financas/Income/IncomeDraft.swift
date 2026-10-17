@@ -15,8 +15,8 @@ struct IncomeDraft: Equatable {
     private let amountID: UUID
     private let originalAmount: Decimal?
 
-    init(today: CalendarDay) {
-        kind = .fixed
+    init(today: CalendarDay, kind: IncomeKind = .fixed) {
+        self.kind = kind
         name = ""
         amount = nil
         amountValidFrom = today.yearMonth

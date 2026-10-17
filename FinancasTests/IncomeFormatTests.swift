@@ -16,8 +16,22 @@ struct IncomeFormatTests {
     }
 
     @Test func rules() {
-        #expect(IncomeFormat.rule(for: S.fixed, rate: S.money("13020.04")) == "Todo dia 1 · próximo dia útil")
-        #expect(IncomeFormat.rule(for: S.hourly, rate: 90) == "Todo dia 15 · R$\u{00A0}90/h · 8h/dia")
+        #expect(IncomeFormat.rule(for: S.fixed, rate: S.money("13020.04"), nonBusinessDay: .next) == "Todo dia 1 · próximo dia útil")
+        #expect(IncomeFormat.rule(for: S.hourly, rate: 90, nonBusinessDay: .next) == "Todo dia 15 · R$\u{00A0}90/h · 8h/dia")
+    }
+
+    @Test func ruleTextFollowsSetting() {
+        #expect(IncomeFormat.rule(for: S.fixed, rate: nil, nonBusinessDay: .next) == "Todo dia 1 · próximo dia útil")
+        #expect(IncomeFormat.rule(for: S.fixed, rate: nil, nonBusinessDay: .previous) == "Todo dia 1 · dia útil anterior")
+        #expect(IncomeFormat.rule(for: S.fixed, rate: nil, nonBusinessDay: .keep) == "Todo dia 1")
+        #expect(IncomeFormat.rule(for: S.hourly, rate: 90, nonBusinessDay: .previous) == "Todo dia 15 · R$\u{00A0}90/h · 8h/dia")
+    }
+
+    @Test func formHintFollowsSetting() {
+        #expect(NonBusinessDayRule.next.formHint(hourly: false) == "Se o dia não for útil, cai no próximo dia útil.")
+        #expect(NonBusinessDayRule.previous.formHint(hourly: false) == "Se o dia não for útil, cai no dia útil anterior.")
+        #expect(NonBusinessDayRule.keep.formHint(hourly: false) == "A data fica no dia escolhido, mesmo se não for útil.")
+        #expect(NonBusinessDayRule.keep.formHint(hourly: true) == "A data fica no dia escolhido, mesmo se não for útil. O pagamento cobre os dias úteis do mês anterior.")
     }
 
     @Test func occurrenceTitle() throws {

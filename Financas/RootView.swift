@@ -104,6 +104,6 @@ struct RootView: View {
             await reminders.requestPermissionIfNeeded(hasIncomes: !incomeStore.snapshot.incomes.isEmpty)
         }
         guard let items = incomeStore.dueItems else { return }
-        await reminders.reschedule(items: items, clearingDelivered: mode.clearingDelivered)
+        await reminders.reschedule(items: items, settings: incomeStore.snapshot.settings, clearingDelivered: mode.clearingDelivered)
     }
 }

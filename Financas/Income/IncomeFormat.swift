@@ -23,10 +23,10 @@ enum IncomeFormat {
         value.formatted(.currency(code: IncomeConstants.currencyCode).locale(locale))
     }
 
-    static func rule(for income: Income, rate: Decimal?, locale: Locale = locale) -> String {
+    static func rule(for income: Income, rate: Decimal?, nonBusinessDay: NonBusinessDayRule, locale: Locale = locale) -> String {
         let day = "Todo dia \(income.dayOfMonth ?? 1)"
         guard income.kind == .hourly, let rate, let hours = income.hoursPerDay else {
-            return "\(day) · próximo dia útil"
+            return nonBusinessDay.ruleSuffix.map { "\(day) · \($0)" } ?? day
         }
         let rateText = rate.formatted(.currency(code: IncomeConstants.currencyCode).precision(.fractionLength(0...2)).locale(locale))
         return "\(day) · \(rateText)/h · \(hours.formatted(.number.locale(locale)))h/dia"

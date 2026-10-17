@@ -153,6 +153,7 @@ final class FakeIncomeService: IncomeService {
     var nextError: IncomeError?
     var holdsResponses = false
     private(set) var calls: [String] = []
+    private(set) var savedSettings: [(settings: AccountSettings, previous: AccountSettings)] = []
     private var pending: [CheckedContinuation<Void, Never>] = []
 
     init(snapshot: IncomeSnapshot = IncomeSamples.snapshot) {
@@ -184,6 +185,11 @@ final class FakeIncomeService: IncomeService {
 
     func deleteReceipt(id: UUID) async throws(IncomeError) {
         try await respond("deleteReceipt")
+    }
+
+    func saveSettings(_ settings: AccountSettings, previous: AccountSettings) async throws(IncomeError) {
+        try await respond("saveSettings")
+        savedSettings.append((settings, previous))
     }
 
     private func respond(_ call: String) async throws(IncomeError) {

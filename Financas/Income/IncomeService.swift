@@ -7,4 +7,5 @@ protocol IncomeService {
     func delete(incomeID: UUID) async throws(IncomeError)
     func save(_ receipt: IncomeReceipt) async throws(IncomeError)
     func deleteReceipt(id: UUID) async throws(IncomeError)
+    func saveSettings(_ settings: AccountSettings, previous: AccountSettings) async throws(IncomeError)
 }

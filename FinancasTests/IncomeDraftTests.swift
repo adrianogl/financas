@@ -5,6 +5,12 @@ import Testing
 struct IncomeDraftTests {
     typealias S = IncomeSamples
 
+    @Test func newDraftStartsOnGivenKind() {
+        let draft = IncomeDraft(today: S.today, kind: .oneOff)
+        #expect(draft.kind == .oneOff)
+        #expect(draft.isNew)
+    }
+
     @Test func newHourlyStartsRateOneMonthBefore() throws {
         var draft = IncomeDraft(today: S.today)
         draft.kind = .hourly

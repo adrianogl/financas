@@ -25,10 +25,20 @@ final class ReminderScheduler {
         defaults.set(true, forKey: ReminderConstants.permissionAskedKey)
     }
 
-    func reschedule(items: [DueItem], clearingDelivered: Bool) async {
+    func requestPermissionFromSettings() async {
+        guard await center.authorization() == .notDetermined else { return }
+        _ = await center.requestAuthorization()
+        defaults.set(true, forKey: ReminderConstants.permissionAskedKey)
+    }
+
+    func authorization() async -> ReminderAuthorization {
+        await center.authorization()
+    }
+
+    func reschedule(items: [DueItem], settings: AccountSettings, clearingDelivered: Bool) async {
         await enqueue {
             guard await self.center.authorization() == .allowed else { return }
-            await self.center.replacePending(with: ReminderPlanner.plan(items: items, now: self.now(), calendar: self.calendar))
+            await self.center.replacePending(with: ReminderPlanner.plan(items: items, settings: settings, now: self.now(), calendar: self.calendar))
             if clearingDelivered {
                 await self.center.removeDelivered()
             }

@@ -12,7 +12,7 @@ enum IncomeSchedule {
         case .fixed:
             guard isActive(income, in: month), let day = income.dayOfMonth,
                   let amount = amount(for: income, in: month, snapshot: snapshot) else { return nil }
-            let dueDate = BusinessCalendar.businessDayOnOrAfter(month.day(day))
+            let dueDate = BusinessCalendar.dueDate(for: month.day(day), rule: snapshot.settings.nonBusinessDay)
             return makeOccurrence(income, month, dueDate: dueDate, expected: amount, receipt: receipt, today: today)
 
         case .hourly:
@@ -20,7 +20,7 @@ enum IncomeSchedule {
             guard isActive(income, in: month), let day = income.dayOfMonth, let hours = income.hoursPerDay,
                   let rate = amount(for: income, in: reference, snapshot: snapshot) else { return nil }
             let businessDays = BusinessCalendar.businessDays(in: reference)
-            let dueDate = BusinessCalendar.businessDayOnOrAfter(month.day(day))
+            let dueDate = BusinessCalendar.dueDate(for: month.day(day), rule: snapshot.settings.nonBusinessDay)
             return makeOccurrence(
                 income, month, dueDate: dueDate, expected: Decimal(businessDays) * hours * rate, receipt: receipt, today: today,
                 reference: reference, businessDays: businessDays, rate: rate
@@ -35,17 +35,27 @@ enum IncomeSchedule {
     }
 
     static func overdue(before month: YearMonth, snapshot: IncomeSnapshot, today: CalendarDay) -> [IncomeOccurrence] {
-        snapshot.incomes
-            .flatMap { income in
-                months(of: income, before: month).compactMap { occurrence(of: income, in: $0, snapshot: snapshot, today: today) }
-            }
+        let earlier = snapshot.incomes.flatMap { income in
+            months(of: income, before: month).compactMap { occurrence(of: income, in: $0, snapshot: snapshot, today: today) }
+        }
+        return (earlier + early(in: month, snapshot: snapshot, today: today))
             .filter { $0.status == .overdue }
             .sorted(by: ordered)
     }
 
+    static func carried(into month: YearMonth, snapshot: IncomeSnapshot, today: CalendarDay) -> [IncomeOccurrence] {
+        let late = overdue(before: month, snapshot: snapshot, today: today)
+        let dueThisMonth = early(in: month, snapshot: snapshot, today: today).filter { $0.status == .pending }
+        return (late + dueThisMonth).sorted(by: ordered)
+    }
+
+    private static func early(in month: YearMonth, snapshot: IncomeSnapshot, today: CalendarDay) -> [IncomeOccurrence] {
+        occurrences(in: month.next, snapshot: snapshot, today: today).filter { $0.dueDate.yearMonth <= month }
+    }
+
     static func summary(for month: YearMonth, snapshot: IncomeSnapshot, today: CalendarDay) -> MonthSummary {
         let own = occurrences(in: month, snapshot: snapshot, today: today)
-        let carried = month == today.yearMonth ? overdue(before: month, snapshot: snapshot, today: today) : []
+        let carried = month == today.yearMonth ? carried(into: month, snapshot: snapshot, today: today) : []
         let open = (own + carried).filter { $0.status != .received }
         let received = own.compactMap(\.receipt?.amount).reduce(0, +)
         let remaining = open.map(\.expectedAmount).reduce(0, +)

@@ -51,7 +51,7 @@ struct ReminderSchedulerTests {
     @Test func reschedulesOnlyWhenAllowed() async {
         for status in [ReminderAuthorization.notDetermined, .denied] {
             let center = FakeReminderCenter(status: status)
-            await makeScheduler(center).reschedule(items: items, clearingDelivered: true)
+            await makeScheduler(center).reschedule(items: items, settings: .standard, clearingDelivered: true)
             #expect(center.pending.isEmpty)
             #expect(center.replaceCalls == 0)
             #expect(center.deliveredRemoved == 0)
@@ -60,15 +60,15 @@ struct ReminderSchedulerTests {
 
     @Test func rescheduleReplacesPendingAndClearsDelivered() async {
         let center = FakeReminderCenter(status: .allowed)
-        await makeScheduler(center).reschedule(items: items, clearingDelivered: true)
-        #expect(center.pending == ReminderPlanner.plan(items: items, now: now, calendar: calendar))
+        await makeScheduler(center).reschedule(items: items, settings: .standard, clearingDelivered: true)
+        #expect(center.pending == ReminderPlanner.plan(items: items, settings: .standard, now: now, calendar: calendar))
         #expect(!center.pending.isEmpty)
         #expect(center.deliveredRemoved == 1)
     }
 
     @Test func backgroundRescheduleKeepsDelivered() async {
         let center = FakeReminderCenter(status: .allowed)
-        await makeScheduler(center).reschedule(items: items, clearingDelivered: false)
+        await makeScheduler(center).reschedule(items: items, settings: .standard, clearingDelivered: false)
         #expect(center.replaceCalls == 1)
         #expect(center.deliveredRemoved == 0)
     }
@@ -76,17 +76,17 @@ struct ReminderSchedulerTests {
     @Test func schedulesAfterPermissionGrantedInSettings() async {
         let center = FakeReminderCenter(status: .denied)
         let scheduler = makeScheduler(center)
-        await scheduler.reschedule(items: items, clearingDelivered: false)
+        await scheduler.reschedule(items: items, settings: .standard, clearingDelivered: false)
         #expect(center.pending.isEmpty)
         center.status = .allowed
-        await scheduler.reschedule(items: items, clearingDelivered: false)
+        await scheduler.reschedule(items: items, settings: .standard, clearingDelivered: false)
         #expect(!center.pending.isEmpty)
     }
 
     @Test func resetRemovesEverything() async {
         let center = FakeReminderCenter(status: .allowed)
         let scheduler = makeScheduler(center)
-        await scheduler.reschedule(items: items, clearingDelivered: false)
+        await scheduler.reschedule(items: items, settings: .standard, clearingDelivered: false)
         await scheduler.reset()
         #expect(center.removedAll == 1)
         #expect(center.pending.isEmpty)
@@ -98,11 +98,37 @@ struct ReminderSchedulerTests {
         let scheduler = makeScheduler(center)
         let today = CalendarDay(date: now, calendar: calendar)
         let later = [DueItem(id: "b", kind: .income, title: "Aluguel", amount: 50, dueDate: today)]
-        let first = Task { await scheduler.reschedule(items: items, clearingDelivered: false) }
-        let second = Task { await scheduler.reschedule(items: later, clearingDelivered: false) }
+        let first = Task { await scheduler.reschedule(items: items, settings: .standard, clearingDelivered: false) }
+        let second = Task { await scheduler.reschedule(items: later, settings: .standard, clearingDelivered: false) }
         await first.value
         await second.value
         #expect(center.replaceLog == ["start", "end", "start", "end"])
-        #expect(center.pending == ReminderPlanner.plan(items: later, now: now, calendar: calendar))
+        #expect(center.pending == ReminderPlanner.plan(items: later, settings: .standard, now: now, calendar: calendar))
+    }
+
+    @Test func settingsPermissionRequestIgnoresAskedFlag() async {
+        let center = FakeReminderCenter(status: .notDetermined)
+        let scheduler = makeScheduler(center)
+        await scheduler.requestPermissionIfNeeded(hasIncomes: false)
+        await scheduler.requestPermissionFromSettings()
+        #expect(center.requests == 1)
+    }
+
+    @Test func settingsPermissionRequestSkipsWhenDecided() async {
+        let center = FakeReminderCenter(status: .denied)
+        await makeScheduler(center).requestPermissionFromSettings()
+        #expect(center.requests == 0)
+    }
+
+    @Test func settingsPermissionRequestMarksAsAsked() async {
+        let center = FakeReminderCenter(status: .notDetermined, grantsOnRequest: false)
+        let scheduler = makeScheduler(center)
+        await scheduler.requestPermissionFromSettings()
+        await scheduler.requestPermissionIfNeeded(hasIncomes: true)
+        #expect(center.requests == 1)
+    }
+
+    @Test func exposesAuthorization() async {
+        #expect(await makeScheduler(FakeReminderCenter(status: .denied)).authorization() == .denied)
     }
 }

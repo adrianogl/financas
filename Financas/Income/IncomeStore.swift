@@ -8,10 +8,14 @@ final class IncomeStore {
     private(set) var loadState: IncomeLoadState = .idle
     private(set) var isSaving = false
     private(set) var errorMessage: String?
+    private(set) var isSavingSettings = false
+    private(set) var settingsErrorMessage: String?
     var selectedMonth: YearMonth
     var today: CalendarDay
 
     private let service: IncomeService
+    private var savedSettings = AccountSettings.standard
+    private var settingsSave: Task<Bool, Never>?
     private let currentDay: () -> CalendarDay
     private var generation = 0
 
@@ -32,6 +36,7 @@ final class IncomeStore {
             let loaded = try await service.load()
             guard started == generation else { return }
             snapshot = loaded
+            savedSettings = loaded.settings
             loadState = .loaded
         } catch {
             guard started == generation else { return }
@@ -52,6 +57,7 @@ final class IncomeStore {
             let started = generation
             guard let loaded = try? await service.load(), started == generation else { return false }
             snapshot = loaded
+            savedSettings = loaded.settings
             return true
         }
     }
@@ -59,8 +65,11 @@ final class IncomeStore {
     func reset() {
         generation += 1
         snapshot = .empty
+        savedSettings = .standard
+        settingsSave = nil
         loadState = .idle
         errorMessage = nil
+        settingsErrorMessage = nil
         today = currentDay()
         selectedMonth = today.yearMonth
     }
@@ -80,7 +89,7 @@ final class IncomeStore {
     func occurrences(in month: YearMonth) -> [IncomeOccurrence] {
         let own = IncomeSchedule.occurrences(in: month, snapshot: snapshot, today: today)
         guard month == today.yearMonth else { return own }
-        return IncomeSchedule.overdue(before: month, snapshot: snapshot, today: today) + own
+        return IncomeSchedule.carried(into: month, snapshot: snapshot, today: today) + own
     }
 
     var overdueOccurrences: [IncomeOccurrence] {
@@ -180,6 +189,45 @@ final class IncomeStore {
             try await service.deleteReceipt(id: receipt.id)
         } onSuccess: {
             self.snapshot.receipts.removeAll { $0.id == receipt.id }
+        }
+    }
+
+    var settings: AccountSettings {
+        snapshot.settings
+    }
+
+    @discardableResult
+    func updateSettings(_ new: AccountSettings) -> Task<Bool, Never> {
+        snapshot.settings = new
+        settingsErrorMessage = nil
+        let previous = settingsSave
+        let started = generation
+        let save = Task {
+            _ = await previous?.value
+            return await self.persistSettings(started: started)
+        }
+        settingsSave = save
+        return save
+    }
+
+    private func persistSettings(started: Int) async -> Bool {
+        guard started == generation else { return false }
+        let target = snapshot.settings
+        let saved = savedSettings
+        guard target != saved else { return true }
+        isSavingSettings = true
+        defer { isSavingSettings = false }
+
+        do {
+            try await service.saveSettings(target, previous: saved)
+            guard started == generation else { return false }
+            savedSettings = target
+            return true
+        } catch {
+            guard started == generation else { return false }
+            snapshot.settings = saved
+            settingsErrorMessage = error.message
+            return false
         }
     }
 
