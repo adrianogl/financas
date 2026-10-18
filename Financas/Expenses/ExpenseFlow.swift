@@ -16,12 +16,14 @@ struct ExpenseFlow: ViewModifier {
                         expense: store.snapshot.expenses.first { $0.id == draft.expenseID },
                         today: incomeStore.today
                     )
+                    .presentationEnabled()
                 }
             }
             .sheet(item: $paying, onDismiss: openPendingEdit) { target in
                 ExpenseSheet(target: target, today: incomeStore.today) { expense in
                     pendingEdit = expense
                 }
+                .presentationEnabled()
             }
     }
 

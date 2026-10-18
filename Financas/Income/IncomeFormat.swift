@@ -12,6 +12,14 @@ enum IncomeFormat {
         return name.prefix(1).uppercased(with: locale) + name.dropFirst() + " de \(month.year)"
     }
 
+    static func shortMonth(_ month: YearMonth, locale: Locale = locale) -> String {
+        clean(formatter(locale).shortMonthSymbols[month.month - 1], locale)
+    }
+
+    static func shortMonthYear(_ month: YearMonth, locale: Locale = locale) -> String {
+        "\(shortMonth(month, locale: locale))/\(month.year)"
+    }
+
     static func shortDate(_ day: CalendarDay, locale: Locale = locale) -> String {
         let formatter = formatter(locale)
         let weekday = formatter.shortStandaloneWeekdaySymbols[day.weekday - 1]
@@ -30,6 +38,10 @@ enum IncomeFormat {
         }
         let rateText = rate.formatted(.currency(code: IncomeConstants.currencyCode).precision(.fractionLength(0...2)).locale(locale))
         return "\(day) · \(rateText)/h · \(hours.formatted(.number.locale(locale)))h/dia"
+    }
+
+    static func occurrenceMonthName(_ occurrence: IncomeOccurrence, locale: Locale = locale) -> String {
+        monthName(occurrence.referenceMonth ?? occurrence.month, locale: locale)
     }
 
     static func occurrenceTitle(_ occurrence: IncomeOccurrence, locale: Locale = locale) -> String {

@@ -3,6 +3,7 @@ import SwiftUI
 struct ExpenseOccurrenceRow: View {
     let occurrence: ExpenseOccurrence
     let today: CalendarDay
+    let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -23,6 +24,7 @@ struct ExpenseOccurrenceRow: View {
             }
         }
         .padding(.vertical, 6)
+        .selectedRowBackground(isSelected)
         .contentShape(.rect)
     }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct OverdueRow: View {
     let occurrence: IncomeOccurrence
     let today: CalendarDay
+    let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -24,6 +25,7 @@ struct OverdueRow: View {
             }
         }
         .padding(.vertical, 6)
+        .selectedRowBackground(isSelected)
         .contentShape(.rect)
     }
 

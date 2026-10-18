@@ -4,41 +4,55 @@ struct ExpensesView: View {
     @Environment(ExpenseStore.self) private var store
     @Environment(IncomeStore.self) private var incomeStore
     @State private var editing: ExpenseDraft?
-    @State private var paying: ExpenseSheetTarget?
 
     var body: some View {
         @Bindable var incomeStore = incomeStore
+        let list = monthList
+        let open = list.open
+        let paid = list.paid
 
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    MonthPicker(month: $incomeStore.selectedMonth)
-                    content
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
-                .readableWidth(LayoutConstants.contentWidth)
-            }
-            .background(AppBackground())
-            .navigationTitle("Despesas")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Nova despesa", systemImage: "plus") {
-                        editing = ExpenseDraft(today: incomeStore.today)
-                    }
-                }
+            ListDetailLayout(
+                section: .expenses,
+                title: "Despesas",
+                add: SectionAddAction(title: "Nova despesa", action: create),
+                routes: (open + paid).map(DetailRoute.init),
+                openRoutes: open.map(DetailRoute.init),
+                month: incomeStore.selectedMonth,
+                isLoaded: store.loadState == .loaded,
+                emptyText: hasMonthList ? emptyMonthText : nil
+            ) { context in
+                MonthPicker(month: $incomeStore.selectedMonth)
+                content(context, open: open, paid: paid)
             }
             .refreshable { await store.load() }
-            .expenseFlow(paying: $paying, editing: $editing)
+            .expenseFlow(paying: .constant(nil), editing: $editing)
+            .detailDestination()
         }
     }
 
-    private var content: some View {
+    private var hasMonthList: Bool {
+        store.loadState == .loaded && !store.snapshot.expenses.isEmpty
+    }
+
+    private var monthOccurrences: [ExpenseOccurrence] {
+        hasMonthList ? store.occurrences(in: incomeStore.selectedMonth, today: incomeStore.today) : []
+    }
+
+    private var monthList: ExpenseMonthList {
+        ExpenseMonthList(occurrences: monthOccurrences)
+    }
+
+    private var emptyMonthText: String {
+        "Nenhuma despesa prevista para \(IncomeFormat.monthName(incomeStore.selectedMonth))."
+    }
+
+    private func content(_ context: ListDetailContext, open: [ExpenseOccurrence], paid: [ExpenseOccurrence]) -> some View {
         ExpenseLoadContent {
             if store.snapshot.expenses.isEmpty {
                 emptyState
             } else {
-                monthContent
+                monthContent(context, open: open, paid: paid)
             }
         }
     }
@@ -51,22 +65,17 @@ struct ExpensesView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            GlassPrimaryButton(title: "Cadastrar despesa") {
-                editing = ExpenseDraft(today: incomeStore.today)
-            }
-            .padding(.top, 6)
+            GlassPrimaryButton(title: "Cadastrar despesa", action: create)
+                .padding(.top, 6)
         }
         .padding(24)
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
     }
 
     @ViewBuilder
-    private var monthContent: some View {
+    private func monthContent(_ context: ListDetailContext, open: [ExpenseOccurrence], paid: [ExpenseOccurrence]) -> some View {
         let today = incomeStore.today
         let month = incomeStore.selectedMonth
-        let occurrences = store.occurrences(in: month, today: today)
-        let open = occurrences.filter { $0.status != .paid }.sorted(by: openOrder)
-        let paid = occurrences.filter { $0.status == .paid }
         let active = store.activeExpenses(today: today)
         let ended = store.endedExpenses(today: today)
 
@@ -80,13 +89,13 @@ struct ExpensesView: View {
         }
 
         if !open.isEmpty {
-            section("A pagar", occurrences: open)
+            section("A pagar", occurrences: open, context: context)
         }
         if !paid.isEmpty {
-            section("Pagas", occurrences: paid)
+            section("Pagas", occurrences: paid, context: context)
         }
-        if occurrences.isEmpty {
-            Text("Nenhuma despesa prevista para \(IncomeFormat.monthName(month)).")
+        if open.isEmpty && paid.isEmpty {
+            Text(emptyMonthText)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity)
@@ -97,26 +106,16 @@ struct ExpensesView: View {
         }
     }
 
-    private func section(_ title: String, occurrences: [ExpenseOccurrence]) -> some View {
+    private func section(_ title: String, occurrences: [ExpenseOccurrence], context: ListDetailContext) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionTitle(title)
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(occurrences) { occurrence in
-                    Button {
-                        paying = ExpenseSheetTarget(occurrence: occurrence, mode: nil)
-                    } label: {
-                        ExpenseOccurrenceRow(occurrence: occurrence, today: incomeStore.today)
-                    }
-                    .buttonStyle(.plain)
+            DetailRowList(items: occurrences, context: context, route: DetailRoute.init) { occurrence, isSelected in
+                ExpenseOccurrenceRow(occurrence: occurrence, today: incomeStore.today, isSelected: isSelected)
                     .contextMenu {
                         Button("Editar despesa", systemImage: "pencil") {
                             edit(occurrence.expense)
                         }
                     }
-                    if occurrence.id != occurrences.last?.id {
-                        Divider()
-                    }
-                }
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 10)
@@ -176,16 +175,8 @@ struct ExpensesView: View {
             .padding(.leading, 6)
     }
 
-    private func openOrder(_ lhs: ExpenseOccurrence, _ rhs: ExpenseOccurrence) -> Bool {
-        let lhsOverdue = lhs.status == .overdue
-        let rhsOverdue = rhs.status == .overdue
-        if lhsOverdue != rhsOverdue {
-            return lhsOverdue
-        }
-        if lhsOverdue, lhs.month != rhs.month {
-            return lhs.month < rhs.month
-        }
-        return (lhs.dueDate, lhs.expense.name) < (rhs.dueDate, rhs.expense.name)
+    private func create() {
+        editing = ExpenseDraft(today: incomeStore.today)
     }
 
     private func edit(_ expense: Expense) {

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OccurrenceRow: View {
     let occurrence: IncomeOccurrence
+    let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -28,6 +29,7 @@ struct OccurrenceRow: View {
             }
         }
         .padding(.vertical, 6)
+        .selectedRowBackground(isSelected)
         .contentShape(.rect)
     }
 

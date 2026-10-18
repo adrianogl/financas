@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Finanças: iPad e iPhone</title>
+<style>
+  :root {
+    --accent:#3D6FE0; --positive:#2E8B6E; --warning:#C9483B; --bg:#FAFBFD;
+    --blob1:#C9D8FF; --blob2:#E3D9FA; --blob3:#D6E3FF; --markTop:#EAF0FF; --markBottom:#C9D8FF;
+    --text:#111318; --secondary:#6B7080; --tertiary:#A3A8B5; --glass:rgba(255,255,255,.55); --glassBorder:rgba(255,255,255,.85); --divider:rgba(60,60,67,.14);
+  }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; background:#1b1d22; color:var(--text); padding:24px 16px 80px }
+  h1 { color:#fff; text-align:center; font-size:22px; margin-bottom:6px }
+  .lead { color:#aaa; text-align:center; font-size:14px; margin-bottom:24px }
+  .picker { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:28px }
+  .picker button { font:inherit; font-size:14px; padding:8px 16px; border-radius:999px; border:1px solid #444; background:#2a2d34; color:#ddd; cursor:pointer }
+  .picker button.on { background:var(--accent); border-color:var(--accent); color:#fff }
+  .frames { display:flex; flex-wrap:wrap; gap:36px; justify-content:center; align-items:flex-end }
+  figure { display:flex; flex-direction:column; align-items:center; gap:10px; cursor:zoom-in }
+  figcaption { color:#ccc; font-size:13px; text-align:center; max-width:340px; line-height:1.4 }
+  figcaption b { color:#fff; display:block; font-size:14px; margin-bottom:2px }
+  .device { background:#0c0d10; padding:10px; box-shadow:0 20px 50px rgba(0,0,0,.5); position:relative; overflow:hidden }
+  .device.ipad { border-radius:26px }
+  .device.iphone { border-radius:40px; padding:8px }
+  .screen { position:relative; overflow:hidden; background:var(--bg); transform-origin:top left }
+  .ipad .screen { border-radius:18px }
+  .iphone .screen { border-radius:34px }
+  .zoom { position:fixed; inset:0; background:rgba(0,0,0,.85); display:none; align-items:center; justify-content:center; z-index:100; cursor:zoom-out }
+  .zoom.on { display:flex }
+
+  .bgblobs { position:absolute; inset:0; filter:blur(60px) }
+  .bgblobs i { position:absolute; border-radius:50%; display:block }
+  .status { position:absolute; top:0; left:0; right:0; height:28px; display:flex; justify-content:space-between; padding:8px 24px; font-size:13px; font-weight:600; z-index:5 }
+  .iphone .status { height:54px; padding:18px 34px; font-size:16px }
+  .island { position:absolute; top:11px; left:50%; transform:translateX(-50%); width:124px; height:36px; border-radius:20px; background:#000; z-index:7 }
+  .glass { background:var(--glass); backdrop-filter:blur(24px) saturate(1.6); -webkit-backdrop-filter:blur(24px) saturate(1.6); border:1px solid var(--glassBorder); box-shadow:0 8px 30px rgba(40,60,120,.08), inset 0 1px 0 rgba(255,255,255,.9) }
+  .card { border-radius:26px; padding:18px }
+  .sub { font-size:15px; color:var(--secondary) }
+  .cap { font-size:12px; color:var(--secondary) }
+  .h { font-size:17px; font-weight:600 }
+  .money { font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.5px }
+  .content { position:absolute; inset:0; overflow:hidden }
+  .tabtop { position:absolute; top:34px; left:50%; transform:translateX(-50%); display:flex; gap:4px; padding:5px; border-radius:999px; z-index:6 }
+  .tabtop span, .tabbottom span { width:52px; height:36px; display:grid; place-items:center; border-radius:999px; font-size:17px; position:relative }
+  .tabtop span.on, .tabbottom span.on { background:rgba(61,111,224,.14); color:var(--accent) }
+  .badge { position:absolute; top:2px; right:6px; background:#FF3B30; color:#fff; font-size:10px; font-weight:700; border-radius:999px; min-width:16px; height:16px; display:grid; place-items:center; padding:0 4px; font-style:normal }
+  .tabbottom { position:absolute; bottom:24px; left:24px; right:24px; display:flex; justify-content:space-around; padding:6px; border-radius:999px; z-index:6 }
+  .tabbottom span { width:auto; flex:1; height:44px; font-size:20px }
+  .avatar { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#7FA1EE,#B79BE6); color:#fff; display:grid; place-items:center; font-weight:600; font-size:16px; flex:none }
+  .mark { width:44px; height:44px; border-radius:11px; background:linear-gradient(135deg,var(--markTop),var(--markBottom)); box-shadow:0 5px 10px rgba(0,0,0,.12); position:relative; overflow:hidden; flex:none }
+  .mark svg { position:absolute; inset:0 }
+  .monthpicker { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-radius:22px; font-size:17px; font-weight:600 }
+  .monthpicker .chev { color:var(--accent); font-size:18px }
+  .progress { height:4px; border-radius:2px; background:rgba(120,120,128,.2); margin-top:12px; overflow:hidden }
+  .progress b { display:block; height:100%; background:var(--accent); border-radius:2px }
+  .divider { height:1px; background:var(--divider); margin:12px 0 }
+  .row { display:flex; align-items:center; padding:9px 0; gap:12px }
+  .row + .row { border-top:1px solid var(--divider) }
+  .row .t { font-size:15px; font-weight:600 }
+  .row .s { font-size:12px; color:var(--secondary); margin-top:2px }
+  .row .v { margin-left:auto; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; text-align:right }
+  .row.sel { background:rgba(61,111,224,.12); margin:0 -10px; padding:9px 10px; border-radius:14px }
+  .row.sel + .row, .row + .row.sel { border-top-color:transparent }
+  .pos { color:var(--positive) } .warn { color:var(--warning) }
+  .badgeW { font-size:12px; font-weight:600; color:var(--warning); background:rgba(201,72,59,.12); padding:3px 9px; border-radius:999px; white-space:nowrap }
+  .pill { font-size:13px; font-weight:600; color:var(--accent); background:rgba(61,111,224,.12); padding:6px 12px; border-radius:999px; white-space:nowrap }
+  .pillPos { color:var(--positive); background:rgba(46,139,110,.12) }
+  .sidebar { position:absolute; top:12px; left:12px; bottom:12px; width:300px; border-radius:30px; padding:52px 14px 14px; z-index:4 }
+  .sidebar .item { display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:14px; font-size:17px }
+  .sidebar .item.on { background:rgba(61,111,224,.14); color:var(--accent); font-weight:600 }
+  .sidebar .item .ic { width:24px; text-align:center }
+  .sidebar .item .count { margin-left:auto; font-size:15px; color:var(--secondary) }
+  .grid { display:grid; gap:16px }
+  .secTitle { font-size:15px; font-weight:600; color:var(--secondary); margin:0 0 8px 6px }
+  .roundBtn { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-size:24px; color:var(--accent); flex:none }
+  .sheetDim { position:absolute; inset:0; background:rgba(0,0,0,.25); z-index:20 }
+  .sheet { position:absolute; z-index:21; background:var(--bg); border-radius:30px; box-shadow:0 20px 60px rgba(0,0,0,.25); overflow:hidden }
+</style>
+</head>
+<body>
+
+<h1>Finanças no iPad e no iPhone</h1>
+<p class="lead">Mesma escala física entre os aparelhos. Clique numa tela para ampliar.</p>
+
+<div class="picker" id="pick">
+  <button data-s="home" class="on">Início</button>
+  <button data-s="rec">Receitas</button>
+  <button data-s="desp">Despesas</button>
+  <button data-s="flow">iPhone · tocar na receita</button>
+</div>
+
+<div class="frames" id="frames"></div>
+<div class="zoom" id="zoom"></div>
+
+<template id="mark"><div class="mark"><svg viewBox="0 0 44 44"><defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3D6FE0" stop-opacity=".35"/><stop offset="1" stop-color="#3D6FE0" stop-opacity="0"/></linearGradient></defs><path d="M6 34 C 12 30, 15 24, 20 26 S 30 18, 38 12 L38 44 L6 44Z" fill="url(#ga)"/><path d="M6 34 C 12 30, 15 24, 20 26 S 30 18, 38 12" fill="none" stroke="#3D6FE0" stroke-width="2.4" stroke-linecap="round"/><circle cx="38" cy="12" r="2.6" fill="#3D6FE0"/></svg></div></template>
+
+<script>
+const D = {
+  saldo:'R$ 4.230,50', mes:'outubro', mesTitulo:'Outubro de 2026',
+  receitas:[
+    {t:'Freela site', s:'12/10', v:'R$ 900,00', st:'atrasada'},
+    {t:'Pensão', s:'25/10', v:'R$ 1.200,00', st:'pendente'},
+    {t:'Salário', s:'05/10', v:'+ R$ 6.800,00', st:'ok'},
+    {t:'Aluguel sala', s:'10/10', v:'+ R$ 1.500,00', st:'ok'},
+  ],
+  despesas:[
+    {t:'Gás', s:'08/10', v:'R$ 110,00', st:'atrasada'},
+    {t:'Água', s:'20/10 · estimado', v:'R$ 95,00', st:'pendente'},
+    {t:'Escola', s:'28/10', v:'R$ 1.650,00', st:'pendente'},
+    {t:'Condomínio', s:'05/10', v:'− R$ 820,00', st:'ok'},
+    {t:'Internet', s:'10/10', v:'− R$ 119,90', st:'ok'},
+    {t:'Luz', s:'14/10', v:'− R$ 286,40', st:'ok'},
+  ],
+  lanc:[
+    ['Luz','Despesa · 14/10','− R$ 286,40',''],
+    ['Aluguel sala','Receita · 10/10','+ R$ 1.500,00','pos'],
+    ['Internet','Despesa · 10/10','− R$ 119,90',''],
+    ['Salário','Receita · 05/10','+ R$ 6.800,00','pos'],
+    ['Condomínio','Despesa · 05/10','− R$ 820,00',''],
+  ],
+};
+const mark = () => document.getElementById('mark').innerHTML;
+const SIZES = { land:[1180,820], port:[820,1180], phone:[402,874] };
+
+function blobs(w,h){return `<div class="bgblobs">
+  <i style="background:var(--blob1);width:${w*1.1}px;height:${w*1.1}px;left:${w*.1-w*.55}px;top:${h*.08-w*.55}px"></i>
+  <i style="background:var(--blob2);width:${w*.9}px;height:${w*.9}px;left:${w*.95-w*.45}px;top:${h*.36-w*.45}px"></i>
+  <i style="background:var(--blob3);width:${w*1.2}px;height:${w*1.2}px;left:${w*.3-w*.6}px;top:${h*.82-w*.6}px"></i></div>`}
+function chart(h,id){const w=600;const p=`M0 ${h*.92} L${w*.13} ${h*.92} L${w*.16} ${h*.18} L${w*.3} ${h*.3} L${w*.33} ${h*.12} L${w*.45} ${h*.2} L${w*.47} ${h*.36} L${w*.62} ${h*.4} L${w*.8} ${h*.45} L${w} ${h*.48}`;
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px;display:block;margin-top:8px"><defs><linearGradient id="cg${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3D6FE0" stop-opacity=".28"/><stop offset="1" stop-color="#3D6FE0" stop-opacity="0"/></linearGradient></defs><path d="${p} L${w} ${h} L0 ${h}Z" fill="url(#cg${id})"/><path d="${p}" fill="none" stroke="#3D6FE0" stroke-width="2.5" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`}
+const axis = `<div style="display:flex;justify-content:space-between" class="cap"><span>1</span><span>10</span><span>20</span><span>31</span></div>`;
+const monthPicker = (w='100%') => `<div class="monthpicker glass" style="width:${w}"><span class="chev">‹</span>${D.mesTitulo}<span class="chev">›</span></div>`;
+const greeting = (size=34) => `<div style="font-size:${size}px;font-weight:700;letter-spacing:-.5px">Boa tarde, Ana</div><div class="sub" style="margin-top:4px">Sábado, 17 de outubro</div>`;
+
+function occRow(o, kind, opts={}) {
+  const done = o.st==='ok';
+  const badge = o.st==='atrasada' ? `<div style="margin-top:3px"><span class="badgeW">atrasada</span></div>` : '';
+  const btn = (!done && opts.buttons) ? `<span class="pill ${kind==='rec'?'pillPos':''}">${kind==='rec'?'Receber':'Pagar'}</span>` : '';
+  const cls = done ? (kind==='rec'?'pos':'') : '';
+  return `<div class="row ${opts.sel?'sel':''}"><div><div class="t">${o.t}</div><div class="s">${o.s}</div></div><div class="v"><div class="${cls}">${o.v}</div>${badge}</div>${btn}</div>`;
+}
+function listCard(title, kind, items, opts={}) {
+  return `<div class="card glass"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="h">${title}</span><span class="pill">+ Nova</span></div>${items.map(o=>occRow(o,kind,opts)).join('')}</div>`;
+}
+const mini = (l,v,c,s,extra='') => `<div class="card glass" style="padding:14px 16px;display:flex;align-items:center;gap:12px"><div><div class="sub" style="font-size:13px">${l}</div><div class="money ${c}" style="font-size:22px;margin-top:2px">${v}</div><div class="cap" style="margin-top:2px">${s}</div></div><div style="margin-left:auto">${extra}</div></div>`;
+const miniReceber = () => mini('Falta receber','R$ 2.100,00','','de R$ 10.400,00','<span class="badgeW">1 atrasada</span>');
+const miniPagar = () => mini('Falta pagar','R$ 1.855,00','','de R$ 3.081,30','<span class="badgeW">1 atrasada</span>');
+const miniAtrasadas = () => mini('Atrasadas','2','warn','Freela site · Gás','<span style="color:var(--tertiary)">›</span>');
+const saldoCard = (h,id) => `<div class="card glass"><div class="sub">Saldo de ${D.mes}</div><div class="money" style="font-size:34px;margin-top:6px">${D.saldo}</div>${chart(h,id)}${axis}</div>`;
+
+function sidebar(active) {
+  const it = (k,ic,label,count,warn) => `<div class="item ${active===k?'on':''}"><span class="ic">${ic}</span>${label}${count?`<span class="count" ${warn?'style="color:var(--warning);font-weight:600"':''}>${count}</span>`:''}</div>`;
+  return `<div class="sidebar glass">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 10px 18px">${mark()}<b style="font-size:22px;letter-spacing:-.5px">Finanças</b></div>
+    ${it('home','⌂','Início')}${it('rec','↓','Receitas','4')}${it('desp','↑','Despesas','6')}${it('atr','!','Atrasadas','2',true)}
+    <div style="position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;gap:10px;padding:10px"><div class="avatar">A</div><div><div style="font-weight:600;font-size:15px">Ana</div><div class="cap">Conta e configurações</div></div>
+    <span style="margin-left:auto;font-size:20px;color:var(--accent)">◧</span></div>
+  </div>`;
+}
+const tabsIdx = {home:0,rec:1,desp:2,atr:3};
+const tabtop = (a) => `<div class="tabtop glass">${['⌂','↓','↑','!'].map((i,k)=>`<span class="${k===tabsIdx[a]?'on':''}">${i}${k===3?'<em class="badge">2</em>':''}</span>`).join('')}</div>`;
+const tabbottom = (a) => `<div class="tabbottom glass">${['⌂','↓','↑','!'].map((i,k)=>`<span class="${k===tabsIdx[a]?'on':''}">${i}${k===3?'<em class="badge">2</em>':''}</span>`).join('')}</div>`;
+const openSidebarBtn = `<div class="glass roundBtn" style="position:absolute;bottom:24px;left:24px;z-index:6;width:48px;height:48px;font-size:20px">◧</div>`;
+const avatarTopRight = (top=36) => `<div class="avatar" style="position:absolute;top:${top}px;right:24px;z-index:6">A</div>`;
+
+/* ---------- INÍCIO ---------- */
+function homeLand() {
+  return `${sidebar('home')}<div class="content"><div style="margin-left:312px;padding:44px 28px 0;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:flex-end;gap:16px"><div>${mark()}<div style="margin-top:10px">${greeting()}</div></div><div style="margin-left:auto">${monthPicker('300px')}</div></div>
+    <div class="grid" style="grid-template-columns:1.5fr 1fr">${saldoCard(150,'hl')}<div class="grid" style="gap:12px">${miniReceber()}${miniPagar()}${miniAtrasadas()}</div></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;align-items:start">${listCard('Receitas','rec',D.receitas,{buttons:true})}${listCard('Despesas','desp',D.despesas,{buttons:true})}</div>
+  </div></div>`;
+}
+function homePort() {
+  return `${tabtop('home')}${avatarTopRight()}${openSidebarBtn}<div class="content"><div style="padding:92px 28px 0;display:flex;flex-direction:column;gap:16px">
+    <div>${mark()}<div style="margin-top:10px">${greeting()}</div></div>
+    ${monthPicker()}
+    ${saldoCard(120,'hp')}
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:12px">${miniReceber()}${miniPagar()}${miniAtrasadas()}</div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;align-items:start">${listCard('Receitas','rec',D.receitas,{buttons:true})}${listCard('Despesas','desp',D.despesas,{buttons:true})}</div>
+  </div></div>`;
+}
+function homePhone() {
+  const card = (title, v, sub, badge) => `<div class="card glass" style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="sub" style="font-size:13px">${title}</span>${badge||''}</div><div class="money" style="font-size:22px;margin-top:4px">${v}</div><div class="progress" style="margin-top:8px"><b style="width:${sub}%"></b></div></div>`;
+  return `<div class="island"></div>${avatarTopRight(62)}${tabbottom('home')}<div class="content"><div style="padding:62px 20px 0;display:flex;flex-direction:column;gap:20px">
+    <div>${mark()}<div style="margin-top:10px">${greeting()}</div></div>
+    ${monthPicker()}
+    <div class="card glass"><div class="sub">Saldo de ${D.mes}</div><div class="money" style="font-size:34px;margin-top:6px">${D.saldo}</div>${chart(96,'pp')}</div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">${card('Falta receber','R$ 2.100,00',80,'')}${card('Falta pagar','R$ 1.855,00',40,'')}</div>
+    <div class="card glass"><div class="h" style="margin-bottom:6px">Lançamentos de ${D.mes}</div>${D.lanc.map(([t,s,v,c])=>`<div class="row"><div><div class="t">${t}</div><div class="s">${s}</div></div><div class="v ${c}">${v}</div></div>`).join('')}</div>
+  </div></div>`;
+}
+
+/* ---------- RECEITAS / DESPESAS ---------- */
+const CFG = {
+  rec: { title:'Receitas', items:D.receitas, open:'Pendentes', done:'Recebidas', sum:[['Recebido','R$ 8.300,00','pos'],['Falta receber','R$ 2.100,00',''],['Previsto','R$ 10.400,00','']], selIdx:2,
+         detail:{kind:'Receita fixa · todo dia 5', name:'Salário', boxA:['Recebido em outubro','R$ 6.800,00','em 05/10 · como previsto','pos'], boxB:['Valor atual','R$ 6.800,00','desde jan/2026'], hist:[['set/2026','+ R$ 7.150,00'],['ago/2026','+ R$ 6.800,00'],['jul/2026','+ R$ 6.800,00']], actions:['Alterar recebimento','Desmarcar recebimento']}},
+  desp: { title:'Despesas', items:D.despesas, open:'A pagar', done:'Pagas', sum:[['Pago','R$ 1.226,30',''],['Falta pagar','R$ 1.855,00',''],['Previsto','R$ 3.081,30','']], selIdx:1,
+         detail:{kind:'Despesa fixa · vence dia 20', name:'Água', boxA:['Estimado para outubro','R$ 95,00','média dos últimos 3 meses',''], boxB:['Vencimento','20/10','daqui a 3 dias'], hist:[['set/2026','− R$ 102,30'],['ago/2026','− R$ 88,10'],['jul/2026','− R$ 94,60']], primary:'Pagar', actions:['Lançar valor da conta']}},
+};
+function summaryCard(c) {
+  return `<div class="card glass"><div class="grid" style="grid-template-columns:repeat(3,1fr)">${c.sum.map(([l,v,cl])=>`<div><div class="cap">${l}</div><div class="money ${cl}" style="font-size:20px">${v}</div></div>`).join('')}</div></div>`;
+}
+function monthList(k, withSel) {
+  const c = CFG[k]; const kind = k;
+  const open = c.items.filter(o=>o.st!=='ok'), done = c.items.filter(o=>o.st==='ok');
+  const sec = (title, arr) => `<div><div class="secTitle">${title}</div><div class="card glass" style="padding:8px 18px">${arr.map(o=>occRow(o,kind,{sel: withSel && c.items.indexOf(o)===c.selIdx})).join('')}</div></div>`;
+  return `<div style="display:flex;flex-direction:column;gap:16px">${monthPicker()}${summaryCard(c)}${sec(c.open,open)}${sec(c.done,done)}</div>`;
+}
+function detailBody(k, padTop=24) {
+  const d = CFG[k].detail;
+  const box = ([l,v,s,cl], bg) => `<div class="card" style="background:${bg};padding:14px"><div class="cap">${l}</div><div class="money ${cl||''}" style="font-size:24px;margin-top:2px">${v}</div><div class="cap" style="margin-top:2px">${s}</div></div>`;
+  return `<div style="padding:${padTop}px 24px 24px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:flex-start"><div><div class="cap">${d.kind}</div><div style="font-size:28px;font-weight:700;letter-spacing:-.5px;margin-top:2px">${d.name}</div></div><span class="pill" style="margin-left:auto">Editar</span></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr">${box(d.boxA, d.boxA[3]==='pos'?'rgba(46,139,110,.08)':'rgba(61,111,224,.08)')}${box(d.boxB,'rgba(120,120,128,.08)')}</div>
+    ${d.primary?`<div style="background:var(--accent);color:#fff;text-align:center;font-weight:600;font-size:17px;padding:14px;border-radius:999px">${d.primary}</div>`:''}
+    <div><div class="h" style="font-size:15px;margin-bottom:4px">Últimos meses</div>${d.hist.map(([m,v])=>`<div class="row"><div class="t" style="font-weight:500">${m}</div><div class="v ${k==='rec'?'pos':''}">${v}</div></div>`).join('')}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${d.actions.map((a,i)=>`<span class="pill" style="padding:10px 16px;${i===1?'color:var(--warning);background:rgba(201,72,59,.1)':''}">${a}</span>`).join('')}</div>
+  </div>`;
+}
+function listLand(k) {
+  const c = CFG[k];
+  return `${sidebar(k)}<div class="content"><div style="margin-left:312px;padding:44px 28px 0">
+    <div style="display:flex;align-items:center;margin-bottom:16px"><div style="font-size:34px;font-weight:700;letter-spacing:-.5px">${c.title}</div><span class="glass roundBtn" style="margin-left:auto">+</span></div>
+    <div class="grid" style="grid-template-columns:1fr 1.05fr;align-items:start">${monthList(k,true)}<div class="card glass" style="padding:0">${detailBody(k)}</div></div>
+  </div></div>`;
+}
+function listPort(k, withSheet) {
+  const c = CFG[k];
+  const sheet = withSheet ? `<div class="sheetDim"></div><div class="sheet" style="left:110px;right:110px;top:180px;bottom:180px"><div style="display:flex;justify-content:space-between;padding:18px 20px 0"><span class="glass roundBtn" style="font-size:18px">✕</span></div>${detailBody(k,4)}</div>` : '';
+  return `${tabtop(k)}${openSidebarBtn}<div class="content"><div style="padding:92px 28px 0">
+    <div style="display:flex;align-items:center;margin-bottom:16px"><div style="font-size:34px;font-weight:700;letter-spacing:-.5px">${c.title}</div><span class="glass roundBtn" style="margin-left:auto">+</span></div>
+    ${monthList(k,false)}</div></div>${sheet}`;
+}
+function listPhone(k) {
+  const c = CFG[k];
+  return `<div class="island"></div>${tabbottom(k)}<div class="content"><div style="padding:62px 20px 0">
+    <div style="display:flex;align-items:center;margin:8px 0 14px"><div style="font-size:34px;font-weight:700;letter-spacing:-.5px">${c.title}</div><span class="glass roundBtn" style="margin-left:auto">+</span></div>
+    ${monthList(k,false)}</div></div>`;
+}
+
+
+/* ---------- FLUXO IPHONE ---------- */
+const PEND = {kind:'Receita fixa · todo dia 25', name:'Pensão', boxA:['Previsto para outubro','R$ 1.200,00','vence 25/10 · daqui a 8 dias',''], boxB:['Valor atual','R$ 1.200,00','desde mar/2026'], hist:[['set/2026','+ R$ 1.200,00'],['ago/2026','+ R$ 1.200,00'],['jul/2026','+ R$ 1.200,00']], primary:'Marcar como recebida', actions:[]};
+function phoneDetail(d, k='rec') {
+  const saved = CFG.rec.detail; CFG.rec.detail = d;
+  const body = detailBody(k, 8);
+  CFG.rec.detail = saved;
+  return `<div class="island"></div><div class="content"><div style="padding:62px 0 0">
+    <div style="display:flex;align-items:center;padding:0 20px"><span class="glass roundBtn" style="font-size:20px">‹</span></div>
+    ${body}</div></div>`;
+}
+function phoneReceipt() {
+  const field = (l,v) => `<div style="display:flex;justify-content:space-between;padding:13px 16px;font-size:16px"><span>${l}</span><span style="color:var(--accent)">${v}</span></div>`;
+  return `<div class="island"></div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.2)"></div>
+  <div class="sheet" style="left:0;right:0;top:58px;bottom:0;border-radius:36px 36px 0 0">${blobs(402,816)}
+    <div style="position:relative;padding:18px 16px;display:flex;align-items:center;justify-content:space-between"><span class="glass roundBtn" style="font-size:18px">✕</span><b style="font-size:17px">Marcar recebida</b><span class="roundBtn" style="background:var(--accent);color:#fff;font-size:18px">✓</span></div>
+    <div style="position:relative;text-align:center;padding:16px 0 24px"><div class="sub">Pensão · outubro</div><div class="money" style="font-size:32px;margin:4px 0">R$ 1.200,00</div><div class="cap">previsto para 25/10</div></div>
+    <div style="position:relative;margin:0 16px;background:rgba(255,255,255,.75);border-radius:26px">${field('Recebido em','17 de out. de 2026')}<div style="height:1px;background:var(--divider);margin-left:16px"></div>${field('Valor recebido','R$ 1.200,00')}</div>
+    <div style="position:relative;margin:24px 16px;background:var(--accent);color:#fff;text-align:center;font-weight:600;font-size:17px;padding:15px;border-radius:999px">Marcar como recebida</div>
+  </div>`;
+}
+const FLOW_SECTION = [
+  ['phone', ()=>listPhone('rec'), '1 · Lista do mês', 'Igual a hoje. Toca em Pensão (pendente).'],
+  ['phone', ()=>phoneDetail(PEND), '2 · Detalhe (novo)', 'Abre o detalhe em tela cheia, com voltar no topo. O botão principal é Marcar como recebida.'],
+  ['phone', phoneReceipt, '3 · Confirmar recebimento', 'A folha que já existe hoje, sem mudança. Ao salvar, volta para o detalhe.'],
+  ['phone', ()=>phoneDetail(CFG.rec.detail), '4 · Detalhe de uma recebida', 'Tocando em Salário (já recebida): mostra quanto entrou e quando. Alterar recebimento abre a mesma folha, que já tem Desmarcar.'],
+];
+
+const STATUS = { land:`<div class="status"><span>16:30 Sáb 17 out</span><span>100% ▮</span></div>`, port:`<div class="status"><span>16:30 Sáb 17 out</span><span>100% ▮</span></div>`, phone:`<div class="status"><span>16:30</span><span>▮</span></div>` };
+
+const SECTIONS = {
+  flow: FLOW_SECTION,
+  home: [
+    ['land', homeLand, 'iPad · horizontal', 'Barra lateral aberta. Saldo com gráfico, os três números ao lado, receitas e despesas lado a lado com Receber/Pagar.'],
+    ['port', homePort, 'iPad · vertical', 'Barra recolhida: abas no topo, botão ◧ no canto inferior esquerdo. Mesma organização, empilhada.'],
+    ['phone', homePhone, 'iPhone', 'Como já está planejado nas despesas fixas: saldo, Falta receber ao lado de Falta pagar e os lançamentos do mês.'],
+  ],
+  rec: [
+    ['land', ()=>listLand('rec'), 'iPad · horizontal', 'Lista do mês à esquerda, detalhe da receita selecionada à direita.'],
+    ['port', ()=>listPort('rec',false), 'iPad · vertical', 'Só a lista, com a largura toda.'],
+    ['port', ()=>listPort('rec',true), 'iPad · vertical, ao tocar', 'O detalhe abre numa folha por cima da lista.'],
+    ['phone', ()=>listPhone('rec'), 'iPhone', 'Como hoje. Tocar na linha abre o mesmo detalhe em tela cheia.'],
+  ],
+  desp: [
+    ['land', ()=>listLand('desp'), 'iPad · horizontal', 'Mesmo formato de Receitas, com Pagar e o valor estimado no detalhe.'],
+    ['port', ()=>listPort('desp',false), 'iPad · vertical', 'Só a lista, com a largura toda.'],
+    ['port', ()=>listPort('desp',true), 'iPad · vertical, ao tocar', 'O detalhe abre numa folha por cima da lista.'],
+    ['phone', ()=>listPhone('desp'), 'iPhone', 'Lista do mês. Tocar na linha abre o detalhe em tela cheia.'],
+  ],
+};
+
+function frame(type, fn, scale) {
+  const [w,h] = SIZES[type];
+  const cls = type==='phone' ? 'iphone' : 'ipad';
+  const pad = type==='phone' ? 8 : 10;
+  return `<div class="device ${cls}" style="width:${w*scale+pad*2}px;height:${h*scale+pad*2}px"><div class="screen" style="width:${w}px;height:${h}px;transform:scale(${scale})">${blobs(w,h)}${STATUS[type]}${fn()}</div></div>`;
+}
+let current = 'flow';
+function render() {
+  const avail = Math.min(window.innerWidth - 32, 1800);
+  const scale = Math.max(0.3, Math.min(0.55, (avail - 120) / (1180 + 820 + 402 + 60)));
+  document.getElementById('frames').innerHTML = SECTIONS[current].map(([type,fn,title,cap],i) =>
+    `<figure data-i="${i}">${frame(type,fn,scale)}<figcaption><b>${title}</b>${cap}</figcaption></figure>`).join('');
+  document.querySelectorAll('#pick button').forEach(b=>b.classList.toggle('on', b.dataset.s===current));
+}
+document.getElementById('pick').onclick = e => { if (e.target.dataset.s) { current = e.target.dataset.s; render(); } };
+document.getElementById('frames').onclick = e => {
+  const f = e.target.closest('figure'); if (!f) return;
+  const [type,fn] = SECTIONS[current][+f.dataset.i];
+  const [w,h] = SIZES[type];
+  const s = Math.min((window.innerWidth-60)/w, (window.innerHeight-60)/h, 1);
+  const z = document.getElementById('zoom'); z.innerHTML = frame(type,fn,s); z.classList.add('on');
+};
+document.getElementById('zoom').onclick = () => document.getElementById('zoom').classList.remove('on');
+window.onresize = render;
+render();
+</script>
+</body>
+</html>

@@ -1,155 +1,55 @@
-import Charts
-import PhotosUI
 import SwiftUI
 
 struct HomeView: View {
-    @Environment(LockManager.self) private var lockManager
-    @Environment(AccountManager.self) private var account
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(ExpenseStore.self) private var expenseStore
-    @Environment(AvatarStore.self) private var avatarStore
-    @Binding var selectedTab: AppTab
-    @State private var confirmsSignOut = false
-    @State private var photoItem: PhotosPickerItem?
-    @State private var showsPhotoPicker = false
-    @State private var showsSettings = false
+    @Environment(AppNavigation.self) private var navigation
 
     var body: some View {
+        NavigationStack {
+            Group {
+                if navigation.mode == .compact {
+                    compact
+                } else {
+                    HomeWideView()
+                        .toolbar(navigation.isSidebarVisible ? .hidden : .automatic, for: .navigationBar)
+                }
+            }
+            .background(AppBackground())
+            .toolbar {
+                if !navigation.isSidebarVisible {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        AccountMenu {
+                            AccountAvatar()
+                                .accessibilityLabel("Conta")
+                        }
+                    }
+                    .sharedBackgroundVisibility(.hidden)
+                }
+            }
+        }
+    }
+
+    private var compact: some View {
         @Bindable var incomeStore = incomeStore
         let month = incomeStore.selectedMonth
         let summary = HomeMonthSummary.make(month: month, snapshot: incomeStore.snapshot, expenses: expenseStore.snapshot, today: incomeStore.today)
 
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    MonthPicker(month: $incomeStore.selectedMonth)
-                    balanceCard(summary)
-                    MonthBalanceCard(
-                        openIncomes: { selectedTab = .incomes },
-                        openExpenses: { selectedTab = .expenses }
-                    )
-                    entriesCard(summary)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
-                .readableWidth(LayoutConstants.contentWidth)
-            }
-            .background(AppBackground())
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button("Escolher foto", systemImage: "photo") {
-                            showsPhotoPicker = true
-                        }
-                        if avatarStore.imageData != nil {
-                            Button("Remover foto", systemImage: "trash") {
-                                removePhoto()
-                            }
-                        }
-                        Button("Configurações", systemImage: "gearshape") {
-                            showsSettings = true
-                        }
-                        Button("Bloquear", systemImage: "lock") {
-                            lockManager.lock()
-                        }
-                        Button("Sair da conta", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
-                            confirmsSignOut = true
-                        }
-                    } label: {
-                        AvatarView(
-                            initial: account.user.map(AvatarStore.initial) ?? "?",
-                            imageData: avatarStore.imageData,
-                            isUploading: avatarStore.isUploading
-                        )
-                        .accessibilityLabel("Conta")
-                    }
-                }
-                .sharedBackgroundVisibility(.hidden)
-            }
-            .sheet(isPresented: $showsSettings) {
-                SettingsView()
-            }
-            .photosPicker(isPresented: $showsPhotoPicker, selection: $photoItem, matching: .images)
-            .onChange(of: photoItem) { _, item in
-                guard let item else { return }
-                photoItem = nil
-                uploadPhoto(item)
-            }
-            .confirmationDialog("Sair da conta?", isPresented: $confirmsSignOut, titleVisibility: .visible) {
-                Button("Sair", role: .destructive) {
-                    Task { await account.signOut() }
-                }
-            } message: {
-                Text("O PIN deste aparelho será apagado. Para voltar, entre com seu e-mail e senha.")
-            }
-        }
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            CollapsingAppLogo(markSize: 44, isVisible: lockManager.isUnlocked)
-                .padding(.bottom, 10)
-            Text(Greeting.text(hour: Calendar.current.component(.hour, from: .now), name: account.userName ?? ""))
-                .font(.largeTitle.bold())
-            Text(Greeting.dateText(for: .now))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            if let message = avatarStore.errorMessage {
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.warning)
-                    .padding(.top, 4)
-            }
-        }
-    }
-
-    private func uploadPhoto(_ item: PhotosPickerItem) {
-        guard let user = account.user else { return }
-        Task {
-            guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-            _ = await avatarStore.upload(data, for: user)
-        }
-    }
-
-    private func removePhoto() {
-        guard let user = account.user else { return }
-        Task { _ = await avatarStore.remove(for: user) }
-    }
-
-    private func balanceCard(_ summary: HomeMonthSummary) -> some View {
-        let domain = summary.chartDomain
-        return VStack(alignment: .leading, spacing: 6) {
-            Text("Saldo de \(IncomeFormat.monthName(summary.month))")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text(IncomeFormat.currency(summary.balance))
-                .font(.system(size: 34, weight: .semibold))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-            Chart(summary.points) { point in
-                AreaMark(
-                    x: .value("Dia", point.day),
-                    yStart: .value("Base", domain.lowerBound),
-                    yEnd: .value("Saldo", point.balance)
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HomeHeader()
+                MonthPicker(month: $incomeStore.selectedMonth)
+                BalanceChartCard(summary: summary, chartHeight: 96, showsDayScale: false)
+                MonthBalanceCard(
+                    openIncomes: { navigation.section = .incomes },
+                    openExpenses: { navigation.section = .expenses }
                 )
-                .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.28), Theme.accent.opacity(0)], startPoint: .top, endPoint: .bottom))
-
-                LineMark(x: .value("Dia", point.day), y: .value("Saldo", point.balance))
-                    .foregroundStyle(Theme.accent)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                entriesCard(summary)
             }
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
-            .chartXScale(domain: 1...summary.month.dayCount)
-            .chartYScale(domain: domain)
-            .frame(height: 96)
-            .padding(.top, 8)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 32)
+            .readableWidth(LayoutConstants.contentWidth)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular, in: .rect(cornerRadius: 26))
-        .animation(.smooth, value: summary)
     }
 
     private func entriesCard(_ summary: HomeMonthSummary) -> some View {
