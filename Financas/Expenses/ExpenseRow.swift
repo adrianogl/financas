@@ -4,14 +4,15 @@ struct ExpenseRow: View {
     let expense: Expense
     let term: ExpenseTerm?
     let estimate: ExpenseEstimate?
+    let partCount: Int
 
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.name)
                     .font(.subheadline.weight(.semibold))
-                if let term, let estimate {
-                    Text(ExpenseFormat.rule(term, estimate: estimate))
+                if let rule {
+                    Text(rule)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -29,5 +30,11 @@ struct ExpenseRow: View {
         }
         .padding(.vertical, 6)
         .contentShape(.rect)
+    }
+
+    private var rule: String? {
+        guard let term, let estimate else { return nil }
+        guard expense.kind == .bill else { return ExpenseFormat.spendingRule(term.estimatedAmount) }
+        return ExpenseFormat.rule(term, estimate: estimate, partCount: partCount)
     }
 }

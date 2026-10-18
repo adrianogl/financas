@@ -119,6 +119,10 @@ final class ExpenseStore {
         ExpenseSchedule.estimate(for: expense, in: today.yearMonth, snapshot: snapshot)
     }
 
+    func currentPartCount(for expense: Expense, today: CalendarDay) -> Int {
+        ExpensePartSchedule.activeParts(of: expense, in: today.yearMonth, snapshot: snapshot).count
+    }
+
     func activeExpenses(today: CalendarDay) -> [Expense] {
         sortedExpenses.filter { expense in expense.endMonth.map { $0 >= today.yearMonth } ?? true }
     }

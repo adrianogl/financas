@@ -49,6 +49,11 @@ struct ExpenseOccurrenceRow: View {
     }
 
     private var caption: String {
+        guard !occurrence.parts.isEmpty else { return dateCaption }
+        return "\(dateCaption) · \(ExpenseFormat.partNames(occurrence.parts))"
+    }
+
+    private var dateCaption: String {
         guard occurrence.status == .paid, let paidOn = occurrence.paidOn else {
             return IncomeFormat.shortDate(occurrence.dueDate)
         }

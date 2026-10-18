@@ -36,7 +36,7 @@ enum ExpenseFormat {
         }
     }
 
-    static func rule(_ term: ExpenseTerm, estimate: ExpenseEstimate, partCount: Int = 0) -> String {
+    static func rule(_ term: ExpenseTerm, estimate: ExpenseEstimate, partCount: Int) -> String {
         let day = "Todo dia \(term.dayOfMonth)"
         switch estimate {
         case .average(_, let months):
@@ -57,8 +57,33 @@ enum ExpenseFormat {
     static func partCaption(_ value: ExpensePartValue, change: Decimal?, previous: YearMonth, locale: Locale = IncomeFormat.locale) -> String {
         guard !value.isFixed else { return "fixo" }
         guard let change else { return "varia" }
+        guard change != 0 else { return "igual a \(IncomeFormat.monthName(previous, locale: locale))" }
         let arrow = change < 0 ? "▼" : "▲"
         return "\(arrow) \(IncomeFormat.currency(abs(change), locale: locale)) vs. \(IncomeFormat.monthName(previous, locale: locale))"
+    }
+
+    static func partStatus(_ value: ExpensePartValue) -> String {
+        switch value.status {
+        case .paid:
+            guard let paidOn = value.bill?.paidOn else { return "paga" }
+            return "paga em \(DueText.shortDate(paidOn))"
+        case .overdue:
+            return "atrasada"
+        case .pending:
+            return "vence \(DueText.shortDate(value.dueDate))"
+        }
+    }
+
+    static func spendingRule(_ expected: Decimal, locale: Locale = IncomeFormat.locale) -> String {
+        "Gasto do mês · previsto \(IncomeFormat.currency(expected, locale: locale))"
+    }
+
+    static func tableAmount(_ value: Decimal, locale: Locale = IncomeFormat.locale) -> String {
+        var source = value
+        var whole = Decimal()
+        NSDecimalRound(&whole, &source, 0, .plain)
+        let fraction = whole == value ? 0 : 2
+        return value.formatted(.number.precision(.fractionLength(fraction)).locale(locale))
     }
 
     static func occurrenceTitle(_ occurrence: ExpenseOccurrence, today: CalendarDay, locale: Locale = IncomeFormat.locale) -> String {

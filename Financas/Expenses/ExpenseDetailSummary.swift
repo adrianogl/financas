@@ -1,11 +1,19 @@
 struct ExpenseDetailSummary: Equatable {
     let rule: String
     let history: [DetailHistoryEntry]
+    var partsHistory: ExpensePartsHistory?
 
     static func make(occurrence: ExpenseOccurrence, snapshot: ExpenseSnapshot) -> ExpenseDetailSummary {
         let expense = occurrence.expense
-        let day = ExpenseSchedule.term(for: expense, in: occurrence.month, snapshot: snapshot)?.dayOfMonth
-            ?? occurrence.dueDate.day
+        let term = ExpenseSchedule.term(for: expense, in: occurrence.month, snapshot: snapshot)
+        if let term, !occurrence.parts.isEmpty {
+            return ExpenseDetailSummary(
+                rule: ExpenseFormat.rule(term, estimate: occurrence.estimate, partCount: occurrence.parts.count),
+                history: [],
+                partsHistory: ExpensePartsHistory.make(occurrence: occurrence, snapshot: snapshot)
+            )
+        }
+        let day = term?.dayOfMonth ?? occurrence.dueDate.day
         var entries: [DetailHistoryEntry] = []
         var cursor = occurrence.month.previous
         while entries.count < DetailConstants.historyMonths, cursor >= expense.startMonth {

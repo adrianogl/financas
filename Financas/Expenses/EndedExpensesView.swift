@@ -17,7 +17,8 @@ struct EndedExpensesView: View {
                         ExpenseRow(
                             expense: expense,
                             term: store.currentTerm(for: expense, today: incomeStore.today),
-                            estimate: store.currentEstimate(for: expense, today: incomeStore.today)
+                            estimate: store.currentEstimate(for: expense, today: incomeStore.today),
+                            partCount: store.currentPartCount(for: expense, today: incomeStore.today)
                         )
                     }
                     .buttonStyle(.plain)

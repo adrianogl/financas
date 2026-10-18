@@ -61,9 +61,9 @@ struct ExpenseFormatTests {
     }
 
     @Test func ruleTexts() {
-        #expect(ExpenseFormat.rule(S.luzTerm, estimate: .average(amount: 180, months: [S.month(2026, 7), S.month(2026, 8), S.month(2026, 9)])) == "Todo dia 13 · média de 3 meses")
-        #expect(ExpenseFormat.rule(S.internetTerm, estimate: .manual(180)) == "Todo dia 26 · estimado")
-        #expect(ExpenseFormat.rule(S.internetTerm, estimate: .fixed(120)) == "Todo dia 26 · valor fixo")
+        #expect(ExpenseFormat.rule(S.luzTerm, estimate: .average(amount: 180, months: [S.month(2026, 7), S.month(2026, 8), S.month(2026, 9)]), partCount: 0) == "Todo dia 13 · média de 3 meses")
+        #expect(ExpenseFormat.rule(S.internetTerm, estimate: .manual(180), partCount: 0) == "Todo dia 26 · estimado")
+        #expect(ExpenseFormat.rule(S.internetTerm, estimate: .fixed(120), partCount: 0) == "Todo dia 26 · valor fixo")
     }
 
     @Test func originForFixedExpense() {
@@ -102,5 +102,27 @@ struct ExpenseFormatTests {
         #expect(ExpenseFormat.partCaption(water, change: 30, previous: september) == "▲ R$\u{00A0}30,00 vs. setembro")
         #expect(ExpenseFormat.partCaption(water, change: -5, previous: september) == "▼ R$\u{00A0}5,00 vs. setembro")
         #expect(ExpenseFormat.partCaption(cooking, change: nil, previous: september) == "varia")
+        #expect(ExpenseFormat.partCaption(water, change: 0, previous: september) == "igual a setembro")
+    }
+
+    @Test func partStatusTexts() {
+        let agua = S.part(S.condominio, "Água", position: 1)
+        let paidBill = S.partBill(agua, S.month(2026, 10), paid: 110, on: S.day(2026, 10, 12))
+        let paid = ExpensePartValue(part: agua, month: S.month(2026, 10), amount: 110, origin: .paid, isFixed: false, dueDate: S.day(2026, 10, 13), bill: paidBill, status: .paid)
+        let overdue = ExpensePartValue(part: agua, month: S.month(2026, 10), amount: 110, origin: .bill, isFixed: false, dueDate: S.day(2026, 10, 13), bill: nil, status: .overdue)
+        let pending = ExpensePartValue(part: agua, month: S.month(2026, 10), amount: 110, origin: .bill, isFixed: false, dueDate: S.day(2026, 10, 26), bill: nil, status: .pending)
+
+        #expect(ExpenseFormat.partStatus(paid) == "paga em 12/10")
+        #expect(ExpenseFormat.partStatus(overdue) == "atrasada")
+        #expect(ExpenseFormat.partStatus(pending) == "vence 26/10")
+    }
+
+    @Test func spendingRuleText() {
+        #expect(ExpenseFormat.spendingRule(600) == "Gasto do mês · previsto R$\u{00A0}600,00")
+    }
+
+    @Test func tableAmountTexts() {
+        #expect(ExpenseFormat.tableAmount(1010) == "1.010")
+        #expect(ExpenseFormat.tableAmount(S.money("196.4")) == "196,40")
     }
 }

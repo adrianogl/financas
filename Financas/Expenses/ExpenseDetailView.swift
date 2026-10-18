@@ -48,6 +48,11 @@ struct ExpenseDetailView: View {
                     )
                 }
             }
+            if !occurrence.parts.isEmpty {
+                ExpensePartsCard(occurrence: occurrence, snapshot: store.snapshot) { value in
+                    paying = ExpenseSheetTarget(occurrence: occurrence, mode: nil, partID: value.part.id)
+                }
+            }
             if let message = store.errorMessage {
                 Text(message)
                     .font(.footnote)
@@ -69,7 +74,9 @@ struct ExpenseDetailView: View {
                 .buttonStyle(.glass)
                 .frame(maxWidth: .infinity)
             }
-            if !summary.history.isEmpty {
+            if let partsHistory = summary.partsHistory {
+                ExpensePartsHistoryTable(history: partsHistory)
+            } else if !summary.history.isEmpty {
                 DetailHistoryList(entries: summary.history, sign: "−", missingText: "não paga")
             }
         }
