@@ -5,5 +5,6 @@ enum ExpenseConstants {
     static let partsTable = "expense_parts"
     static let partTermsTable = "expense_part_terms"
     static let entriesTable = "expense_entries"
+    static let spendingHistoryMonths = 6
     static let loadFailedMessage = "Não foi possível carregar suas despesas. Tente de novo."
 }

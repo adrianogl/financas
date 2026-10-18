@@ -119,4 +119,17 @@ struct HomeMonthSummaryTests {
         #expect(result.chartDomain.upperBound == high * 1.05)
         #expect(summary(S.month(2026, 9), snapshot()).chartDomain == 0...1)
     }
+
+    @Test func spendingEntriesAreExpenses() {
+        let abastecimento = Expense(id: UUID(), name: "Abastecimento", startMonth: S.month(2026, 10), kind: .spending)
+        let spent = [(130, 2), (140, 10), (150, 17)].map {
+            ExpenseEntry(id: UUID(), expenseID: abastecimento.id, spentOn: S.day(2026, 10, $0.1), amount: Decimal($0.0))
+        }
+        let expenses = ExpenseSnapshot(expenses: [abastecimento], terms: [], bills: [], entries: spent)
+        let result = summary(S.month(2026, 10), .empty, expenses: expenses)
+        #expect(result.entries.count == 3)
+        #expect(result.entries.map(\.kind) == [.expense, .expense, .expense])
+        #expect(result.entries.map(\.date.day) == [17, 10, 2])
+        #expect(result.balance == -420)
+    }
 }

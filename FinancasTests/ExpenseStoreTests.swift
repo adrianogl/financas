@@ -292,4 +292,19 @@ struct ExpenseStoreTests {
         #expect(refreshed)
         #expect(store.snapshot == .empty)
     }
+
+    @Test func spendingNeverOverdueOrDue() async {
+        let abastecimento = Expense(id: UUID(), name: "Abastecimento", startMonth: S.month(2026, 8), kind: .spending)
+        let entry = ExpenseEntry(id: UUID(), expenseID: abastecimento.id, spentOn: S.day(2026, 8, 10), amount: 100)
+        let snapshot = ExpenseSnapshot(
+            expenses: [abastecimento],
+            terms: [S.term(abastecimento, from: S.month(2026, 8), day: 1, estimated: 600)],
+            bills: [],
+            entries: [entry]
+        )
+        let (store, _) = await makeStore(snapshot)
+        #expect(store.overdueOccurrences(today: S.today).isEmpty)
+        #expect(store.dueItems(today: S.today)?.isEmpty == true)
+        #expect(store.spendings(in: S.month(2026, 10), today: S.today).map(\.expense.name) == ["Abastecimento"])
+    }
 }

@@ -78,6 +78,14 @@ final class ExpenseStore {
         ExpenseSchedule.summary(for: month, snapshot: snapshot, today: today)
     }
 
+    func spendings(in month: YearMonth, today: CalendarDay) -> [SpendingMonth] {
+        SpendingSchedule.months(in: month, snapshot: snapshot, today: today)
+    }
+
+    func spendingHistory(of expense: Expense, through month: YearMonth, today: CalendarDay) -> [SpendingMonth] {
+        SpendingSchedule.history(of: expense, through: month, snapshot: snapshot, today: today)
+    }
+
     func dueItems(today: CalendarDay) -> [DueItem]? {
         guard loadState == .loaded else { return nil }
         let previous = ExpenseSchedule.occurrences(in: today.yearMonth.previous, snapshot: snapshot, today: today)

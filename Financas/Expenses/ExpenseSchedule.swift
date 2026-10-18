@@ -73,8 +73,9 @@ enum ExpenseSchedule {
         let own = occurrences(in: month, snapshot: snapshot, today: today)
         let carried = month == today.yearMonth ? carried(into: month, snapshot: snapshot, today: today) : []
         let open = (own + carried).filter { $0.status != .paid }
-        let paid = own.compactMap { $0.bill?.paidAmount }.reduce(0, +)
-        let remaining = open.map(\.amount).reduce(0, +)
+        let spendings = SpendingSchedule.months(in: month, snapshot: snapshot, today: today)
+        let paid = own.compactMap { $0.bill?.paidAmount }.reduce(0, +) + spendings.map(\.spent).reduce(0, +)
+        let remaining = open.map(\.amount).reduce(0, +) + spendings.map(\.remaining).reduce(0, +)
         let upcoming = (own + carried + occurrences(in: month.next, snapshot: snapshot, today: today))
             .filter { $0.status == .pending && $0.dueDate >= today }
             .sorted(by: ordered)

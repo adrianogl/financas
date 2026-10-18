@@ -16,8 +16,14 @@ struct HomeMonthSummary: Equatable {
             return (bill, name, paidOn, amount)
         }
 
+        let spendings = expenses.entries.compactMap { entry -> (entry: ExpenseEntry, name: String)? in
+            guard let name = names[entry.expenseID], entry.spentOn.yearMonth == month else { return nil }
+            return (entry, name)
+        }
+
         var movements = inMonth.map { (day: $0.receivedOn.day, amount: $0.amount) }
         movements += payments.map { (day: $0.paidOn.day, amount: -$0.amount) }
+        movements += spendings.map { (day: $0.entry.spentOn.day, amount: -$0.entry.amount) }
         let balance = movements.map(\.amount).reduce(0, +)
 
         var points = [BalancePoint(day: 1, balance: 0)]
@@ -41,7 +47,10 @@ struct HomeMonthSummary: Equatable {
         let expenseEntries = payments.map {
             HomeEntry(id: $0.bill.id, title: $0.name, kind: .expense, date: $0.paidOn, amount: $0.amount)
         }
-        let entries = (incomeEntries + expenseEntries).sorted { $0.date > $1.date }
+        let spendingEntries = spendings.map {
+            HomeEntry(id: $0.entry.id, title: $0.name, kind: .expense, date: $0.entry.spentOn, amount: $0.entry.amount)
+        }
+        let entries = (incomeEntries + expenseEntries + spendingEntries).sorted { $0.date > $1.date }
 
         return HomeMonthSummary(month: month, balance: balance, points: points, entries: entries)
     }
