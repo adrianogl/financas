@@ -245,6 +245,39 @@ struct ExpenseBillDraftTests {
         #expect(!saved.contains { $0.partID == taxa.id })
     }
 
+    private var allPaid: [ExpensePartBill] {
+        [
+            S.partBill(taxa, S.month(2026, 10), paid: 820, on: S.day(2026, 10, 9)),
+            S.partBill(agua, S.month(2026, 10), paid: 110, on: S.day(2026, 10, 14)),
+            S.partBill(gas, S.month(2026, 10), paid: 80, on: S.day(2026, 10, 12))
+        ]
+    }
+
+    @Test func editingPaidAmountKeepsEachPartDate() {
+        let target = partsOccurrence(partsSnapshot(partBills: allPaid))
+        var draft = ExpenseBillDraft(occurrence: target, today: S.today)
+        #expect(draft.paidOn == S.day(2026, 10, 14))
+        draft.parts[1].amount = 115
+
+        let saved = draft.partPaymentsSaved(for: target)
+
+        #expect(byPart(saved, \.paidAmount)[agua.id] == 115)
+        #expect(Dictionary(uniqueKeysWithValues: saved.map { ($0.partID, $0.paidOn) }) == [
+            taxa.id: S.day(2026, 10, 9), agua.id: S.day(2026, 10, 14), gas.id: S.day(2026, 10, 12)
+        ])
+    }
+
+    @Test func changingPaidDateAppliesToAllParts() {
+        let target = partsOccurrence(partsSnapshot(partBills: allPaid))
+        var draft = ExpenseBillDraft(occurrence: target, today: S.today)
+        draft.paidOn = S.day(2026, 10, 16)
+
+        let saved = draft.partPaymentsSaved(for: target)
+
+        #expect(saved.count == 3)
+        #expect(saved.allSatisfy { $0.paidOn == S.day(2026, 10, 16) })
+    }
+
     @Test func wholeBillLaunchSetsSharedDueDate() {
         let fee = S.partBill(taxa, S.month(2026, 10), paid: 820, on: S.day(2026, 10, 9))
         let target = partsOccurrence(partsSnapshot(partBills: [fee]))

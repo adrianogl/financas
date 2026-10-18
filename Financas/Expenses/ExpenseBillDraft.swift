@@ -8,6 +8,7 @@ struct ExpenseBillDraft: Equatable {
     var paidOn: CalendarDay
     var billPartValues: [ExpenseBillPartDraft]
     var paymentPartValues: [ExpenseBillPartDraft]
+    private let initialPaidOn: CalendarDay
 
     var parts: [ExpenseBillPartDraft] {
         get { mode == .bill ? billPartValues : paymentPartValues }
@@ -49,6 +50,7 @@ struct ExpenseBillDraft: Equatable {
         billDueDate = occurrence.dueDate
         paidAmount = bill?.paidAmount ?? bill?.billAmount ?? occurrence.estimate.amount
         paidOn = (hasParts ? occurrence.paidOn : bill?.paidOn) ?? today
+        initialPaidOn = paidOn
     }
 
     func billSaved(for occurrence: ExpenseOccurrence) -> ExpenseBill {
@@ -99,7 +101,7 @@ struct ExpenseBillDraft: Equatable {
             partBill(of: value.id, in: occurrence).map { bill in
                 var bill = bill
                 bill.paidAmount = value.amount
-                bill.paidOn = paidOn
+                bill.paidOn = paidOn == initialPaidOn ? bill.paidOn ?? paidOn : paidOn
                 return bill
             }
         }
