@@ -72,6 +72,12 @@ struct SettingsView: View {
                 }
             }
 
+            Section {
+                LabeledContent("Versão", value: AppVersion.installed.text())
+            } footer: {
+                Text("Número da versão, commit e data em que o app foi gerado.")
+            }
+
             if let message = store.settingsErrorMessage {
                 Section {
                     Text(message)
