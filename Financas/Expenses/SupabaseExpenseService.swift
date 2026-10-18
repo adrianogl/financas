@@ -14,18 +14,43 @@ final class SupabaseExpenseService: ExpenseService {
             async let expenses: [Expense] = client.from(ExpenseConstants.expensesTable).select().execute().value
             async let terms: [ExpenseTerm] = client.from(ExpenseConstants.termsTable).select().execute().value
             async let bills: [ExpenseBill] = client.from(ExpenseConstants.billsTable).select().execute().value
-            return try await ExpenseSnapshot(expenses: expenses, terms: terms, bills: bills)
+            async let parts: [ExpensePart] = client.from(ExpenseConstants.partsTable).select().execute().value
+            async let partTerms: [ExpensePartTerm] = client.from(ExpenseConstants.partTermsTable).select().execute().value
+            async let entries: [ExpenseEntry] = client.from(ExpenseConstants.entriesTable).select().execute().value
+            return try await ExpenseSnapshot(
+                expenses: expenses,
+                terms: terms,
+                bills: bills,
+                parts: parts,
+                partTerms: partTerms,
+                entries: entries
+            )
         } catch {
             throw SupabaseIncomeService.incomeError(from: error)
         }
     }
 
-    func save(_ expense: Expense, term: ExpenseTerm?) async throws(IncomeError) {
+    func save(
+        _ expense: Expense,
+        term: ExpenseTerm?,
+        parts: [ExpensePart],
+        partTerms: [ExpensePartTerm]
+    ) async throws(IncomeError) {
         do {
             try await client.from(ExpenseConstants.expensesTable).upsert(expense, returning: .minimal).execute()
             if let term {
                 try await client.from(ExpenseConstants.termsTable)
                     .upsert(term, onConflict: "expense_id,valid_from", returning: .minimal)
+                    .execute()
+            }
+            if !parts.isEmpty {
+                try await client.from(ExpenseConstants.partsTable)
+                    .upsert(parts, onConflict: "id", returning: .minimal)
+                    .execute()
+            }
+            if !partTerms.isEmpty {
+                try await client.from(ExpenseConstants.partTermsTable)
+                    .upsert(partTerms, onConflict: "part_id,valid_from", returning: .minimal)
                     .execute()
             }
         } catch {
@@ -54,6 +79,22 @@ final class SupabaseExpenseService: ExpenseService {
     func deleteBill(id: UUID) async throws(IncomeError) {
         do {
             try await client.from(ExpenseConstants.billsTable).delete().eq("id", value: id.uuidString).execute()
+        } catch {
+            throw SupabaseIncomeService.incomeError(from: error)
+        }
+    }
+
+    func save(_ entry: ExpenseEntry) async throws(IncomeError) {
+        do {
+            try await client.from(ExpenseConstants.entriesTable).upsert(entry, returning: .minimal).execute()
+        } catch {
+            throw SupabaseIncomeService.incomeError(from: error)
+        }
+    }
+
+    func deleteEntry(id: UUID) async throws(IncomeError) {
+        do {
+            try await client.from(ExpenseConstants.entriesTable).delete().eq("id", value: id.uuidString).execute()
         } catch {
             throw SupabaseIncomeService.incomeError(from: error)
         }

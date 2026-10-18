@@ -112,7 +112,7 @@ final class ExpenseStore {
         let (expense, newTerm) = draft.build(today: today)
         let term = newTerm.map(reusingExistingID)
         return await perform { [service] () async throws(IncomeError) in
-            try await service.save(expense, term: term)
+            try await service.save(expense, term: term, parts: [], partTerms: [])
         } onSuccess: {
             self.upsert(expense)
             if let term {
@@ -126,7 +126,7 @@ final class ExpenseStore {
         var ended = expense
         ended.endMonth = max(month, expense.startMonth)
         return await perform { [service] () async throws(IncomeError) in
-            try await service.save(ended, term: nil)
+            try await service.save(ended, term: nil, parts: [], partTerms: [])
         } onSuccess: {
             self.upsert(ended)
         }
@@ -139,6 +139,10 @@ final class ExpenseStore {
             self.snapshot.expenses.removeAll { $0.id == expense.id }
             self.snapshot.terms.removeAll { $0.expenseID == expense.id }
             self.snapshot.bills.removeAll { $0.expenseID == expense.id }
+            let partIDs = Set(self.snapshot.parts.filter { $0.expenseID == expense.id }.map(\.id))
+            self.snapshot.parts.removeAll { $0.expenseID == expense.id }
+            self.snapshot.partTerms.removeAll { partIDs.contains($0.partID) }
+            self.snapshot.entries.removeAll { $0.expenseID == expense.id }
         }
     }
 

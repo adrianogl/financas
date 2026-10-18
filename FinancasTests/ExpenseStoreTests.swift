@@ -209,6 +209,25 @@ struct ExpenseStoreTests {
         #expect(store.snapshot.bills.isEmpty)
     }
 
+    @Test func deleteRemovesPartsTermsAndEntries() async {
+        var snapshot = S.snapshot
+        let part = ExpensePart(id: UUID(), expenseID: S.luz.id, name: "Taxa", position: 0)
+        snapshot.parts = [part]
+        snapshot.partTerms = [ExpensePartTerm(
+            id: UUID(), partID: part.id, validFrom: S.month(2026, 7), amount: 100,
+            isFixed: true, averageFrom: S.month(2026, 7), isActive: true
+        )]
+        snapshot.entries = [ExpenseEntry(id: UUID(), expenseID: S.luz.id, spentOn: S.day(2026, 10, 1), amount: 20)]
+        let (store, _) = await makeStore(snapshot)
+
+        let deleted = await store.delete(S.luz)
+
+        #expect(deleted)
+        #expect(store.snapshot.parts.isEmpty)
+        #expect(store.snapshot.partTerms.isEmpty)
+        #expect(store.snapshot.entries.isEmpty)
+    }
+
     @Test func dueItemsNilBeforeLoad() async {
         let store = ExpenseStore(service: FakeExpenseService())
         #expect(store.dueItems(today: S.today) == nil)
