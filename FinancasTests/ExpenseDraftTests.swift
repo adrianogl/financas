@@ -351,7 +351,18 @@ struct ExpenseDraftTests {
         #expect(draft.buildParts(today: S.today) == ExpensePartChanges(parts: [], terms: []))
     }
     @Test func changingPartDayCreatesTermKeepingAverage() throws {
-        let snapshot = condominioSnapshot(gasTerms: [S.partTerm(gas, from: S.month(2026, 10), amount: 80, day: 20)])
+        let waterTerm = S.partTerm(agua, from: S.month(2026, 7), amount: 85, averageFrom: S.month(2026, 8))
+        let snapshot = ExpenseSnapshot(
+            expenses: [S.condominio],
+            terms: [S.condominioTerm],
+            bills: [],
+            parts: [taxa, agua, gas],
+            partTerms: [
+                S.partTerm(taxa, from: S.month(2026, 7), amount: 820, isFixed: true),
+                waterTerm,
+                S.partTerm(gas, from: S.month(2026, 7), amount: 80, day: 20)
+            ]
+        )
         var draft = editCondominio(snapshot)
         #expect(draft.parts.map(\.dayOfMonth) == [nil, nil, 20])
         draft.parts[1].dayOfMonth = 15
@@ -364,9 +375,13 @@ struct ExpenseDraftTests {
         let water = try #require(changes.terms.first)
         #expect(water.dayOfMonth == 15)
         #expect(water.amount == 85)
+        #expect(!water.isFixed)
+        #expect(water.isActive)
         #expect(water.validFrom == S.month(2026, 10))
-        #expect(water.averageFrom == S.month(2026, 10))
+        #expect(water.id != waterTerm.id)
+        #expect(water.averageFrom == S.month(2026, 8))
         #expect(changes.terms.last?.dayOfMonth == nil)
+        #expect(changes.terms.last?.averageFrom == S.month(2026, 7))
     }
 
     @Test func currentMonthWithPartPaymentIsRegistered() {
