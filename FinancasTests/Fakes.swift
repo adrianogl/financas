@@ -205,6 +205,57 @@ final class FakeIncomeService: IncomeService {
 }
 
 @MainActor
+final class FakeExpenseService: ExpenseService {
+    var snapshot: ExpenseSnapshot
+    var nextError: IncomeError?
+    var holdsResponses = false
+    private(set) var calls: [String] = []
+    private var pending: [CheckedContinuation<Void, Never>] = []
+
+    init(snapshot: ExpenseSnapshot = ExpenseSamples.snapshot) {
+        self.snapshot = snapshot
+    }
+
+    func release() {
+        holdsResponses = false
+        pending.forEach { $0.resume() }
+        pending.removeAll()
+    }
+
+    func load() async throws(IncomeError) -> ExpenseSnapshot {
+        try await respond("load")
+        return snapshot
+    }
+
+    func save(_ expense: Expense, term: ExpenseTerm?) async throws(IncomeError) {
+        try await respond("saveExpense")
+    }
+
+    func delete(expenseID: UUID) async throws(IncomeError) {
+        try await respond("deleteExpense")
+    }
+
+    func save(_ bill: ExpenseBill) async throws(IncomeError) {
+        try await respond("saveBill")
+    }
+
+    func deleteBill(id: UUID) async throws(IncomeError) {
+        try await respond("deleteBill")
+    }
+
+    private func respond(_ call: String) async throws(IncomeError) {
+        calls.append(call)
+        if holdsResponses {
+            await withCheckedContinuation { pending.append($0) }
+        }
+        if let error = nextError {
+            nextError = nil
+            throw error
+        }
+    }
+}
+
+@MainActor
 final class FakeAvatarService: AvatarService {
     var files: [Int: Data] = [:]
     var nextError: AvatarError?

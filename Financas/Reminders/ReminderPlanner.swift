@@ -18,10 +18,22 @@ enum ReminderPlanner {
             if settings.dueTodayEnabled, !dueToday.isEmpty {
                 let text = ReminderText.dueToday(dueToday)
                 let time = settings.dueTodayTime
-                reminders.append(Reminder(id: id("due", day, time), day: day, time: time, title: text.title, body: text.body, route: .incomes))
+                let route: ReminderRoute = dueToday.contains { $0.kind == .expense } ? .expenses : .incomes
+                reminders.append(Reminder(id: id("due", day, time), day: day, time: time, title: text.title, body: text.body, route: route))
+            }
+            let dueTodayExpenses = dueToday.filter { $0.kind == .expense }
+            if eveningDueEnabled(settings), !dueTodayExpenses.isEmpty {
+                let text = ReminderText.dueToday(dueTodayExpenses)
+                let time = settings.overdueEveningTime
+                reminders.append(Reminder(id: id("duelate", day, time), day: day, time: time, title: text.title, body: text.body, route: .expenses))
             }
         }
         return reminders.filter { fireDate($0, calendar: calendar) > now }
+    }
+
+    private static func eveningDueEnabled(_ settings: AccountSettings) -> Bool {
+        guard settings.overdueEveningEnabled else { return false }
+        return !(settings.dueTodayEnabled && settings.overdueEveningTime == settings.dueTodayTime)
     }
 
     private static func overdueTimes(_ settings: AccountSettings) -> [ReminderTime] {

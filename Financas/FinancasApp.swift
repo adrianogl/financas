@@ -6,6 +6,7 @@ struct FinancasApp: App {
     @State private var lockManager: LockManager
     @State private var accountManager: AccountManager
     @State private var incomeStore: IncomeStore
+    @State private var expenseStore: ExpenseStore
     @State private var avatarStore: AvatarStore
     @State private var reminders: ReminderScheduler
 
@@ -20,10 +21,12 @@ struct FinancasApp: App {
 
         let client = SupabaseClientFactory.make(config: config)
         let incomes = IncomeStore(service: SupabaseIncomeService(client: client))
+        let expenses = ExpenseStore(service: SupabaseExpenseService(client: client))
         let scheduler = ReminderScheduler(center: SystemReminderCenter())
 
         _lockManager = State(initialValue: lock)
         _incomeStore = State(initialValue: incomes)
+        _expenseStore = State(initialValue: expenses)
         _reminders = State(initialValue: scheduler)
         let account = AccountManager(
             service: SupabaseAccountService(client: client),
@@ -32,6 +35,7 @@ struct FinancasApp: App {
             onSignedOut: {
                 lock.resetForSignOut()
                 incomes.reset()
+                expenses.reset()
                 Task { await scheduler.reset() }
             }
         )
@@ -50,6 +54,7 @@ struct FinancasApp: App {
                 .environment(lockManager)
                 .environment(accountManager)
                 .environment(incomeStore)
+                .environment(expenseStore)
                 .environment(avatarStore)
                 .environment(reminders)
                 .environment(appDelegate.router)
@@ -66,7 +71,7 @@ struct FinancasApp: App {
     @MainActor
     private func refreshReminders() async {
         BackgroundRefresh.schedule()
-        await BackgroundReminderRefresh.run(hasSession: { await accountManager.hasSession() }, store: incomeStore) { items in
+        await BackgroundReminderRefresh.run(hasSession: { await accountManager.hasSession() }, incomes: incomeStore, expenses: expenseStore) { items in
             await reminders.reschedule(items: items, settings: incomeStore.snapshot.settings, clearingDelivered: false)
         }
     }

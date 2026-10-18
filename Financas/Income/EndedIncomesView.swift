@@ -15,7 +15,7 @@ struct EndedIncomesView: View {
                     }
                     .buttonStyle(.plain)
                     if income.id != store.endedRecurring.last?.id {
-                        Divider().padding(.leading, 48)
+                        Divider()
                     }
                 }
             }

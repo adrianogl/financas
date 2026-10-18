@@ -184,4 +184,148 @@ struct ReminderPlannerTests {
         let reminders = ReminderPlanner.plan(items: [item("now", 200, due: today)], settings: settings { $0.dueTodayTime = ReminderTime(hour: 7, minute: 30) }, now: at(today, 7, 45), calendar: calendar)
         #expect(!reminders.contains { $0.route == .incomes })
     }
+
+    private func expense(_ id: String, _ title: String, _ amount: Decimal, due: CalendarDay) -> DueItem {
+        DueItem(id: id, kind: .expense, title: title, amount: amount, dueDate: due)
+    }
+
+    private var planningNow: Date {
+        at(day(2026, 10, 17), 6)
+    }
+
+    @Test func expenseDueTodayFiresMorningAndEvening() {
+        let due = day(2026, 10, 19)
+        let reminders = ReminderPlanner.plan(items: [expense("l", "Luz", 212.30, due: due)], settings: .standard, now: planningNow, calendar: calendar)
+        let morning = reminders.first { $0.id == "due-2026-10-19-0800" }
+        let evening = reminders.first { $0.id == "duelate-2026-10-19-1900" }
+        #expect(morning?.title == "Conta vence hoje")
+        #expect(evening?.title == "Conta vence hoje")
+        #expect(evening?.body == "Luz · \(IncomeFormat.currency(212.30))")
+    }
+
+    @Test func eveningDueRespectsToggle() {
+        let due = day(2026, 10, 19)
+        let reminders = ReminderPlanner.plan(items: [expense("l", "Luz", 212.30, due: due)], settings: settings { $0.overdueEveningEnabled = false }, now: planningNow, calendar: calendar)
+        #expect(reminders.contains { $0.id == "due-2026-10-19-0800" })
+        #expect(!reminders.contains { $0.id.hasPrefix("duelate-") })
+    }
+
+    @Test func eveningDueSkippedWhenSameTimeAsMorning() {
+        let due = day(2026, 10, 19)
+        let reminders = ReminderPlanner.plan(
+            items: [expense("l", "Luz", 212.30, due: due)],
+            settings: settings { $0.overdueEveningTime = $0.dueTodayTime },
+            now: planningNow,
+            calendar: calendar
+        )
+        #expect(reminders.contains { $0.id == "due-2026-10-19-0800" })
+        #expect(!reminders.contains { $0.id.hasPrefix("duelate-") })
+    }
+
+    @Test func eveningDueFiresWhenSameTimeButMorningOff() {
+        let due = day(2026, 10, 19)
+        let reminders = ReminderPlanner.plan(
+            items: [expense("l", "Luz", 212.30, due: due)],
+            settings: settings { $0.overdueEveningTime = $0.dueTodayTime; $0.dueTodayEnabled = false },
+            now: planningNow,
+            calendar: calendar
+        )
+        #expect(reminders.contains { $0.id == "duelate-2026-10-19-0800" })
+    }
+
+    @Test func incomeAndExpenseShareOneReminder() {
+        let due = day(2026, 10, 19)
+        let items = [
+            item("s", 13020.04, due: due),
+            expense("l", "Luz", 212.30, due: due),
+            expense("i", "Internet", 94.10, due: due),
+        ]
+        let reminders = ReminderPlanner.plan(items: items, settings: .standard, now: planningNow, calendar: calendar)
+        let morning = reminders.filter { $0.id.hasPrefix("due-2026-10-19") }
+        #expect(morning.count == 1)
+        #expect(morning.first?.title == "Hoje: 1 receita e 2 contas")
+        #expect(morning.first?.body == "\(IncomeFormat.currency(13020.04)) a receber e \(IncomeFormat.currency(306.40)) a pagar.")
+        let evening = reminders.first { $0.id == "duelate-2026-10-19-1900" }
+        #expect(evening?.title == "2 contas vencem hoje")
+        #expect(evening?.body == "\(IncomeFormat.currency(306.40)) no total.")
+    }
+
+    @Test func mixedOverdueText() {
+        let items = [
+            item("s", 15120, due: day(2026, 10, 5)),
+            expense("l", "Luz", 212.30, due: day(2026, 10, 13)),
+            expense("i", "Internet", 94.10, due: day(2026, 10, 14)),
+        ]
+        let text = ReminderText.overdue(items)
+        #expect(text.title == "Atrasadas: 1 receita e 2 contas")
+        #expect(text.body == "\(IncomeFormat.currency(15120)) a receber e \(IncomeFormat.currency(306.40)) a pagar.")
+    }
+
+    @Test func expenseOverdueTexts() {
+        let luz = expense("l", "Luz", 212.30, due: day(2026, 10, 13))
+        let single = ReminderText.overdue([luz])
+        #expect(single.title == "Conta atrasada")
+        #expect(single.body == "Luz · \(IncomeFormat.currency(212.30)), venceu em \(IncomeFormat.shortDate(day(2026, 10, 13))).")
+        let many = ReminderText.overdue([luz, expense("i", "Internet", 94.10, due: day(2026, 10, 14))])
+        #expect(many.title == "2 contas atrasadas")
+        #expect(many.body == "\(IncomeFormat.currency(306.40)) ainda não pagos.")
+    }
+
+    @Test func expenseDueTodayTexts() {
+        let luz = expense("l", "Luz", 212.30, due: day(2026, 10, 19))
+        let single = ReminderText.dueToday([luz])
+        #expect(single.title == "Conta vence hoje")
+        #expect(single.body == "Luz · \(IncomeFormat.currency(212.30))")
+        let many = ReminderText.dueToday([luz, expense("i", "Internet", 94.10, due: day(2026, 10, 19))])
+        #expect(many.title == "2 contas vencem hoje")
+        #expect(many.body == "\(IncomeFormat.currency(306.40)) no total.")
+    }
+
+    @Test func mixedPluralTexts() {
+        let items = [
+            item("a", 100, due: day(2026, 10, 19)),
+            item("b", 100, due: day(2026, 10, 19)),
+            expense("l", "Luz", 50, due: day(2026, 10, 19)),
+        ]
+        #expect(ReminderText.dueToday(items).title == "Hoje: 2 receitas e 1 conta")
+    }
+
+    @MainActor @Test func paidExpenseHasNoReminder() async {
+        var snapshot = ExpenseSnapshot(expenses: [ExpenseSamples.condominio], terms: [ExpenseSamples.condominioTerm], bills: [])
+        let paidDay = ExpenseSamples.day(2026, 10, 12)
+        let store = ExpenseStore(service: FakeExpenseService(snapshot: snapshot))
+        await store.load()
+        let unpaid = ReminderPlanner.plan(items: store.dueItems(today: ExpenseSamples.today) ?? [], settings: .standard, now: planningNow, calendar: calendar)
+        #expect(!unpaid.isEmpty)
+
+        snapshot.bills = [ExpenseSamples.paid(ExpenseSamples.condominio, ExpenseSamples.month(2026, 10), 1150, on: paidDay)]
+        let paidStore = ExpenseStore(service: FakeExpenseService(snapshot: snapshot))
+        await paidStore.load()
+        let items = paidStore.dueItems(today: ExpenseSamples.today) ?? []
+        let reminders = ReminderPlanner.plan(items: items, settings: .standard, now: planningNow, calendar: calendar)
+        #expect(!items.contains { $0.dueDate.yearMonth == ExpenseSamples.month(2026, 10) })
+        #expect(reminders.isEmpty)
+    }
+
+    @Test func routes() {
+        let due = day(2026, 10, 19)
+        let withExpense = ReminderPlanner.plan(items: [item("s", 100, due: due), expense("l", "Luz", 50, due: due)], settings: .standard, now: planningNow, calendar: calendar)
+        #expect(withExpense.first { $0.id == "due-2026-10-19-0800" }?.route == .expenses)
+        #expect(withExpense.first { $0.id == "duelate-2026-10-19-1900" }?.route == .expenses)
+        let onlyIncome = ReminderPlanner.plan(items: [item("s", 100, due: due)], settings: .standard, now: planningNow, calendar: calendar)
+        #expect(onlyIncome.first { $0.id == "due-2026-10-19-0800" }?.route == .incomes)
+        #expect(!onlyIncome.contains { $0.id.hasPrefix("duelate-") })
+        let overdue = ReminderPlanner.plan(items: [expense("l", "Luz", 50, due: day(2026, 10, 10))], settings: .standard, now: planningNow, calendar: calendar)
+        #expect(overdue.allSatisfy { $0.route == .overdue })
+    }
+
+    @Test func atMost56RemindersIn14Days() {
+        let today = day(2026, 10, 17)
+        var items = (0..<5).map { expense("late\($0)", "Conta \($0)", 100, due: day(2026, 9, 1 + $0)) }
+        items += (0..<14).map { expense("day\($0)", "Dia \($0)", 50, due: today.adding(days: $0)) }
+        items += (0..<14).map { item("inc\($0)", 50, due: today.adding(days: $0)) }
+        let reminders = ReminderPlanner.plan(items: items, settings: .standard, now: planningNow, calendar: calendar)
+        #expect(reminders.count <= 56)
+        #expect(reminders.count == 56)
+    }
 }

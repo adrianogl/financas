@@ -4,6 +4,7 @@ struct RootView: View {
     @Environment(AccountManager.self) private var account
     @Environment(LockManager.self) private var lockManager
     @Environment(IncomeStore.self) private var incomeStore
+    @Environment(ExpenseStore.self) private var expenseStore
     @Environment(AvatarStore.self) private var avatarStore
     @Environment(ReminderScheduler.self) private var reminders
     @Environment(\.scenePhase) private var scenePhase
@@ -60,18 +61,27 @@ struct RootView: View {
                     .task(id: lockManager.isUnlocked) {
                         guard lockManager.isUnlocked else { return }
                         async let user: Void = account.refreshUser()
+                        async let expenses = expenseStore.refresh()
                         await incomeStore.refresh()
+                        _ = await expenses
                         await syncReminders()
                         await user
                     }
                     .onChange(of: incomeStore.snapshot) {
                         Task { await syncReminders() }
                     }
+                    .onChange(of: expenseStore.snapshot) {
+                        Task { await syncReminders() }
+                    }
                     .onChange(of: incomeStore.today) {
                         Task { await syncReminders() }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
-                        Task { await incomeStore.refresh() }
+                        Task {
+                            async let expenses = expenseStore.refresh()
+                            await incomeStore.refresh()
+                            _ = await expenses
+                        }
                     }
             }
 
@@ -99,11 +109,12 @@ struct RootView: View {
     private func syncReminders() async {
         guard let mode = ReminderSyncMode.current(phase: scenePhase, isUnlocked: lockManager.isUnlocked) else { return }
         incomeStore.moveToday()
-        guard incomeStore.dueItems != nil else { return }
+        guard incomeStore.dueItems != nil, expenseStore.dueItems(today: incomeStore.today) != nil else { return }
         if mode.asksPermission {
-            await reminders.requestPermissionIfNeeded(hasIncomes: !incomeStore.snapshot.incomes.isEmpty)
+            let hasEntries = ReminderEntries.exist(incomes: incomeStore.snapshot, expenses: expenseStore.snapshot)
+            await reminders.requestPermissionIfNeeded(hasEntries: hasEntries)
         }
-        guard let items = incomeStore.dueItems else { return }
-        await reminders.reschedule(items: items, settings: incomeStore.snapshot.settings, clearingDelivered: mode.clearingDelivered)
+        guard let incomeItems = incomeStore.dueItems, let expenseItems = expenseStore.dueItems(today: incomeStore.today) else { return }
+        await reminders.reschedule(items: incomeItems + expenseItems, settings: incomeStore.snapshot.settings, clearingDelivered: mode.clearingDelivered)
     }
 }

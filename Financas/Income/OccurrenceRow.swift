@@ -5,7 +5,6 @@ struct OccurrenceRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IncomeIcon(systemImage: iconName, tint: iconTint)
             VStack(alignment: .leading, spacing: 2) {
                 Text(IncomeFormat.occurrenceTitle(occurrence))
                     .font(.subheadline.weight(.semibold))
@@ -42,14 +41,5 @@ struct OccurrenceRow: View {
     private var amountText: String {
         guard let receipt = occurrence.receipt else { return IncomeFormat.currency(occurrence.expectedAmount) }
         return "+ \(IncomeFormat.currency(receipt.amount))"
-    }
-
-    private var iconName: String {
-        if occurrence.status == .received { return "checkmark" }
-        return occurrence.income.kind.systemImage
-    }
-
-    private var iconTint: Color {
-        occurrence.status == .received ? Theme.positive : occurrence.income.kind.tint
     }
 }

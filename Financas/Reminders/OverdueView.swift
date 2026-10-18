@@ -2,8 +2,11 @@ import SwiftUI
 
 struct OverdueView: View {
     @Environment(IncomeStore.self) private var store
+    @Environment(ExpenseStore.self) private var expenseStore
     @State private var editing: IncomeDraft?
     @State private var receiving: IncomeOccurrence?
+    @State private var editingExpense: ExpenseDraft?
+    @State private var paying: ExpenseSheetTarget?
 
     var body: some View {
         NavigationStack {
@@ -17,14 +20,23 @@ struct OverdueView: View {
             }
             .background(AppBackground())
             .navigationTitle("Atrasadas")
-            .refreshable { await store.load() }
+            .refreshable {
+                async let incomes: Void = store.load()
+                async let expenses: Void = expenseStore.load()
+                _ = await (incomes, expenses)
+            }
             .incomeReceiptFlow(receiving: $receiving, editing: $editing)
+            .expenseFlow(paying: $paying, editing: $editingExpense)
         }
     }
 
+    @ViewBuilder
     private var content: some View {
+        if case .failed(let message) = expenseStore.loadState {
+            expenseFailure(message)
+        }
         IncomeLoadContent {
-            if store.overdueOccurrences.isEmpty {
+            if summary.isEmpty {
                 emptyState
             } else {
                 list
@@ -36,7 +48,7 @@ struct OverdueView: View {
         VStack(spacing: 12) {
             Text("Nada atrasado")
                 .font(.headline)
-            Text("Quando uma receita passar da data sem ser marcada como recebida, ela aparece aqui.")
+            Text("Quando uma receita ou conta passar da data sem ser marcada, ela aparece aqui.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -46,27 +58,74 @@ struct OverdueView: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
     }
 
+    private func expenseFailure(_ message: String) -> some View {
+        HStack(spacing: 12) {
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Button("Tentar de novo") {
+                Task { await expenseStore.load() }
+            }
+            .buttonStyle(.glass)
+        }
+        .padding(18)
+        .glassEffect(.regular, in: .rect(cornerRadius: 26))
+    }
+
+    private var expenses: [ExpenseOccurrence] {
+        expenseStore.loadState == .loaded ? expenseStore.overdueOccurrences(today: store.today) : []
+    }
+
+    private var summary: OverdueSummary {
+        OverdueSummary(incomes: store.overdueOccurrences, expenses: expenses)
+    }
+
     @ViewBuilder
     private var list: some View {
-        let occurrences = store.overdueOccurrences
+        let incomes = store.overdueOccurrences
+        let expenses = expenses
+        let summary = summary
 
-        OverdueTotalCard(total: store.overdueTotal)
+        OverdueTotalCard(incoming: summary.incoming, outgoing: summary.outgoing)
 
+        if summary.showsIncomes {
+            section("Receitas", items: incomes) { occurrence in
+                Button {
+                    receiving = occurrence
+                } label: {
+                    OverdueRow(occurrence: occurrence, today: store.today)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        if summary.showsExpenses {
+            section("Despesas", items: expenses) { occurrence in
+                Button {
+                    paying = ExpenseSheetTarget(occurrence: occurrence, mode: .payment)
+                } label: {
+                    OverdueExpenseRow(occurrence: occurrence, today: store.today)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func section<Item: Identifiable, Row: View>(
+        _ title: String,
+        items: [Item],
+        @ViewBuilder row: @escaping (Item) -> Row
+    ) -> some View where Item.ID == String {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Receitas")
+            Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .padding(.leading, 6)
             VStack(alignment: .leading, spacing: 4) {
-                ForEach(occurrences) { occurrence in
-                    Button {
-                        receiving = occurrence
-                    } label: {
-                        OverdueRow(occurrence: occurrence, today: store.today)
-                    }
-                    .buttonStyle(.plain)
-                    if occurrence.id != occurrences.last?.id {
-                        Divider().padding(.leading, 48)
+                ForEach(items) { item in
+                    row(item)
+                    if item.id != items.last?.id {
+                        Divider()
                     }
                 }
             }

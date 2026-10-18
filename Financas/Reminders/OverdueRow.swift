@@ -6,7 +6,6 @@ struct OverdueRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IncomeIcon(systemImage: occurrence.income.kind.systemImage, tint: occurrence.income.kind.tint)
             VStack(alignment: .leading, spacing: 2) {
                 Text(IncomeFormat.occurrenceTitle(occurrence))
                     .font(.subheadline.weight(.semibold))

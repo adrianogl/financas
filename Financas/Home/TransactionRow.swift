@@ -5,20 +5,27 @@ struct TransactionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IncomeIcon(systemImage: entry.kind.systemImage, tint: Theme.positive)
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.title)
                     .font(.subheadline.weight(.semibold))
-                Text("Receita · \(IncomeFormat.shortDate(entry.receivedOn))")
+                Text("\(legend) · \(IncomeFormat.shortDate(entry.date))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text("+ \(IncomeFormat.currency(entry.amount))")
+            Text("\(sign) \(IncomeFormat.currency(entry.amount))")
                 .font(.subheadline.weight(.semibold))
                 .monospacedDigit()
-                .foregroundStyle(Theme.positive)
+                .foregroundStyle(entry.kind == .income ? AnyShapeStyle(Theme.positive) : AnyShapeStyle(.primary))
         }
         .padding(.vertical, 6)
+    }
+
+    private var legend: String {
+        entry.kind == .income ? "Receita" : "Despesa"
+    }
+
+    private var sign: String {
+        entry.kind == .income ? "+" : "−"
     }
 }

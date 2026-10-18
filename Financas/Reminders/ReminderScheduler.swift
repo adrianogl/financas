@@ -17,8 +17,8 @@ final class ReminderScheduler {
         self.calendar = calendar
     }
 
-    func requestPermissionIfNeeded(hasIncomes: Bool) async {
-        guard hasIncomes, !defaults.bool(forKey: ReminderConstants.permissionAskedKey) else { return }
+    func requestPermissionIfNeeded(hasEntries: Bool) async {
+        guard hasEntries, !defaults.bool(forKey: ReminderConstants.permissionAskedKey) else { return }
         if await center.authorization() == .notDetermined {
             _ = await center.requestAuthorization()
         }
