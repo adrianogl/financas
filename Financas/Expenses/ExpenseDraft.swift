@@ -173,13 +173,13 @@ struct ExpenseDraft: Equatable {
                 changes.parts.append(part)
             }
             if let term = changedTerm(for: draft, partID: partID, current: current, month: month, restarted: restarted) {
-                changes.terms.append(term)
+                changes.terms += superseding(term)
             }
         }
 
         for removed in openedParts where !matchedIDs.contains(removed.id) {
             guard let current = partTerm(of: removed.id, in: month), current.isActive else { continue }
-            changes.terms.append(ExpensePartTerm(
+            changes.terms += superseding(ExpensePartTerm(
                 id: partTermID(of: removed.id, in: month),
                 partID: removed.id,
                 validFrom: month,
@@ -223,6 +223,25 @@ struct ExpenseDraft: Equatable {
         )
     }
 
+    private func superseding(_ term: ExpensePartTerm) -> [ExpensePartTerm] {
+        let later = knownPartTerms
+            .filter { $0.partID == term.partID && $0.validFrom > term.validFrom }
+            .sorted { $0.validFrom < $1.validFrom }
+            .map {
+                ExpensePartTerm(
+                    id: $0.id,
+                    partID: term.partID,
+                    validFrom: $0.validFrom,
+                    amount: term.amount,
+                    isFixed: term.isFixed,
+                    averageFrom: term.averageFrom,
+                    isActive: term.isActive,
+                    dayOfMonth: term.dayOfMonth
+                )
+            }
+        return [term] + later
+    }
+
     private func partTerm(of partID: UUID, in month: YearMonth) -> ExpensePartTerm? {
         knownPartTerms
             .filter { $0.partID == partID && $0.validFrom <= month }
@@ -261,10 +280,29 @@ struct ExpenseDraft: Equatable {
             return "Dê um nome para cada parte."
         }
         if Set(keys).count != keys.count {
-            return "Cada parte precisa de um nome diferente."
+            return ExpenseConstants.duplicatePartNameMessage
+        }
+        if let knownNameMessage {
+            return knownNameMessage
         }
         if parts.contains(where: { ($0.amount ?? 0) <= 0 }) {
             return "Informe o valor de cada parte."
+        }
+        return nil
+    }
+
+    private var knownNameMessage: String? {
+        let draftIDs = Set(parts.map(\.id))
+        let knownIDs = Set(knownParts.map(\.id))
+        for draft in parts {
+            let key = Self.key(draft.name)
+            guard let owner = knownParts.first(where: { $0.id != draft.id && Self.key($0.name) == key }) else { continue }
+            if draftIDs.contains(owner.id) {
+                return ExpenseConstants.duplicatePartNameMessage
+            }
+            if knownIDs.contains(draft.id) {
+                return ExpenseConstants.endedPartNameMessage
+            }
         }
         return nil
     }

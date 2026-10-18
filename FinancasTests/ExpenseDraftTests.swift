@@ -287,6 +287,7 @@ struct ExpenseDraftTests {
         draft.addPart()
         draft.parts[2].name = " gás "
         draft.parts[2].amount = 80
+        #expect(draft.validationMessage == nil)
 
         let changes = draft.buildParts(today: S.today)
 
@@ -391,5 +392,97 @@ struct ExpenseDraftTests {
 
         snapshot.partBills = [S.partBill(agua, S.month(2026, 9), paid: 85)]
         #expect(editCondominio(snapshot).effectiveMonth == S.month(2026, 10))
+    }
+
+    @Test func renamingPartToEndedPartNameIsRejected() {
+        let gasTerms = [
+            S.partTerm(gas, from: S.month(2026, 7), amount: 80),
+            S.partTerm(gas, from: S.month(2026, 9), amount: 80, isActive: false)
+        ]
+        var draft = editCondominio(condominioSnapshot(gasTerms: gasTerms))
+        draft.parts[1].name = " gás "
+
+        #expect(draft.validationMessage == ExpenseConstants.endedPartNameMessage)
+        #expect(ExpenseConstants.endedPartNameMessage == "Já existe uma parte removida com esse nome.")
+    }
+
+    @Test func renamingPartToRemovedPartNameIsRejected() {
+        var draft = editCondominio(condominioSnapshot())
+        draft.removePart(id: gas.id)
+        draft.parts[1].name = "Gás"
+
+        #expect(draft.validationMessage == ExpenseConstants.endedPartNameMessage)
+    }
+
+    @Test func swappingPartNamesIsRejected() {
+        var draft = editCondominio(condominioSnapshot())
+        draft.parts[0].name = "Água"
+        draft.parts[1].name = "Taxa"
+
+        #expect(draft.validationMessage == ExpenseConstants.duplicatePartNameMessage)
+        #expect(ExpenseConstants.duplicatePartNameMessage == "Cada parte precisa de um nome diferente.")
+    }
+
+    @Test func newPartWithRenamedPartOldNameIsRejected() {
+        var draft = editCondominio(condominioSnapshot())
+        draft.parts[1].name = "Água fria"
+        draft.addPart()
+        draft.parts[3].name = "Água"
+        draft.parts[3].amount = 40
+
+        #expect(draft.validationMessage == ExpenseConstants.duplicatePartNameMessage)
+    }
+
+    private func waterLaterSnapshot() -> (ExpenseSnapshot, ExpensePartTerm) {
+        let november = S.partTerm(agua, from: S.month(2026, 11), amount: 95, averageFrom: S.month(2026, 11), day: 12)
+        let snapshot = ExpenseSnapshot(
+            expenses: [S.condominio],
+            terms: [S.condominioTerm],
+            bills: [],
+            parts: [taxa, agua, gas],
+            partTerms: [
+                S.partTerm(taxa, from: S.month(2026, 10), amount: 820, isFixed: true),
+                S.partTerm(agua, from: S.month(2026, 10), amount: 85),
+                november,
+                S.partTerm(gas, from: S.month(2026, 10), amount: 80)
+            ]
+        )
+        return (snapshot, november)
+    }
+
+    @Test func removingPartAlsoDeactivatesLaterTerm() throws {
+        let (snapshot, november) = waterLaterSnapshot()
+        var draft = editCondominio(snapshot)
+        #expect(draft.effectiveMonth == S.month(2026, 10))
+        draft.removePart(id: agua.id)
+
+        let terms = draft.buildParts(today: S.today).terms
+
+        #expect(terms.count == 2)
+        #expect(terms.allSatisfy { $0.partID == agua.id && !$0.isActive })
+        #expect(terms.map(\.validFrom) == [S.month(2026, 10), S.month(2026, 11)])
+        let later = try #require(terms.last)
+        #expect(later.id == november.id)
+        #expect(later.amount == 85)
+        #expect(later.dayOfMonth == nil)
+    }
+
+    @Test func changingPartAmountOverwritesLaterTerm() throws {
+        let (snapshot, november) = waterLaterSnapshot()
+        var draft = editCondominio(snapshot)
+        draft.parts[1].amount = 100
+        draft.parts[1].isFixed = true
+
+        let terms = draft.buildParts(today: S.today).terms
+
+        #expect(terms.map(\.validFrom) == [S.month(2026, 10), S.month(2026, 11)])
+        let later = try #require(terms.last)
+        #expect(later.id == november.id)
+        #expect(later.partID == agua.id)
+        #expect(later.amount == 100)
+        #expect(later.isFixed)
+        #expect(later.isActive)
+        #expect(later.dayOfMonth == nil)
+        #expect(later.averageFrom == terms.first?.averageFrom)
     }
 }
