@@ -18,7 +18,7 @@ struct HomeStats: Equatable {
             let summary = HomeMonthSummary.make(month: month, snapshot: incomes.snapshot, expenses: expenses.snapshot, today: today)
             balance = HomeStat(title: "Saldo", value: IncomeFormat.currency(summary.balance), caption: HomeStatText.balanceCaption(month), badge: nil, isWarning: false)
             let overdueIncomes = incomes.overdueOccurrences
-            let overdueExpenses = expenses.overdueOccurrences(today: today)
+            let overdueExpenses = expenses.overduePayables(today: today)
             let count = overdueIncomes.count + overdueExpenses.count
             overdue = HomeStat(
                 title: "Atrasadas",
@@ -47,9 +47,9 @@ struct HomeStats: Equatable {
         }
     }
 
-    private static func overdueNames(incomes: [IncomeOccurrence], expenses: [ExpenseOccurrence]) -> [String] {
+    private static func overdueNames(incomes: [IncomeOccurrence], expenses: [ExpensePayable]) -> [String] {
         let entries = incomes.map { (dueDate: $0.dueDate, name: $0.income.name) }
-            + expenses.map { (dueDate: $0.dueDate, name: $0.expense.name) }
+            + expenses.map { (dueDate: $0.dueDate, name: $0.occurrence.expense.name) }
         return entries
             .sorted { lhs, rhs in
                 lhs.dueDate != rhs.dueDate

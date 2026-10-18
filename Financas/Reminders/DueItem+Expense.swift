@@ -1,13 +1,13 @@
 import Foundation
 
 extension DueItem {
-    init(expense occurrence: ExpenseOccurrence, today: CalendarDay) {
+    init(expense payable: ExpensePayable) {
         self.init(
-            id: occurrence.id,
+            id: payable.id,
             kind: .expense,
-            title: ExpenseFormat.occurrenceTitle(occurrence, today: today),
-            amount: occurrence.amount,
-            dueDate: occurrence.dueDate
+            title: payable.title,
+            amount: payable.amount,
+            dueDate: payable.dueDate
         )
     }
 }

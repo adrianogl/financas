@@ -5,14 +5,19 @@ struct ExpenseSheet: View {
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(\.dismiss) private var dismiss
     @State private var draft: ExpenseBillDraft
+    @State private var partDraft: ExpensePartBillDraft?
 
     let occurrence: ExpenseOccurrence
+    let payable: ExpensePayable?
     let editExpense: (Expense) -> Void
 
     init(target: ExpenseSheetTarget, today: CalendarDay, editExpense: @escaping (Expense) -> Void) {
         occurrence = target.occurrence
+        let part = target.partID.flatMap { id in target.occurrence.parts.first { $0.part.id == id } }
+        payable = part.map { ExpensePayable(occurrence: target.occurrence, part: $0, today: today) }
         self.editExpense = editExpense
         _draft = State(initialValue: ExpenseBillDraft(occurrence: target.occurrence, today: today, mode: target.mode))
+        _partDraft = State(initialValue: part.map { ExpensePartBillDraft(value: $0, today: today, mode: target.mode) })
     }
 
     var body: some View {
@@ -23,7 +28,7 @@ struct ExpenseSheet: View {
                 }
                 .listRowBackground(Color.clear)
 
-                Picker("Modo", selection: $draft.mode) {
+                Picker("Modo", selection: field(\.mode, \.mode)) {
                     Text("Lançar conta").tag(ExpenseSheetMode.bill)
                     Text("Marcar como paga").tag(ExpenseSheetMode.payment)
                 }
@@ -31,7 +36,7 @@ struct ExpenseSheet: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
 
-                switch draft.mode {
+                switch mode {
                 case .bill:
                     billFields
                 case .payment:
@@ -54,15 +59,11 @@ struct ExpenseSheet: View {
                 .listRowInsets(EdgeInsets())
 
                 Section {
-                    switch draft.mode {
-                    case .bill where occurrence.hasBill:
-                        Button("Remover conta", role: .destructive) {
-                            run { await store.removeBill(draft, for: occurrence) }
-                        }
-                    case .payment where occurrence.status == .paid:
-                        Button("Desmarcar pagamento", role: .destructive) {
-                            run { await store.unmarkPaid(draft, for: occurrence) }
-                        }
+                    switch mode {
+                    case .bill where hasBill:
+                        Button("Remover conta", role: .destructive, action: removeBill)
+                    case .payment where isPaid:
+                        Button("Desmarcar pagamento", role: .destructive, action: unmarkPaid)
                     default:
                         EmptyView()
                     }
@@ -74,7 +75,7 @@ struct ExpenseSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(AppBackground())
-            .navigationTitle("\(occurrence.expense.name) · \(IncomeFormat.monthName(occurrence.month))")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -93,13 +94,13 @@ struct ExpenseSheet: View {
 
     private var header: some View {
         VStack(spacing: 4) {
-            Text("Vence \(IncomeFormat.shortDate(occurrence.dueDate))")
+            Text("Vence \(IncomeFormat.shortDate(payable?.dueDate ?? occurrence.dueDate))")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text(IncomeFormat.currency(occurrence.amount))
+            Text(IncomeFormat.currency(payable?.amount ?? occurrence.amount))
                 .font(.system(size: 32, weight: .semibold))
                 .monospacedDigit()
-            Text(ExpenseFormat.origin(occurrence))
+            Text(payable?.part.map { ExpenseFormat.origin($0) } ?? ExpenseFormat.origin(occurrence))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -114,7 +115,7 @@ struct ExpenseSheet: View {
         Section {
             if !hasParts {
                 LabeledContent("Valor da conta") {
-                    TextField("Valor da conta", value: $draft.billAmount, format: .currency(code: IncomeConstants.currencyCode))
+                    TextField("Valor da conta", value: field(\.billAmount, \.billAmount), format: .currency(code: IncomeConstants.currencyCode))
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .foregroundStyle(Theme.accent)
@@ -132,7 +133,7 @@ struct ExpenseSheet: View {
         Section {
             if !hasParts {
                 LabeledContent("Valor pago") {
-                    TextField("Valor pago", value: $draft.paidAmount, format: .currency(code: IncomeConstants.currencyCode))
+                    TextField("Valor pago", value: field(\.paidAmount, \.paidAmount), format: .currency(code: IncomeConstants.currencyCode))
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .foregroundStyle(Theme.accent)
@@ -143,23 +144,78 @@ struct ExpenseSheet: View {
     }
 
     private var hasParts: Bool {
-        !draft.parts.isEmpty
+        payable == nil && !occurrence.parts.isEmpty
+    }
+
+    private var mode: ExpenseSheetMode {
+        partDraft?.mode ?? draft.mode
+    }
+
+    private var hasBill: Bool {
+        guard let payable else { return occurrence.hasBill }
+        return payable.part?.bill?.billAmount != nil
+    }
+
+    private var isPaid: Bool {
+        (payable?.status ?? occurrence.status) == .paid
+    }
+
+    private var title: String {
+        let month = IncomeFormat.monthName(occurrence.month)
+        guard let name = payable?.part?.part.name else { return "\(occurrence.expense.name) · \(month)" }
+        return "\(occurrence.expense.name) · \(name) · \(month)"
     }
 
     private var primaryTitle: String {
-        switch draft.mode {
+        switch mode {
         case .bill: "Salvar conta"
         case .payment: "Marcar como paga"
         }
     }
 
     private func save() {
+        if let partDraft, let payable {
+            run { await store.savePartBill(partDraft, for: payable) }
+            return
+        }
         switch draft.mode {
         case .bill:
             run { await store.saveBill(draft, for: occurrence) }
         case .payment:
             run { await store.markPaid(draft, for: occurrence) }
         }
+    }
+
+    private func removeBill() {
+        if let partDraft, let payable {
+            run { await store.removePartBill(partDraft, for: payable) }
+        } else {
+            run { await store.removeBill(draft, for: occurrence) }
+        }
+    }
+
+    private func unmarkPaid() {
+        if let partDraft, let payable {
+            run { await store.unmarkPartPaid(partDraft, for: payable) }
+        } else {
+            run { await store.unmarkPaid(draft, for: occurrence) }
+        }
+    }
+
+    private func field<Value>(
+        _ part: WritableKeyPath<ExpensePartBillDraft, Value>,
+        _ whole: WritableKeyPath<ExpenseBillDraft, Value>
+    ) -> Binding<Value> {
+        Binding(
+            get: { partDraft?[keyPath: part] ?? draft[keyPath: whole] },
+            set: { value in
+                if partDraft != nil {
+                    partDraft?[keyPath: part] = value
+                } else {
+                    draft[keyPath: whole] = value
+                }
+            }
+        )
     }
 
     private func run(_ operation: @escaping () async -> Bool) {
@@ -169,10 +225,12 @@ struct ExpenseSheet: View {
     }
 
     private var billDueDate: Binding<Date> {
-        Binding(get: { draft.billDueDate.date() }, set: { draft.billDueDate = CalendarDay(date: $0) })
+        let day = field(\.billDueDate, \.billDueDate)
+        return Binding(get: { day.wrappedValue.date() }, set: { day.wrappedValue = CalendarDay(date: $0) })
     }
 
     private var paidOn: Binding<Date> {
-        Binding(get: { draft.paidOn.date() }, set: { draft.paidOn = CalendarDay(date: $0) })
+        let day = field(\.paidOn, \.paidOn)
+        return Binding(get: { day.wrappedValue.date() }, set: { day.wrappedValue = CalendarDay(date: $0) })
     }
 }

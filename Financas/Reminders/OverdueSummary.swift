@@ -6,7 +6,7 @@ struct OverdueSummary: Equatable {
     let incoming: Decimal
     let outgoing: Decimal
 
-    init(incomes: [IncomeOccurrence], expenses: [ExpenseOccurrence]) {
+    init(incomes: [IncomeOccurrence], expenses: [ExpensePayable]) {
         incomeCount = incomes.count
         expenseCount = expenses.count
         incoming = incomes.map(\.expectedAmount).reduce(0, +)

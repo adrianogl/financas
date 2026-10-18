@@ -229,4 +229,35 @@ struct ExpenseBillDraftTests {
         #expect(byPart(remaining, \.billAmount) == byPart(both, \.billAmount))
         #expect(byPart(draft.partBillsRemoved(for: target), \.billAmount).isEmpty)
     }
+
+    @Test func wholeBillPaymentMarksOpenPartsOnly() {
+        let fee = S.partBill(taxa, S.month(2026, 10), paid: 820, on: S.day(2026, 10, 9))
+        let target = partsOccurrence(partsSnapshot(partBills: [fee]))
+        var draft = ExpenseBillDraft(occurrence: target, today: S.today, mode: .payment)
+        draft.paidOn = S.day(2026, 10, 16)
+
+        let saved = draft.partPaymentsSaved(for: target)
+
+        #expect(draft.parts.map(\.id) == [agua.id, gas.id])
+        #expect(draft.partsTotal == 190)
+        #expect(byPart(saved, \.paidAmount) == [agua.id: 110, gas.id: 80])
+        #expect(saved.allSatisfy { $0.paidOn == S.day(2026, 10, 16) })
+        #expect(!saved.contains { $0.partID == taxa.id })
+    }
+
+    @Test func wholeBillLaunchSetsSharedDueDate() {
+        let fee = S.partBill(taxa, S.month(2026, 10), paid: 820, on: S.day(2026, 10, 9))
+        let target = partsOccurrence(partsSnapshot(partBills: [fee]))
+        var draft = ExpenseBillDraft(occurrence: target, today: S.today, mode: .bill)
+        draft.parts[0].amount = 125
+        draft.billDueDate = S.day(2026, 10, 26)
+
+        let saved = draft.partBillsSaved(for: target)
+
+        #expect(draft.parts.map(\.id) == [agua.id, gas.id])
+        #expect(byPart(saved, \.billAmount) == [agua.id: 125, gas.id: 80])
+        #expect(saved.allSatisfy { $0.billDueDate == S.day(2026, 10, 26) })
+        #expect(saved.allSatisfy { $0.paidAmount == nil })
+        #expect(draft.partsTotal == 205)
+    }
 }

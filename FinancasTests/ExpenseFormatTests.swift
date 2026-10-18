@@ -29,6 +29,30 @@ struct ExpenseFormatTests {
         #expect(ExpenseFormat.origin(occurrence(S.luz, in: S.month(2026, 9), bills: [paid])) == "paga em seg, 14 set")
     }
 
+    @Test func originWithPartsUsesLatestPartPayment() {
+        let taxa = S.part(S.condominio, "Taxa", position: 0)
+        let agua = S.part(S.condominio, "Água", position: 1)
+        var snapshot = ExpenseSnapshot(
+            expenses: [S.condominio],
+            terms: [S.condominioTerm],
+            bills: [],
+            parts: [taxa, agua],
+            partTerms: [
+                S.partTerm(taxa, from: S.month(2026, 10), amount: 820, isFixed: true),
+                S.partTerm(agua, from: S.month(2026, 10), amount: 85, day: 15)
+            ],
+            partBills: [S.partBill(taxa, S.month(2026, 10), paid: 820, on: S.day(2026, 10, 9))]
+        )
+        let partial = ExpenseSchedule.occurrence(of: S.condominio, in: S.month(2026, 10), snapshot: snapshot, today: S.today)!
+        #expect(partial.paidOn == nil)
+        #expect(ExpenseFormat.origin(partial) == "soma das partes")
+
+        snapshot.partBills.append(S.partBill(agua, S.month(2026, 10), paid: 85, on: S.day(2026, 10, 14)))
+        let paid = ExpenseSchedule.occurrence(of: S.condominio, in: S.month(2026, 10), snapshot: snapshot, today: S.today)!
+        #expect(paid.paidOn == S.day(2026, 10, 14))
+        #expect(ExpenseFormat.origin(paid) == "paga em qua, 14 out")
+    }
+
     @Test func originListsTwoMonths() {
         let estimate = ExpenseEstimate.average(amount: 100, months: [S.month(2026, 7), S.month(2026, 8)])
         let base = occurrence(S.luz, in: S.month(2026, 10))

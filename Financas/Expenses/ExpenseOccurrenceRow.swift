@@ -33,6 +33,8 @@ struct ExpenseOccurrenceRow: View {
         switch occurrence.status {
         case .overdue:
             OverdueBadge(text: "atrasada")
+        case .pending where occurrence.isPartiallyPaid:
+            ExpenseBadge(text: "parcialmente paga", tint: ExpenseBadgeConstants.billTint)
         case .pending:
             if occurrence.expense.isFixed {
                 EmptyView()
@@ -47,7 +49,7 @@ struct ExpenseOccurrenceRow: View {
     }
 
     private var caption: String {
-        guard occurrence.status == .paid, let paidOn = occurrence.bill?.paidOn else {
+        guard occurrence.status == .paid, let paidOn = occurrence.paidOn else {
             return IncomeFormat.shortDate(occurrence.dueDate)
         }
         return "pago em \(IncomeFormat.shortDate(paidOn))"

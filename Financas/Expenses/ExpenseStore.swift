@@ -70,6 +70,19 @@ final class ExpenseStore {
             }
     }
 
+    func overduePayables(today: CalendarDay) -> [ExpensePayable] {
+        occurrences(in: today.yearMonth, today: today)
+            .filter { $0.status == .overdue }
+            .flatMap { ExpensePayable.payables(of: $0, today: today) }
+            .filter { $0.status == .overdue }
+            .sorted { lhs, rhs in
+                if lhs.dueDate != rhs.dueDate { return lhs.dueDate < rhs.dueDate }
+                let byName = lhs.occurrence.expense.name.localizedStandardCompare(rhs.occurrence.expense.name)
+                if byName != .orderedSame { return byName == .orderedAscending }
+                return (lhs.part?.part.position ?? 0) < (rhs.part?.part.position ?? 0)
+            }
+    }
+
     func overdueTotal(today: CalendarDay) -> Decimal {
         overdueOccurrences(today: today).map(\.remaining).reduce(0, +)
     }
@@ -93,7 +106,9 @@ final class ExpenseStore {
         var seen = Set<String>()
         return (previous + occurrences(in: today.yearMonth, today: today) + upcoming)
             .filter { $0.status != .paid && seen.insert($0.id).inserted }
-            .map { DueItem(expense: $0, today: today) }
+            .flatMap { ExpensePayable.payables(of: $0, today: today) }
+            .filter { $0.status != .paid }
+            .map(DueItem.init(expense:))
     }
 
     func currentTerm(for expense: Expense, today: CalendarDay) -> ExpenseTerm? {
@@ -166,23 +181,40 @@ final class ExpenseStore {
     }
 
     func saveBill(_ draft: ExpenseBillDraft, for occurrence: ExpenseOccurrence) async -> Bool {
-        guard occurrence.parts.isEmpty else { return await persist(draft.partBillsSaved(for: occurrence)) }
+        guard occurrence.parts.isEmpty else { return await persist(saving: draft.partBillsSaved(for: occurrence)) }
         return await persist(draft.billSaved(for: occurrence), replacing: occurrence)
     }
 
     func removeBill(_ draft: ExpenseBillDraft, for occurrence: ExpenseOccurrence) async -> Bool {
-        guard occurrence.parts.isEmpty else { return await persist(draft.partBillsRemoved(for: occurrence)) }
+        guard occurrence.parts.isEmpty else { return await persist(cleared: draft.partBillsRemoved(for: occurrence)) }
         return await persist(draft.billRemoved(for: occurrence), replacing: occurrence)
     }
 
     func markPaid(_ draft: ExpenseBillDraft, for occurrence: ExpenseOccurrence) async -> Bool {
-        guard occurrence.parts.isEmpty else { return await persist(draft.partPaymentsSaved(for: occurrence)) }
+        guard occurrence.parts.isEmpty else { return await persist(saving: draft.partPaymentsSaved(for: occurrence)) }
         return await persist(draft.paymentSaved(for: occurrence), replacing: occurrence)
     }
 
     func unmarkPaid(_ draft: ExpenseBillDraft, for occurrence: ExpenseOccurrence) async -> Bool {
-        guard occurrence.parts.isEmpty else { return await persist(draft.partPaymentsRemoved(for: occurrence)) }
+        guard occurrence.parts.isEmpty else { return await persist(cleared: draft.partPaymentsRemoved(for: occurrence)) }
         return await persist(draft.paymentRemoved(for: occurrence), replacing: occurrence)
+    }
+
+    func savePartBill(_ draft: ExpensePartBillDraft, for payable: ExpensePayable) async -> Bool {
+        switch draft.mode {
+        case .bill:
+            await persist(saving: [draft.billSaved()])
+        case .payment:
+            await persist(saving: [draft.paymentSaved()])
+        }
+    }
+
+    func removePartBill(_ draft: ExpensePartBillDraft, for payable: ExpensePayable) async -> Bool {
+        await persist(draft.billRemoved(), replacing: payable.part?.bill)
+    }
+
+    func unmarkPartPaid(_ draft: ExpensePartBillDraft, for payable: ExpensePayable) async -> Bool {
+        await persist(draft.paymentRemoved(), replacing: payable.part?.bill)
     }
 
     func saveEntry(_ draft: ExpenseEntryDraft) async -> Bool {
@@ -213,7 +245,7 @@ final class ExpenseStore {
 
     private func persist(_ bill: ExpenseBill?, replacing occurrence: ExpenseOccurrence) async -> Bool {
         guard let bill else {
-            guard let existing = occurrence.bill else { return false }
+            guard let existing = occurrence.bill else { return true }
             return await perform { [service] () async throws(IncomeError) in
                 try await service.deleteBill(id: existing.id)
             } onSuccess: {
@@ -228,11 +260,22 @@ final class ExpenseStore {
         }
     }
 
-    private func persist(_ partBills: [ExpensePartBill]) async -> Bool {
-        let kept = partBills.filter { !$0.isEmpty }
-        let knownIDs = Set(snapshot.partBills.map(\.id))
-        let removedIDs = partBills.filter { $0.isEmpty && knownIDs.contains($0.id) }.map(\.id)
-        guard !kept.isEmpty || !removedIDs.isEmpty else { return false }
+    private func persist(_ partBill: ExpensePartBill?, replacing existing: ExpensePartBill?) async -> Bool {
+        if let partBill {
+            return await persist(saving: [partBill])
+        }
+        return await persist(deleting: existing.map { [$0.id] } ?? [])
+    }
+
+    private func persist(cleared partBills: [ExpensePartBill]) async -> Bool {
+        await persist(
+            saving: partBills.filter { !$0.isEmpty },
+            deleting: partBills.filter(\.isEmpty).map(\.id)
+        )
+    }
+
+    private func persist(saving kept: [ExpensePartBill] = [], deleting removedIDs: [UUID] = []) async -> Bool {
+        guard !kept.isEmpty || !removedIDs.isEmpty else { return true }
         return await perform { [service] () async throws(IncomeError) in
             if !kept.isEmpty {
                 try await service.save(kept)
@@ -241,7 +284,7 @@ final class ExpenseStore {
                 try await service.deletePartBills(ids: removedIDs)
             }
         } onSuccess: {
-            let touched = Set(partBills.map(\.id))
+            let touched = Set(kept.map(\.id) + removedIDs)
             self.snapshot.partBills.removeAll { touched.contains($0.id) }
             self.snapshot.partBills.append(contentsOf: kept)
         }

@@ -2,7 +2,7 @@ import Foundation
 
 enum ExpenseFormat {
     static func origin(_ occurrence: ExpenseOccurrence, locale: Locale = IncomeFormat.locale) -> String {
-        if let paidOn = occurrence.bill?.paidOn, occurrence.bill?.paidAmount != nil {
+        if let paidOn = occurrence.paidOn {
             return "paga em \(IncomeFormat.shortDate(paidOn, locale: locale))"
         }
         if occurrence.hasBill {
@@ -17,6 +17,22 @@ enum ExpenseFormat {
             return "valor fixo"
         case .parts:
             return "soma das partes"
+        }
+    }
+
+    static func origin(_ value: ExpensePartValue, locale: Locale = IncomeFormat.locale) -> String {
+        switch value.origin {
+        case .paid:
+            guard let paidOn = value.bill?.paidOn else { return "paga" }
+            return "paga em \(IncomeFormat.shortDate(paidOn, locale: locale))"
+        case .bill:
+            return "conta lançada"
+        case .fixed:
+            return "valor fixo"
+        case .average(let months):
+            return "estimado pela média de \(list(months.map { IncomeFormat.shortMonth($0, locale: locale) }))"
+        case .estimated:
+            return "estimado"
         }
     }
 

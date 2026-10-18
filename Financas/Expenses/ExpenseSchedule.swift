@@ -70,6 +70,11 @@ enum ExpenseSchedule {
         return open.min() ?? parts.map(\.dueDate).max() ?? parts[0].dueDate
     }
 
+    private static func overdueCount(of occurrence: ExpenseOccurrence) -> Int {
+        guard !occurrence.parts.isEmpty else { return occurrence.status == .overdue ? 1 : 0 }
+        return occurrence.parts.filter { $0.status == .overdue }.count
+    }
+
     private static func paidAmount(of occurrence: ExpenseOccurrence) -> Decimal {
         guard !occurrence.parts.isEmpty else { return occurrence.bill?.paidAmount ?? 0 }
         return occurrence.parts.compactMap(\.bill?.paidAmount).reduce(0, +)
@@ -110,7 +115,7 @@ enum ExpenseSchedule {
             paid: paid,
             remaining: remaining,
             expected: paid + remaining,
-            overdueCount: open.filter { $0.status == .overdue }.count,
+            overdueCount: open.map(overdueCount).reduce(0, +),
             next: upcoming.first
         )
     }

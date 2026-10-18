@@ -23,6 +23,11 @@ struct ExpenseOccurrence: Identifiable, Hashable {
         parts.contains { $0.status == .paid } && parts.contains { $0.status != .paid }
     }
 
+    var paidOn: CalendarDay? {
+        guard parts.isEmpty else { return status == .paid ? parts.compactMap(\.bill?.paidOn).max() : nil }
+        return bill?.paidAmount != nil ? bill?.paidOn : nil
+    }
+
     var hasBill: Bool {
         guard parts.isEmpty else { return parts.contains { $0.bill?.billAmount != nil } }
         return bill?.billAmount != nil

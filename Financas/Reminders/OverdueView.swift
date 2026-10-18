@@ -3,9 +3,11 @@ import SwiftUI
 struct OverdueView: View {
     @Environment(IncomeStore.self) private var store
     @Environment(ExpenseStore.self) private var expenseStore
+    @State private var paying: ExpenseSheetTarget?
+    @State private var editing: ExpenseDraft?
 
     var body: some View {
-        let routes = shownIncomes.map(DetailRoute.init) + shownExpenses.map(DetailRoute.init)
+        let routes = shownIncomes.map(DetailRoute.init) + shownExpenses.filter { $0.part == nil }.map { DetailRoute($0.occurrence) }
 
         NavigationStack {
             ListDetailLayout(
@@ -27,6 +29,7 @@ struct OverdueView: View {
             }
             .detailDestination()
         }
+        .expenseFlow(paying: $paying, editing: $editing)
     }
 
     private var isLoaded: Bool {
@@ -37,7 +40,7 @@ struct OverdueView: View {
         store.loadState == .loaded ? store.overdueOccurrences : []
     }
 
-    private var shownExpenses: [ExpenseOccurrence] {
+    private var shownExpenses: [ExpensePayable] {
         store.loadState == .loaded ? expenses : []
     }
 
@@ -84,8 +87,8 @@ struct OverdueView: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 26))
     }
 
-    private var expenses: [ExpenseOccurrence] {
-        expenseStore.loadState == .loaded ? expenseStore.overdueOccurrences(today: store.today) : []
+    private var expenses: [ExpensePayable] {
+        expenseStore.loadState == .loaded ? expenseStore.overduePayables(today: store.today) : []
     }
 
     private var summary: OverdueSummary {
@@ -107,8 +110,8 @@ struct OverdueView: View {
         }
         if summary.showsExpenses {
             section("Despesas") {
-                DetailRowList(items: expenses, context: context, route: DetailRoute.init) { occurrence, isSelected in
-                    OverdueExpenseRow(occurrence: occurrence, today: store.today, isSelected: isSelected)
+                OverdueExpenseList(payables: expenses, context: context, today: store.today) { payable in
+                    paying = ExpenseSheetTarget(occurrence: payable.occurrence, mode: .payment, partID: payable.part?.part.id)
                 }
             }
         }

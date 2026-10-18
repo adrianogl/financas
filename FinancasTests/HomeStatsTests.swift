@@ -45,7 +45,7 @@ struct HomeStatsTests {
         #expect(stats.payable.value == IncomeFormat.currency(expenseSummary.remaining))
         #expect(stats.payable.badge == HomeStatText.overdueBadge(expenseSummary.overdueCount))
         #expect(stats.overdue.title == "Atrasadas")
-        #expect(stats.overdue.value == "\(incomes.overdueOccurrences.count + expenses.overdueOccurrences(today: today).count)")
+        #expect(stats.overdue.value == "\(incomes.overdueOccurrences.count + expenses.overduePayables(today: today).count)")
         #expect(stats.overdue.isWarning)
         #expect(stats.overdue.caption == "Luz · Condomínio")
     }

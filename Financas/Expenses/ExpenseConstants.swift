@@ -12,6 +12,7 @@ enum ExpenseConstants {
     static let entryDateMessage = "Escolha uma data dentro do período da despesa."
     static let partsFooter = "Sem partes, a despesa tem um valor só. Com partes, o valor previsto é a soma delas."
     static let spendingFooter = "Gasto do mês não tem vencimento nem aviso. Você adiciona os gastos ao longo do mês, e eles já contam como pagos."
+    static let partSameDayTitle = "Mesmo da despesa"
     static let billKindTitle = "Conta com vencimento"
     static let spendingKindTitle = "Gasto do mês"
 }

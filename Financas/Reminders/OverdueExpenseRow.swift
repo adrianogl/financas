@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct OverdueExpenseRow: View {
-    let occurrence: ExpenseOccurrence
+    let payable: ExpensePayable
     let today: CalendarDay
     let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(ExpenseFormat.occurrenceTitle(occurrence, today: today))
+                Text(payable.title)
                     .font(.subheadline.weight(.semibold))
                 Text(caption)
                     .font(.caption)
@@ -16,11 +16,11 @@ struct OverdueExpenseRow: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
-                Text(IncomeFormat.currency(occurrence.amount))
+                Text(IncomeFormat.currency(payable.amount))
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
-                if occurrence.month < today.yearMonth {
-                    OverdueBadge(text: IncomeFormat.monthName(occurrence.month))
+                if payable.occurrence.month < today.yearMonth {
+                    OverdueBadge(text: IncomeFormat.monthName(payable.occurrence.month))
                 }
             }
         }
@@ -30,8 +30,8 @@ struct OverdueExpenseRow: View {
     }
 
     private var caption: String {
-        let days = occurrence.dueDate.days(until: today)
+        let days = payable.dueDate.days(until: today)
         let label = days == 1 ? "1 dia" : "\(days) dias"
-        return "\(IncomeFormat.shortDate(occurrence.dueDate)) · \(label)"
+        return "\(IncomeFormat.shortDate(payable.dueDate)) · \(label)"
     }
 }

@@ -29,14 +29,16 @@ struct ExpenseBillDraft: Equatable {
         let allFixed = hasParts && occurrence.parts.allSatisfy(\.isFixed)
         let isFixedExpense = hasParts ? allFixed : occurrence.expense.isFixed
         self.mode = mode ?? (occurrence.hasBill || occurrence.status == .paid || isFixedExpense ? .payment : .bill)
-        billPartValues = occurrence.parts.map { value in
+        let openParts = occurrence.parts.filter { $0.status != .paid }
+        let shownParts = openParts.isEmpty ? occurrence.parts : openParts
+        billPartValues = shownParts.map { value in
             ExpenseBillPartDraft(
                 id: value.part.id,
                 name: value.part.name,
                 amount: value.bill?.billAmount ?? value.amount
             )
         }
-        paymentPartValues = occurrence.parts.map { value in
+        paymentPartValues = shownParts.map { value in
             ExpenseBillPartDraft(
                 id: value.part.id,
                 name: value.part.name,
@@ -46,7 +48,7 @@ struct ExpenseBillDraft: Equatable {
         billAmount = bill?.billAmount ?? occurrence.amount
         billDueDate = occurrence.dueDate
         paidAmount = bill?.paidAmount ?? bill?.billAmount ?? occurrence.estimate.amount
-        paidOn = bill?.paidOn ?? today
+        paidOn = (hasParts ? occurrence.paidOn : bill?.paidOn) ?? today
     }
 
     func billSaved(for occurrence: ExpenseOccurrence) -> ExpenseBill {

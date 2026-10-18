@@ -59,7 +59,7 @@ struct MainTabView: View {
         return SidebarCounts(
             incomes: incomeStore.occurrences(in: month),
             expenses: expenseStore.occurrences(in: month, today: today),
-            overdue: incomeStore.overdueOccurrences.count + expenseStore.overdueOccurrences(today: today).count
+            overdue: incomeStore.overdueOccurrences.count + expenseStore.overduePayables(today: today).count
         )
     }
 

@@ -5,9 +5,10 @@ import Testing
 struct OverdueSummaryTests {
     private typealias S = ExpenseSamples
 
-    private var overdueExpenses: [ExpenseOccurrence] {
+    private var overdueExpenses: [ExpensePayable] {
         ExpenseSchedule.occurrences(in: S.today.yearMonth, snapshot: S.snapshot, today: S.today)
             .filter { $0.status == .overdue }
+            .map { ExpensePayable(occurrence: $0, today: S.today) }
     }
 
     private var overdueIncome: IncomeOccurrence {
