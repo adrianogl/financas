@@ -100,45 +100,77 @@ abaixo.
   parte removida reativa a parte antiga, com o histórico e a média dela. Renomear uma parte troca o
   nome em todo o histórico. (Decisão de quem desenhou.)
 
+#### Ciclo de cada parte
+
+Pedido do dono depois do mockup: as partes podem vencer em dias diferentes e ser pagas em dias
+diferentes. Cada parte tem o próprio ciclo dentro da despesa.
+
+- No cadastro, cada parte tem um dia de vencimento opcional. Vazio, usa o dia da despesa. O dia segue
+  a regra de vigência das outras mudanças da parte.
+- No mês M, cada parte tem vencimento, conta lançada (valor e vencimento informado) e pagamento (valor
+  e data) próprios. O vencimento calculado segue a regra de hoje: dia vigente, próximo dia útil.
+- Status de cada parte: paga (tem pagamento), atrasada (sem pagamento, vencimento antes de hoje),
+  pendente (o resto).
+
 #### Valor de cada parte no mês
 
 Para a parte P no mês M, na ordem:
 
-1. Pago: o valor de P registrado no pagamento de M.
-2. Conta lançada: o valor de P registrado na conta de M.
+1. Pago: o valor pago de P em M.
+2. Conta lançada: o valor da conta de P em M.
 3. Fixo: o valor vigente de P em M.
 4. Varia, com pelo menos 3 meses pagos de P antes de M, contando a partir da última edição do valor de
    P: média dos 3 mais recentes, arredondada para centavos. Mesma regra de hoje, por parte.
 5. Varia, sem isso: o valor vigente de P em M.
 
-O valor da ocorrência é a soma das partes. O status (pendente, atrasada, paga), o vencimento, a aba
-Atrasadas e os avisos usam esse total e não mudam.
+#### A despesa com partes no mês
+
+- Valor: soma das partes. Falta: soma das partes sem pagamento.
+- Status: paga quando todas as partes estão pagas; atrasada quando alguma parte está atrasada;
+  pendente no resto. Com alguma parte paga e outra em aberto, a linha mostra o selo
+  "parcialmente paga" (o selo "atrasada" tem prioridade).
+- Vencimento da linha: o menor vencimento entre as partes em aberto; paga, o maior vencimento.
+- Atrasada de mês anterior continua aparecendo no mês atual até todas as partes serem pagas, como hoje.
 
 #### Lançar conta e marcar como paga
 
-- **Lançar conta**: um campo por parte, já preenchido com o valor da parte no mês, e o total calculado
-  na hora. O vencimento continua editável. Botão "Salvar conta".
-- **Marcar como paga**: os mesmos campos por parte, preenchidos com a conta lançada ou, sem ela, com o
-  valor de cada parte no mês, e a data do pagamento. O valor pago é a soma das partes e não tem campo
-  próprio. (Decisão de quem desenhou: assim o histórico por parte sempre fecha com o que foi pago.)
-- O banco guarda o valor de cada parte na conta e no pagamento do mês. O total da conta e do pagamento
-  continua gravado como hoje, igual à soma.
+Dois jeitos, porque às vezes o boleto vem junto e às vezes cada parte é paga num dia:
+
+- **Conta inteira** (botões "Marcar como paga" e "Lançar valor da conta" do detalhe e o toque na linha
+  da lista): a sheet de hoje com um campo por parte em aberto e o total.
+  - Lançar conta: valor de cada parte e um vencimento único, que vale para todas as partes lançadas.
+  - Marcar como paga: valor de cada parte em aberto e uma data única. Marca como pagas todas as partes
+    que estavam em aberto. Partes já pagas não aparecem nos campos.
+- **Uma parte** (toque na parte no detalhe): a mesma sheet, só com a parte, no formato de uma despesa
+  sem partes: "Lançar conta" com valor e vencimento, "Marcar como paga" com valor e data,
+  "Remover conta" e "Desmarcar pagamento".
+- O pagamento de cada parte guarda o próprio valor e a própria data.
 
 #### Lista e detalhe
 
-- Na aba Despesas, a conta com partes é uma linha só, com o total. A legenda junta o vencimento e os
-  nomes das partes: "26/10 · taxa, água e gás". Selos como hoje.
+- Na aba Despesas, a conta com partes é uma linha só, com o total. A legenda junta o vencimento da linha
+  e os nomes das partes: "26/10 · taxa, água e gás". Selos: "atrasada", senão "parcialmente paga",
+  senão como hoje. Fica em "A pagar" até todas as partes estarem pagas.
 - Detalhe:
   - Cabeçalho "Todo dia 26 · 3 partes".
-  - Card do mês com o total e uma linha por parte. A parte Fixo mostra "fixo". A parte Varia mostra a
-    diferença para o mês anterior, "▲ R$ 30 vs. setembro" na cor de alerta quando subiu e "▼ R$ 5 vs.
-    setembro" na cor positiva quando desceu. A diferença só aparece quando os dois meses têm valor
-    pago ou lançado para a parte.
+  - Card do mês com o total e uma linha por parte: nome, valor e situação ("vence 10/10", "atrasada" ou
+    "paga em 12/10"). A parte Varia mostra também a diferença para o mês anterior, "▲ R$ 30 vs.
+    setembro" na cor de alerta quando subiu e "▼ R$ 5 vs. setembro" na cor positiva quando desceu, só
+    quando os dois meses têm valor pago ou lançado para a parte. Tocar na parte abre a sheet da parte.
   - "Últimos meses" vira uma tabela: uma linha por mês, uma coluna por parte e a coluna Total. A célula
     da parte Varia que subiu em relação ao mês anterior fica na cor de alerta. Mês sem valor para a
     parte mostra "—".
-  - Ações como hoje: Marcar como paga, Lançar conta, Editar.
+  - Ações: Marcar como paga e Lançar valor da conta (conta inteira), Editar. Com todas pagas, como hoje.
 - No iPad, o mesmo detalhe aparece no painel ao lado da lista ou na sheet, como os outros detalhes.
+
+#### Atrasadas, avisos e Home
+
+- Aba Atrasadas: cada parte atrasada é uma linha, "Condomínio · água", com o vencimento e o valor da
+  parte. Tocar abre a sheet da parte, em "Marcar como paga".
+- Avisos de vence hoje e de atraso: cada parte conta como uma conta, com o título "Condomínio · água" e
+  o valor da parte.
+- "Falta pagar" (aba e Home) soma a falta das partes. Badge de atrasadas conta partes atrasadas.
+- Home: cada pagamento de parte é uma saída na sua data e um lançamento "Condomínio · água".
 
 ### Gasto do mês
 
@@ -206,9 +238,10 @@ só de despesa do próprio dono). O que precisa caber:
 - o tipo da despesa (conta com vencimento ou gasto do mês), com as existentes como conta com
   vencimento;
 - as partes da despesa: nome, ordem, mês de início e mês de fim;
-- as vigências de cada parte: valor, Fixo/Varia e o mês a partir do qual valem, e desde quando contar a
-  média;
-- o valor de cada parte na conta lançada e no pagamento do mês;
+- as vigências de cada parte: valor, Fixo/Varia, dia de vencimento opcional, o mês a partir do qual
+  valem, e desde quando contar a média;
+- o registro do mês de cada parte: conta lançada (valor, vencimento informado) e pagamento (data,
+  valor), como o registro do mês de uma despesa;
 - o previsto do gasto do mês, com vigência;
 - os lançamentos do gasto do mês: valor e data.
 

@@ -316,6 +316,88 @@ Comportamento, conforme a spec e o mockup:
 
 ---
 
+### Task 6b: Ciclo próprio de cada parte — banco, modelos e cálculo
+
+Mudança de escopo pedida pelo dono depois da Task 6: cada parte tem vencimento, conta lançada e
+pagamento próprios (spec, "Ciclo de cada parte", "A despesa com partes no mês", "Atrasadas, avisos e
+Home"). Esta task troca o registro de partes em `jsonb` por uma tabela própria e leva o ciclo ao cálculo.
+
+**Files:**
+- Modify: `supabase/migrations/20261018010000_add_expense_parts_and_entries.sql` (ainda não aplicada)
+- Create: `Financas/Expenses/ExpensePartBill.swift`
+- Modify: `ExpenseBill.swift` (remove `billParts`/`paidParts`), `ExpensePartTerm.swift`, `ExpenseSnapshot.swift`, `ExpenseService.swift`, `SupabaseExpenseService.swift`, `ExpenseConstants.swift`, `ExpensePartSchedule.swift`, `ExpensePartValue.swift`, `ExpenseOccurrence.swift`, `ExpenseSchedule.swift`, `ExpenseStore.swift`, `ExpenseDraft.swift`, `ExpensePartDraft.swift`, `Financas/Home/HomeMonthSummary.swift`, `FinancasTests/Fakes.swift`
+- Os call sites de `billParts`/`paidParts` em `ExpenseBillDraft` passam a compilar contra o novo modelo de forma mínima; o fluxo de conta inteira e de uma parte é refeito na Task 6c.
+- Test: `ExpensePartScheduleTests`, `ExpenseScheduleTests`, `ExpenseCodingTests`, `ExpenseDraftTests`, `HomeMonthSummaryTests`, `ExpenseStoreTests`
+
+**Interfaces:**
+- Produces:
+  - Migration: remove `bill_parts`/`paid_parts`; `expense_part_terms.day_of_month smallint check (day_of_month between 1 and 31)` (nulo = dia da despesa); tabela `expense_part_bills` (`id`, `user_id`, `part_id` cascade, `month` dia 1, `bill_amount`, `bill_due_date`, `paid_on`, `paid_amount` com os mesmos checks de `expense_bills`, `unique (part_id, month)`), RLS no padrão, insert/update checando o dono via `expense_parts`.
+  - `struct ExpensePartBill: Identifiable, Hashable, Codable, Sendable { let id: UUID; let partID: UUID; let month: YearMonth; var billAmount: Decimal?; var billDueDate: CalendarDay?; var paidOn: CalendarDay?; var paidAmount: Decimal?; var isEmpty: Bool }` (encode com nulls, como `ExpenseBill`).
+  - `ExpensePartTerm.dayOfMonth: Int?` (coluna `day_of_month`).
+  - `ExpenseSnapshot.partBills: [ExpensePartBill] = []`.
+  - `ExpenseService.save(_ partBills: [ExpensePartBill])` (upsert em lote, `onConflict: "part_id,month"`) e `deletePartBills(ids: [UUID])`; fake registra `savePartBills`/`deletePartBills`.
+  - `ExpensePartValue` ganha `month: YearMonth`, `dueDate: CalendarDay`, `bill: ExpensePartBill?`, `status: ExpenseStatus`; `id` passa a ser `"\(part.id)-\(month.year)-\(month.month)"` (String).
+  - `ExpensePartSchedule.values(of:in:snapshot:today:)` (ganha `today`). Regras 1–2 leem `partBills` da parte no mês; a média lê `paidAmount` de `partBills`. `dueDate`: `bill.billDueDate`, senão próximo dia útil do dia vigente da parte (`dayOfMonth ?? dia do term da despesa`). `change` lê `partBills`.
+  - `ExpenseOccurrence`: `remaining: Decimal` (sem partes: 0 se paga, senão `amount`; com partes: soma das partes sem pagamento) e `isPartiallyPaid: Bool` (alguma parte paga e alguma em aberto).
+  - `ExpenseSchedule.occurrence` com partes ativas: `amount` = soma das partes; status agregado (paga se todas pagas; atrasada se alguma atrasada; senão pendente); `dueDate` = menor vencimento das partes em aberto, ou o maior se todas pagas; `bill` continua sendo o `ExpenseBill` do mês (não usado pelas partes).
+  - `ExpenseSchedule.summary`: `paid` soma o `paidAmount` das partes pagas no mês (e dos bills como hoje); `remaining` soma `remaining`.
+  - `ExpenseStore.overdueTotal` usa `remaining`.
+  - `HomeMonthSummary`: cada `ExpensePartBill` pago no mês é saída na data e `HomeEntry(title: "\(despesa) · \(parte)")`.
+  - `ExpenseDraft`: `ExpensePartDraft.dayOfMonth: Int?` (edição: o do term vigente); mudar o dia gera term novo da parte e mantém `averageFrom`. O "mês atual já registrado" passa a considerar também `partBills` das partes da despesa no mês atual.
+
+- [ ] **Step 1: Testes que falham**
+  - `partDueDateUsesOwnDay`: Água com `dayOfMonth` 15 vence 2026-10-15; Taxa sem dia usa o dia da despesa.
+  - `partBillOverridesDueDateAndAmount`: `ExpensePartBill` de Água em outubro com conta 110 vencendo 20/10 → valor 110 `.bill`, vencimento 20/10.
+  - `partStatusPaidOverdueAndPending`: hoje 17/10; Taxa paga, Água vencida em 15/10, Gás vence 26/10 → `.paid`, `.overdue`, `.pending`.
+  - `occurrenceAggregatesPartStatus`: com o caso acima, ocorrência `.overdue`, `isPartiallyPaid` true, `remaining` = água + gás, `dueDate` 15/10; todas pagas → `.paid`, `remaining` 0.
+  - `summaryUsesRemainingAndPartPayments`: `paid` inclui a taxa paga, `remaining` só água + gás.
+  - `carriedWhileAnyPartOpen`: setembro com uma parte em aberto vencida aparece em `carried` em outubro; pagando a parte, some.
+  - `averageReadsPartBills`: média da Água a partir de 3 `ExpensePartBill` pagos.
+  - Coding: `ExpensePartBill` codifica nulls e `month` como `"2026-10-01"`; `ExpensePartTerm` decodifica `day_of_month` nulo e 15.
+  - Home: `partPaymentsAreEntries` com título "Condomínio · Água".
+  - Draft: `changingPartDayCreatesTermKeepingAverage`; `currentMonthWithPartPaymentIsRegistered`.
+  - Os testes de partes existentes que liam `billParts`/`paidParts` passam a montar `ExpensePartBill`, com as mesmas asserções de valor.
+
+- [ ] **Step 2: Implementar, `xcodegen generate`, suíte completa, commit**
+
+`feat(despesas): dá vencimento e pagamento próprios a cada parte`
+
+---
+
+### Task 6c: Lançar e pagar por parte, Atrasadas e avisos por parte
+
+**Files:**
+- Create: `Financas/Expenses/ExpensePayable.swift`, `ExpensePartBillDraft.swift`
+- Modify: `ExpenseBillDraft.swift`, `ExpenseBillPartDraft.swift`, `ExpenseSheet.swift`, `ExpenseSheetTarget.swift`, `ExpenseFlow.swift`, `ExpenseBillPartsSection.swift`, `ExpensePartsSection.swift`, `ExpenseStore.swift`, `ExpenseOccurrenceRow.swift`, `Financas/Reminders/OverdueView.swift`, `OverdueSummary.swift`, `OverdueExpenseRow.swift`, `DueItem+Expense.swift`, `Financas/Home/HomeStats.swift`, `Financas/Home/MainTabView.swift`
+- Test: `ExpenseBillDraftTests`, `ExpensePartBillDraftTests`, `ExpenseStoreTests`, `OverdueSummaryTests` (se existir), `ReminderPlannerTests` só se quebrar
+
+**Interfaces:**
+- Consumes: Task 6b.
+- Produces:
+  - `struct ExpensePayable: Identifiable, Hashable { let occurrence: ExpenseOccurrence; let part: ExpensePartValue?; var id: String; var title: String; var amount: Decimal; var dueDate: CalendarDay; var status: ExpenseStatus }`. Sem parte: espelha a ocorrência (`title` = `ExpenseFormat.occurrenceTitle`). Com parte: `title` = `"\(occurrenceTitle) · \(parte.name)"`, `amount`/`dueDate`/`status` da parte, `id` = id da parte no mês.
+  - `ExpenseStore.overduePayables(today:) -> [ExpensePayable]` (uma por ocorrência sem partes atrasada; uma por parte atrasada), ordenadas como `overdueOccurrences` hoje. `overdueOccurrences` deixa de ser usado por Atrasadas, `HomeStats` e o badge (`MainTabView`), que passam a usar `overduePayables`. `dueItems` gera um `DueItem` por payable em aberto (partes em aberto viram itens próprios).
+  - `ExpenseSheetTarget` ganha `partID: UUID?`. Com `partID`, a sheet trata só a parte (`ExpensePartBillDraft`), no formato de despesa sem partes: modo conta (valor, vencimento, "Remover conta") e pagamento (valor, data, "Desmarcar pagamento"); título `"\(despesa) · \(parte) · \(mês)"`.
+  - `ExpensePartBillDraft`: `init(value: ExpensePartValue, today:, mode:)`, `billSaved()`, `paymentSaved()`, `billRemoved() -> ExpensePartBill?`, `paymentRemoved() -> ExpensePartBill?`; modo padrão: `.payment` se a parte é fixa ou tem conta lançada ou está paga, senão `.bill`.
+  - `ExpenseBillDraft` (conta inteira) com partes: modo conta lista as partes sem pagamento com valor (conta lançada, senão valor calculado) e um vencimento único; `billSaved` devolve `[ExpensePartBill]` com conta lançada e esse vencimento. Modo pagamento lista as partes em aberto com valor (conta, senão calculado) e uma data única; `paymentSaved` devolve `[ExpensePartBill]` marcando todas como pagas. Partes pagas não aparecem nos campos. O `Total` soma as linhas mostradas.
+  - `ExpenseStore`: `saveBill`/`markPaid` com partes chamam `service.save(partBills)`; `removeBill`/`unmarkPaid` de conta inteira com partes limpam conta/pagamento de todas as partes do mês (`deletePartBills` para as que ficam vazias, `save` para as demais); `savePartBill(_ draft: ExpensePartBillDraft, for: ExpensePayable)`, `removePartBill`, `unmarkPartPaid`. Sempre atualizam `snapshot.partBills`.
+  - `ExpenseOccurrenceRow`: selo "parcialmente paga" (cor `ExpenseBadgeConstants.billTint`) quando `isPartiallyPaid` e não atrasada; com partes, o valor da linha continua o total.
+  - `ExpensePartsSection` (cadastro): cada parte ganha o campo "Vence dia" opcional (Picker com "Mesmo da despesa" + 1…31).
+  - Atrasadas: seção Despesas lista `overduePayables`; tocar abre a sheet (com `partID` quando houver), já em pagamento. `OverdueExpenseRow` recebe `ExpensePayable`.
+
+- [ ] **Step 1: Testes que falham**
+  - `wholeBillPaymentMarksOpenPartsOnly`: Taxa já paga; pagar a conta inteira grava `ExpensePartBill` pagos só para Água e Gás, com a data escolhida; Taxa não aparece nos campos.
+  - `wholeBillLaunchSetsSharedDueDate`: lançar a conta inteira grava conta e o mesmo vencimento nas partes em aberto.
+  - `partDraftDefaultsAndSaves`: parte fixa abre em pagamento; varia sem conta abre em conta; `paymentSaved` grava valor e data só da parte.
+  - `overduePayablesSplitParts`: Água atrasada e Gás pendente → um payable "Condomínio · Água"; despesa sem partes atrasada → um payable com o título de hoje.
+  - `dueItemsPerOpenPart`: Água e Gás em aberto → dois `DueItem` com os valores das partes.
+  - Store: `markPaidWholeBillSavesPartBills`, `unmarkPartPaidKeepsOtherParts`, erro de rede mantém `partBills`.
+- [ ] **Step 2: Implementar, `xcodegen generate`, suíte completa**
+- [ ] **Step 3: Conferir no simulador (sheet da conta inteira, sheet da parte, cadastro com dia, Atrasadas) com harness temporário não commitado; commit**
+
+`feat(despesas): lança e paga cada parte e mostra partes atrasadas`
+
+---
+
 ### Task 7: Detalhe e linhas da conta com partes
 
 **Files:**
@@ -331,8 +413,8 @@ Comportamento, conforme a spec e o mockup:
     - `let rows: [Row]`, com `struct Row: Equatable { let month: YearMonth; let amounts: [UUID: Decimal]; let total: Decimal?; let increased: Set<UUID> }`;
     - `static func make(occurrence: ExpenseOccurrence, snapshot: ExpenseSnapshot) -> ExpensePartsHistory`.
   - Linhas: o mês da ocorrência e os anteriores até `DetailConstants.historyMonths` linhas no total, parando no início da despesa.
-  - O valor de cada mês é `paidParts`, senão `billParts`. O mês atual sem registro usa os valores calculados.
-  - O total é o `paidAmount`, senão o `billAmount`, senão a soma.
+  - O valor de cada mês é o `paidAmount` do `ExpensePartBill`, senão o `billAmount`. O mês atual sem registro usa os valores calculados.
+  - O total é a soma das partes; mês sem partes usa o `paidAmount`, senão o `billAmount` do `ExpenseBill`.
   - Um mês sem partes registradas mostra só o total.
   - `increased` traz as partes Varia cujo valor subiu em relação à linha seguinte (o mês anterior).
 
@@ -341,6 +423,7 @@ Comportamento:
 - `ExpenseRow` (Cadastradas):
   - com partes, mostra `rule` com `.parts`;
   - com `.spending`, mostra `"Gasto do mês · previsto R$ 600,00"`, e esse texto vai em `ExpenseFormat.spendingRule(_ expected: Decimal) -> String`.
+- Ajuste da Task 6b/6c: os valores do histórico vêm de `ExpensePartBill` (pago, senão conta lançada) e o total do mês é a soma das partes registradas. No `ExpensePartsCard`, cada linha mostra também a situação da parte ("vence 10/10", "atrasada" em `Theme.warning`, "paga em 12/10" em `Theme.positive`) e tocar abre a sheet da parte (`ExpenseSheetTarget` com `partID`). Os botões do detalhe abrem a conta inteira.
 - `ExpenseDetailView` com partes:
   - o `DetailAmountBox` continua com o total;
   - abaixo dele vem `ExpensePartsCard`, com uma linha por parte usando `partCaption`, ▲ em `Theme.warning` e ▼ em `Theme.positive`;
