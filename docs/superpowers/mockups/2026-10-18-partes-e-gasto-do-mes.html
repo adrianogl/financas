@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Partes e gasto do mês</title>
+<style>
+  :root {
+    --accent:#3D6FE0; --positive:#2E8B6E; --warning:#C9483B; --bg:#FAFBFD;
+    --blob1:#C9D8FF; --blob2:#E3D9FA; --blob3:#D6E3FF;
+    --text:#111318; --secondary:#6B7080; --tertiary:#A3A8B5; --glass:rgba(255,255,255,.6); --glassBorder:rgba(255,255,255,.9); --divider:rgba(60,60,67,.14);
+  }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; background:#1b1d22; color:var(--text); padding:24px 16px 80px }
+  h1 { color:#fff; text-align:center; font-size:22px; margin-bottom:6px }
+  .lead { color:#aaa; text-align:center; font-size:14px; margin-bottom:28px; max-width:900px; margin-left:auto; margin-right:auto; line-height:1.5 }
+  h2 { color:#fff; font-size:18px; margin:36px 0 18px; text-align:center }
+  .frames { display:flex; flex-wrap:wrap; gap:32px; justify-content:center; align-items:flex-start }
+  figure { display:flex; flex-direction:column; align-items:center; gap:10px }
+  figcaption { color:#ccc; font-size:13px; text-align:center; max-width:330px; line-height:1.45 }
+  figcaption b { color:#fff; display:block; font-size:14px; margin-bottom:2px }
+  .device { background:#0c0d10; padding:8px; border-radius:40px; box-shadow:0 20px 50px rgba(0,0,0,.5) }
+  .screen { position:relative; width:340px; height:736px; overflow:hidden; background:var(--bg); border-radius:33px }
+  .bgblobs { position:absolute; inset:0; filter:blur(60px) }
+  .bgblobs i { position:absolute; border-radius:50%; display:block }
+  .status { position:absolute; top:0; left:0; right:0; height:46px; display:flex; justify-content:space-between; padding:16px 28px; font-size:14px; font-weight:600; z-index:5 }
+  .island { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:104px; height:30px; border-radius:18px; background:#000; z-index:7 }
+  .content { position:absolute; inset:0; padding:54px 16px 20px; overflow:hidden; display:flex; flex-direction:column; gap:12px }
+  .glass { background:var(--glass); backdrop-filter:blur(24px) saturate(1.6); -webkit-backdrop-filter:blur(24px) saturate(1.6); border:1px solid var(--glassBorder); box-shadow:0 8px 30px rgba(40,60,120,.08), inset 0 1px 0 rgba(255,255,255,.9) }
+  .card { border-radius:22px; padding:14px 16px }
+  .nav { display:flex; align-items:center; justify-content:space-between; font-size:15px; color:var(--accent) }
+  .nav .round { width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font-size:18px }
+  .big { font-size:28px; font-weight:700; letter-spacing:-.5px }
+  .sub { font-size:13px; color:var(--secondary) }
+  .cap { font-size:11px; color:var(--secondary) }
+  .money { font-weight:600; font-variant-numeric:tabular-nums }
+  .row { display:flex; align-items:center; padding:8px 0; gap:10px }
+  .row + .row { border-top:1px solid var(--divider) }
+  .row .t { font-size:14px; font-weight:600 }
+  .row .s { font-size:11.5px; color:var(--secondary); margin-top:2px }
+  .row .v { margin-left:auto; text-align:right; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums }
+  .badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; margin-top:3px }
+  .b-est { color:#8A6D1F; background:rgba(201,160,40,.15) }
+  .b-bill { color:var(--accent); background:rgba(61,111,224,.12) }
+  .secTitle { font-size:13px; font-weight:600; color:var(--secondary); margin:4px 0 -4px 6px }
+  .progress { height:6px; border-radius:3px; background:rgba(120,120,128,.18); overflow:hidden; margin-top:6px }
+  .progress b { display:block; height:100%; background:var(--accent); border-radius:3px }
+  .up { color:var(--warning); font-size:11.5px; font-weight:600 }
+  .down { color:var(--positive); font-size:11.5px; font-weight:600 }
+  .btn { text-align:center; padding:13px; border-radius:999px; font-weight:600; font-size:15px; color:#fff; background:var(--accent) }
+  .btn2 { text-align:center; padding:11px; border-radius:999px; font-weight:600; font-size:14px; color:var(--accent); background:rgba(61,111,224,.12) }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; font-variant-numeric:tabular-nums }
+  th { text-align:right; font-weight:600; color:var(--secondary); font-size:11px; padding:0 0 6px }
+  th:first-child, td:first-child { text-align:left }
+  td { text-align:right; padding:6px 0; border-top:1px solid var(--divider) }
+  td.tot { font-weight:600 }
+  .bar-chart { display:flex; align-items:flex-end; gap:10px; height:70px; margin-top:8px }
+  .bar-chart div { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10px; color:var(--secondary) }
+  .bar-chart i { display:block; width:100%; border-radius:6px 6px 3px 3px; background:rgba(61,111,224,.35) }
+  .bar-chart i.cur { background:var(--accent) }
+  .seg { display:flex; padding:3px; border-radius:10px; background:rgba(120,120,128,.14); font-size:13px }
+  .seg span { flex:1; text-align:center; padding:6px; border-radius:8px }
+  .seg span.on { background:#fff; font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.12) }
+  .form { border-radius:14px; background:#fff; padding:0 14px }
+  .form .f { display:flex; justify-content:space-between; align-items:center; padding:11px 0; font-size:14px; gap:8px }
+  .form .f + .f { border-top:1px solid var(--divider) }
+  .form .f .ph { color:var(--secondary) }
+  .form .f .val { font-variant-numeric:tabular-nums; font-weight:500 }
+  .minus { width:20px; height:20px; border-radius:50%; background:var(--warning); color:#fff; display:grid; place-items:center; font-size:14px; flex:none }
+  .plus { color:var(--accent); font-weight:500 }
+  .sheetDim { position:absolute; inset:0; background:rgba(0,0,0,.25); z-index:20 }
+  .sheet { position:absolute; left:0; right:0; bottom:0; top:120px; z-index:21; background:#F2F3F7; border-radius:28px 28px 33px 33px; padding:16px; display:flex; flex-direction:column; gap:12px }
+  .sheetHead { display:flex; justify-content:space-between; align-items:center; font-size:15px }
+  .sheetHead b { font-size:16px }
+  .circle { width:34px; height:34px; border-radius:50%; background:rgba(120,120,128,.14); display:grid; place-items:center; color:var(--text); font-size:15px }
+  .circle.ok { background:var(--accent); color:#fff }
+  .note { color:#aaa; font-size:12.5px; line-height:1.5; max-width:330px; text-align:left; margin-top:2px }
+</style>
+</head>
+<body>
+
+<h1>Despesas com partes e gasto do mês</h1>
+<p class="lead">Condomínio é uma conta com vencimento, dividida em partes. Abastecimento é um gasto do mês, com lançamentos rápidos. Valores de exemplo, em outubro de 2026.</p>
+
+<h2>Lista de despesas</h2>
+<div class="frames">
+<figure>
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i><i style="background:var(--blob2);width:300px;height:300px;left:180px;top:200px"></i><i style="background:var(--blob3);width:400px;height:400px;left:-100px;top:480px"></i></div>
+    <div class="status"><span>9:41</span><span>●●● 􀛨</span></div><div class="island"></div>
+    <div class="content">
+      <div class="nav"><span></span><span class="round glass">＋</span></div>
+      <div class="big">Despesas</div>
+      <div class="card glass" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px"><span style="color:var(--accent)">‹</span><b style="font-size:15px">Outubro de 2026</b><span style="color:var(--accent)">›</span></div>
+      <div class="card glass">
+        <div style="display:flex;justify-content:space-between">
+          <div><div class="cap">Pago</div><div class="money" style="white-space:nowrap;font-size:14.5px;color:var(--positive)">R$ 539,90</div></div>
+          <div style="text-align:center"><div class="cap">Falta pagar</div><div class="money" style="white-space:nowrap;font-size:14.5px">R$ 1.240,00</div></div>
+          <div style="text-align:right"><div class="cap">Previsto</div><div class="money" style="white-space:nowrap;font-size:14.5px">R$ 1.779,90</div></div>
+        </div>
+      </div>
+      <div class="card glass" style="padding:6px 16px">
+        <div class="row"><div><div class="t">Condomínio</div><div class="s">26/10 · taxa, água e gás</div></div><div class="v">R$ 1.010,00<br><span class="badge b-bill">conta lançada</span></div></div>
+        <div class="row"><div style="flex:1"><div class="t">Abastecimento</div><div class="s">gasto do mês · 3 lançamentos</div><div class="progress"><b style="width:70%"></b></div></div><div class="v">R$ 420,00<div class="cap" style="font-weight:400">de R$ 600,00</div></div></div>
+        <div class="row"><div><div class="t">Luz</div><div class="s">14/10 · pago em 13/10</div></div><div class="v" style="color:var(--positive)">− R$ 286,40</div></div>
+        <div class="row"><div><div class="t">Internet</div><div class="s">10/10 · pago em 10/10</div></div><div class="v" style="color:var(--positive)">− R$ 119,90</div></div>
+        <div class="row"><div><div class="t">Escola</div><div class="s">28/10</div></div><div class="v">R$ 1.650,00</div></div>
+      </div>
+    </div>
+  </div></div>
+  <figcaption><b>Aba Despesas</b>O condomínio é uma linha só, com o total do boleto. O abastecimento mostra quanto já foi gasto do previsto, com uma barra.</figcaption>
+  <p class="note">"Falta pagar" soma o que falta do condomínio e os R$ 180 que ainda faltam do previsto do abastecimento.</p>
+</figure>
+</div>
+
+<h2>Condomínio · conta com partes</h2>
+<div class="frames">
+<figure>
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i><i style="background:var(--blob2);width:300px;height:300px;left:180px;top:240px"></i></div>
+    <div class="status"><span>9:41</span><span>●●● 􀛨</span></div><div class="island"></div>
+    <div class="content">
+      <div class="nav"><span class="round glass">‹</span><span class="btn2" style="padding:7px 14px">Editar</span></div>
+      <div><div class="cap">Todo dia 26 · 3 partes</div><div class="big">Condomínio</div></div>
+      <div class="card glass">
+        <div class="cap">Previsto para outubro · vence 26/10</div>
+        <div class="money" style="font-size:26px;margin-top:2px">R$ 1.010,00</div>
+        <div style="margin-top:8px">
+          <div class="row"><div><div class="t" style="font-weight:500">Taxa</div><div class="s">fixo</div></div><div class="v">R$ 820,00</div></div>
+          <div class="row"><div><div class="t" style="font-weight:500">Água</div><div class="up">▲ R$ 30 vs. setembro</div></div><div class="v">R$ 110,00</div></div>
+          <div class="row"><div><div class="t" style="font-weight:500">Gás</div><div class="down">▼ R$ 5 vs. setembro</div></div><div class="v">R$ 80,00</div></div>
+        </div>
+      </div>
+      <div class="btn">Marcar como paga</div>
+      <div class="secTitle">Últimos meses</div>
+      <div class="card glass">
+        <table>
+          <tr><th></th><th>Taxa</th><th>Água</th><th>Gás</th><th>Total</th></tr>
+          <tr><td>out</td><td>820</td><td class="tot" style="color:var(--warning)">110</td><td>80</td><td class="tot">1.010</td></tr>
+          <tr><td>set</td><td>820</td><td>80</td><td>85</td><td class="tot">985</td></tr>
+          <tr><td>ago</td><td>820</td><td>78</td><td>90</td><td class="tot">988</td></tr>
+          <tr><td>jul</td><td>780</td><td>82</td><td>72</td><td class="tot">934</td></tr>
+        </table>
+      </div>
+    </div>
+  </div></div>
+  <figcaption><b>Detalhe do condomínio</b>O total vem com as partes logo abaixo, e cada parte que varia mostra a diferença para o mês anterior. "Últimos meses" vira uma tabela com uma coluna por parte.</figcaption>
+</figure>
+
+<figure>
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i></div>
+    <div class="status"><span>9:41</span><span>●●● 􀛨</span></div><div class="island"></div>
+    <div class="content" style="filter:blur(1px)">
+      <div class="nav"><span class="round glass">‹</span><span></span></div>
+      <div class="big">Condomínio</div>
+    </div>
+    <div class="sheetDim"></div>
+    <div class="sheet">
+      <div class="sheetHead"><span class="circle">✕</span><b>Condomínio · outubro</b><span class="circle ok">✓</span></div>
+      <div class="seg"><span class="on">Lançar conta</span><span>Marcar como paga</span></div>
+      <div class="cap" style="margin:4px 0 -6px 14px">VALOR DE CADA PARTE</div>
+      <div class="form">
+        <div class="f"><span>Taxa</span><span class="val">R$ 820,00</span></div>
+        <div class="f"><span>Água</span><span class="val">R$ 110,00</span></div>
+        <div class="f"><span>Gás</span><span class="val">R$ 80,00</span></div>
+        <div class="f"><b>Total</b><b class="val">R$ 1.010,00</b></div>
+      </div>
+      <div class="form">
+        <div class="f"><span>Vencimento</span><span class="val">26/10/2026</span></div>
+      </div>
+      <div class="cap" style="padding:0 14px;line-height:1.4">Cada parte vem com o estimado. A taxa vem com o valor fixo. Você só troca o que mudou.</div>
+      <div style="flex:1"></div>
+      <div class="btn">Salvar conta</div>
+    </div>
+  </div></div>
+  <figcaption><b>Lançar a conta</b>Um campo para cada parte, e o total é calculado na hora. Na hora de pagar, o valor pago vem com esse total.</figcaption>
+</figure>
+
+<figure>
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i></div>
+    <div class="status"><span>9:41</span><span>●●● 􀛨</span></div><div class="island"></div>
+    <div class="content" style="filter:blur(1px)"><div class="big" style="margin-top:40px">Despesas</div></div>
+    <div class="sheetDim"></div>
+    <div class="sheet" style="top:70px">
+      <div class="sheetHead"><span class="circle">✕</span><b>Editar despesa</b><span class="circle ok">✓</span></div>
+      <div class="form">
+        <div class="f"><span>Nome</span><span class="val">Condomínio</span></div>
+        <div class="f"><span>Dia de vencimento</span><span class="val">26</span></div>
+      </div>
+      <div class="cap" style="margin:4px 0 -6px 14px">PARTES</div>
+      <div class="form">
+        <div class="f"><span class="minus">−</span><span style="flex:1">Taxa</span><span class="cap">Fixo</span><span class="val">R$ 820,00</span></div>
+        <div class="f"><span class="minus">−</span><span style="flex:1">Água</span><span class="cap">Varia</span><span class="val">R$ 85,00</span></div>
+        <div class="f"><span class="minus">−</span><span style="flex:1">Gás</span><span class="cap">Varia</span><span class="val">R$ 80,00</span></div>
+        <div class="f"><span class="plus">＋ Adicionar parte</span></div>
+      </div>
+      <div class="cap" style="padding:0 14px;line-height:1.4">Sem partes, a despesa tem um valor só, como hoje. Com partes, o valor previsto é a soma delas.</div>
+      <div class="form">
+        <div class="f"><span>Início</span><span class="val">jul de 2026</span></div>
+        <div class="f"><span>Tem mês de fim</span><span class="seg" style="width:46px;padding:2px;border-radius:999px;background:rgba(120,120,128,.2)"><span class="on" style="border-radius:999px;padding:8px"></span></span></div>
+      </div>
+    </div>
+  </div></div>
+  <figcaption><b>Cadastro com partes</b>Cada parte tem nome, Fixo ou Varia, e valor. Com 3 meses pagos, o estimado de cada parte que varia passa a ser a média dela.</figcaption>
+</figure>
+</div>
+
+<h2>Abastecimento · gasto do mês</h2>
+<div class="frames">
+<figure>
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i><i style="background:var(--blob2);width:300px;height:300px;left:180px;top:240px"></i></div>
+    <div class="status"><span>9:41</span><span>●●● 􀛨</span></div><div class="island"></div>
+    <div class="content">
+      <div class="nav"><span class="round glass">‹</span><span class="btn2" style="padding:7px 14px">Editar</span></div>
+      <div><div class="cap">Gasto do mês · previsto R$ 600</div><div class="big">Abastecimento</div></div>
+      <div class="card glass">
+        <div class="cap">Gasto em outubro</div>
+        <div style="display:flex;align-items:baseline;gap:6px"><span class="money" style="font-size:26px">R$ 420,00</span><span class="sub">de R$ 600,00</span></div>
+        <div class="progress" style="height:8px"><b style="width:70%"></b></div>
+        <div class="cap" style="margin-top:6px">Faltam R$ 180,00 do previsto</div>
+      </div>
+      <div class="btn">＋ Adicionar gasto</div>
+      <div class="secTitle">Lançamentos de outubro</div>
+      <div class="card glass" style="padding:4px 16px">
+        <div class="row"><div><div class="t" style="font-weight:500">sáb, 17 out</div></div><div class="v">R$ 150,00</div></div>
+        <div class="row"><div><div class="t" style="font-weight:500">sáb, 10 out</div></div><div class="v">R$ 140,00</div></div>
+        <div class="row"><div><div class="t" style="font-weight:500">sex, 2 out</div></div><div class="v">R$ 130,00</div></div>
+      </div>
+      <div class="secTitle">Últimos meses</div>
+      <div class="card glass" style="padding:10px 16px">
+        <div class="bar-chart">
+          <div><i style="height:48px"></i>jul</div>
+          <div><i style="height:56px"></i>ago</div>
+          <div><i style="height:52px"></i>set</div>
+          <div><i class="cur" style="height:39px"></i>out</div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <figcaption><b>Detalhe do abastecimento</b>Quanto já foi gasto do previsto, os lançamentos do mês e o total dos últimos meses. Não tem vencimento, atraso nem "Marcar como paga".</figcaption>
+</figure>
+
+<figure>
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i></div>
+    <div class="status"><span>9:41</span><span>●●● 􀛨</span></div><div class="island"></div>
+    <div class="content" style="filter:blur(1px)"><div class="big" style="margin-top:40px">Abastecimento</div></div>
+    <div class="sheetDim"></div>
+    <div class="sheet" style="top:400px">
+      <div class="sheetHead"><span class="circle">✕</span><b>Adicionar gasto</b><span class="circle ok">✓</span></div>
+      <div class="form">
+        <div class="f"><span>Valor</span><span class="val" style="font-size:18px">R$ 150,00</span></div>
+        <div class="f"><span>Data</span><span class="val">hoje, 17 out</span></div>
+      </div>
+      <div class="btn">Adicionar</div>
+    </div>
+  </div></div>
+  <figcaption><b>Adicionar gasto</b>Uma sheet curta, com valor e data, que já vem como hoje. Dá para juntar a semana num lançamento só. Para apagar um lançamento, é só arrastar a linha para o lado.</figcaption>
+</figure>
+
+<figure>
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i></div>
+    <div class="status"><span>9:41</span><span>●●● 􀛨</span></div><div class="island"></div>
+    <div class="content" style="filter:blur(1px)"><div class="big" style="margin-top:40px">Despesas</div></div>
+    <div class="sheetDim"></div>
+    <div class="sheet" style="top:70px">
+      <div class="sheetHead"><span class="circle">✕</span><b>Nova despesa</b><span class="circle ok">✓</span></div>
+      <div class="seg"><span>Conta com vencimento</span><span class="on">Gasto do mês</span></div>
+      <div class="form">
+        <div class="f"><span>Nome</span><span class="val">Abastecimento</span></div>
+        <div class="f"><span>Previsto por mês</span><span class="val">R$ 600,00</span></div>
+      </div>
+      <div class="form">
+        <div class="f"><span>Início</span><span class="val">out de 2026</span></div>
+        <div class="f"><span>Tem mês de fim</span><span class="seg" style="width:46px;padding:2px;border-radius:999px;background:rgba(120,120,128,.2)"><span class="on" style="border-radius:999px;padding:8px"></span></span></div>
+      </div>
+      <div class="cap" style="padding:0 14px;line-height:1.4">Gasto do mês não tem vencimento nem aviso. Você adiciona os gastos ao longo do mês, e eles já contam como pagos.</div>
+    </div>
+  </div></div>
+  <figcaption><b>Cadastro do gasto do mês</b>O tipo é escolhido no topo do cadastro. Gasto do mês só pede nome e valor previsto, sem dia de vencimento.</figcaption>
+</figure>
+</div>
+
+</body>
+</html>
