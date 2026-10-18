@@ -36,6 +36,18 @@ enum ExpenseSchedule {
               let term = term(for: expense, in: month, snapshot: snapshot),
               let estimate = estimate(for: expense, in: month, snapshot: snapshot) else { return nil }
         let bill = snapshot.bills.first { $0.expenseID == expense.id && $0.month == month }
+        let parts = ExpensePartSchedule.values(of: expense, in: month, snapshot: snapshot, today: today)
+        guard parts.isEmpty else {
+            return ExpenseOccurrence(
+                expense: expense,
+                month: month,
+                dueDate: dueDate(of: parts),
+                estimate: estimate,
+                bill: bill,
+                status: status(of: parts),
+                parts: parts
+            )
+        }
         let dueDate = bill?.billDueDate ?? BusinessCalendar.businessDayOnOrAfter(month.day(term.dayOfMonth))
         let status: ExpenseStatus = bill?.paidAmount != nil ? .paid : (dueDate < today ? .overdue : .pending)
         return ExpenseOccurrence(
@@ -44,9 +56,23 @@ enum ExpenseSchedule {
             dueDate: dueDate,
             estimate: estimate,
             bill: bill,
-            status: status,
-            parts: ExpensePartSchedule.values(of: expense, in: month, snapshot: snapshot)
+            status: status
         )
+    }
+
+    private static func status(of parts: [ExpensePartValue]) -> ExpenseStatus {
+        if parts.allSatisfy({ $0.status == .paid }) { return .paid }
+        return parts.contains { $0.status == .overdue } ? .overdue : .pending
+    }
+
+    private static func dueDate(of parts: [ExpensePartValue]) -> CalendarDay {
+        let open = parts.filter { $0.status != .paid }.map(\.dueDate)
+        return open.min() ?? parts.map(\.dueDate).max() ?? parts[0].dueDate
+    }
+
+    private static func paidAmount(of occurrence: ExpenseOccurrence) -> Decimal {
+        guard !occurrence.parts.isEmpty else { return occurrence.bill?.paidAmount ?? 0 }
+        return occurrence.parts.compactMap(\.bill?.paidAmount).reduce(0, +)
     }
 
     static func occurrences(in month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> [ExpenseOccurrence] {
@@ -74,8 +100,8 @@ enum ExpenseSchedule {
         let carried = month == today.yearMonth ? carried(into: month, snapshot: snapshot, today: today) : []
         let open = (own + carried).filter { $0.status != .paid }
         let spendings = SpendingSchedule.months(in: month, snapshot: snapshot, today: today)
-        let paid = own.compactMap { $0.bill?.paidAmount }.reduce(0, +) + spendings.map(\.spent).reduce(0, +)
-        let remaining = open.map(\.amount).reduce(0, +) + spendings.map(\.remaining).reduce(0, +)
+        let paid = own.map(paidAmount).reduce(0, +) + spendings.map(\.spent).reduce(0, +)
+        let remaining = open.map(\.remaining).reduce(0, +) + spendings.map(\.remaining).reduce(0, +)
         let upcoming = (own + carried + occurrences(in: month.next, snapshot: snapshot, today: today))
             .filter { $0.status == .pending && $0.dueDate >= today }
             .sorted(by: ordered)

@@ -43,15 +43,17 @@ struct ExpenseDraft: Equatable {
 
     init(expense: Expense, snapshot: ExpenseSnapshot, today: CalendarDay) {
         let term = ExpenseSchedule.term(for: expense, in: today.yearMonth, snapshot: snapshot)
-        let registered = snapshot.bills.contains { $0.expenseID == expense.id && $0.month == today.yearMonth && !$0.isEmpty }
+        let expenseParts = snapshot.parts.filter { $0.expenseID == expense.id }
+        let partIDs = Set(expenseParts.map(\.id))
+        let billRegistered = snapshot.bills.contains { $0.expenseID == expense.id && $0.month == today.yearMonth && !$0.isEmpty }
+        let partRegistered = snapshot.partBills.contains { partIDs.contains($0.partID) && $0.month == today.yearMonth && !$0.isEmpty }
+        let registered = billRegistered || partRegistered
         let effective = Self.effectiveMonth(opened: today.yearMonth, start: expense.startMonth, registered: registered)
         let loadedParts = ExpensePartSchedule.activeParts(of: expense, in: effective, snapshot: snapshot).compactMap { part in
             ExpensePartSchedule.term(for: part, in: effective, snapshot: snapshot).map {
-                ExpensePartDraft(id: part.id, name: part.name, isFixed: $0.isFixed, amount: $0.amount)
+                ExpensePartDraft(id: part.id, name: part.name, isFixed: $0.isFixed, amount: $0.amount, dayOfMonth: $0.dayOfMonth)
             }
         }
-        let expenseParts = snapshot.parts.filter { $0.expenseID == expense.id }
-        let partIDs = Set(expenseParts.map(\.id))
 
         name = expense.name
         kind = expense.kind
@@ -184,7 +186,8 @@ struct ExpenseDraft: Equatable {
                 amount: current.amount,
                 isFixed: current.isFixed,
                 averageFrom: current.averageFrom,
-                isActive: false
+                isActive: false,
+                dayOfMonth: current.dayOfMonth
             ))
         }
         return changes
@@ -201,7 +204,7 @@ struct ExpenseDraft: Equatable {
         let averageFrom: YearMonth
         if let current, current.isActive {
             let amountChanged = amount != current.amount
-            guard amountChanged || draft.isFixed != current.isFixed else { return nil }
+            guard amountChanged || draft.isFixed != current.isFixed || draft.dayOfMonth != current.dayOfMonth else { return nil }
             averageFrom = amountChanged ? restarted : current.averageFrom
         } else if let last = lastActiveTerm(of: partID, through: month), last.amount == amount {
             averageFrom = last.averageFrom
@@ -215,7 +218,8 @@ struct ExpenseDraft: Equatable {
             amount: amount,
             isFixed: draft.isFixed,
             averageFrom: averageFrom,
-            isActive: true
+            isActive: true,
+            dayOfMonth: draft.dayOfMonth
         )
     }
 

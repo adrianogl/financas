@@ -374,4 +374,68 @@ struct ExpenseStoreTests {
         #expect(store.dueItems(today: S.today)?.isEmpty == true)
         #expect(store.spendings(in: S.month(2026, 10), today: S.today).map(\.expense.name) == ["Abastecimento"])
     }
+    private let taxa = S.part(S.condominio, "Taxa", position: 0)
+    private let agua = S.part(S.condominio, "Água", position: 1)
+
+    private func partsSnapshot(_ partBills: [ExpensePartBill] = []) -> ExpenseSnapshot {
+        ExpenseSnapshot(
+            expenses: [S.condominio],
+            terms: [S.condominioTerm],
+            bills: [],
+            parts: [taxa, agua],
+            partTerms: [
+                S.partTerm(taxa, from: S.month(2026, 10), amount: 820, isFixed: true),
+                S.partTerm(agua, from: S.month(2026, 10), amount: 85, day: 15)
+            ],
+            partBills: partBills
+        )
+    }
+
+    @Test func overdueTotalUsesRemaining() async {
+        let fee = S.partBill(taxa, S.month(2026, 10), paid: 820, on: S.day(2026, 10, 9))
+        let (store, _) = await makeStore(partsSnapshot([fee]))
+        #expect(store.overdueOccurrences(today: S.today).map(\.expense) == [S.condominio])
+        #expect(store.overdueTotal(today: S.today) == 85)
+    }
+
+    @Test func markPaidWithPartsSavesPartBills() async throws {
+        let launched = S.partBill(agua, S.month(2026, 10), bill: 90, due: S.day(2026, 10, 15))
+        let (store, service) = await makeStore(partsSnapshot([launched]))
+        let target = try occurrence(store, S.condominio, S.month(2026, 10))
+        let draft = ExpenseBillDraft(occurrence: target, today: S.today, mode: .payment)
+
+        #expect(await store.markPaid(draft, for: target))
+        #expect(service.calls.last == "savePartBills")
+        #expect(store.snapshot.partBills.count == 2)
+        #expect(store.snapshot.partBills.first { $0.partID == agua.id }?.id == launched.id)
+        #expect(store.snapshot.partBills.first { $0.partID == agua.id }?.paidAmount == 90)
+        #expect(store.snapshot.partBills.first { $0.partID == taxa.id }?.paidAmount == 820)
+
+        let paid = try occurrence(store, S.condominio, S.month(2026, 10))
+        #expect(await store.unmarkPaid(ExpenseBillDraft(occurrence: paid, today: S.today), for: paid))
+        #expect(service.calls.suffix(2) == ["savePartBills", "deletePartBills"])
+        #expect(store.snapshot.partBills.map(\.id) == [launched.id])
+        #expect(store.snapshot.partBills.first?.paidAmount == nil)
+        #expect(store.snapshot.partBills.first?.billAmount == 90)
+    }
+
+    @Test func partBillNetworkErrorKeepsSnapshot() async throws {
+        let (store, service) = await makeStore(partsSnapshot())
+        let before = store.snapshot
+        let target = try occurrence(store, S.condominio, S.month(2026, 10))
+        service.nextError = .network
+
+        #expect(await store.markPaid(ExpenseBillDraft(occurrence: target, today: S.today, mode: .payment), for: target) == false)
+        #expect(store.snapshot == before)
+        #expect(store.errorMessage == IncomeError.network.message)
+    }
+
+    @Test func deleteRemovesPartBills() async {
+        var snapshot = partsSnapshot([S.partBill(agua, S.month(2026, 10), paid: 85)])
+        snapshot.expenses += S.snapshot.expenses.filter { $0.id != S.condominio.id }
+        let (store, _) = await makeStore(snapshot)
+
+        #expect(await store.delete(S.condominio))
+        #expect(store.snapshot.partBills.isEmpty)
+    }
 }

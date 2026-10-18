@@ -5,4 +5,5 @@ struct ExpensePartDraft: Identifiable, Equatable {
     var name: String
     var isFixed: Bool
     var amount: Decimal?
+    var dayOfMonth: Int?
 }

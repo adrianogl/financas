@@ -33,14 +33,14 @@ struct ExpenseBillDraft: Equatable {
             ExpenseBillPartDraft(
                 id: value.part.id,
                 name: value.part.name,
-                amount: bill?.billParts?[value.part.id] ?? value.amount
+                amount: value.bill?.billAmount ?? value.amount
             )
         }
         paymentPartValues = occurrence.parts.map { value in
             ExpenseBillPartDraft(
                 id: value.part.id,
                 name: value.part.name,
-                amount: bill?.paidParts?[value.part.id] ?? bill?.billParts?[value.part.id] ?? value.amount
+                amount: value.bill?.paidAmount ?? value.bill?.billAmount ?? value.amount
             )
         }
         billAmount = bill?.billAmount ?? occurrence.amount
@@ -51,17 +51,15 @@ struct ExpenseBillDraft: Equatable {
 
     func billSaved(for occurrence: ExpenseOccurrence) -> ExpenseBill {
         var bill = base(for: occurrence)
-        bill.billAmount = billPartValues.isEmpty ? billAmount : total(of: billPartValues)
+        bill.billAmount = billAmount
         bill.billDueDate = billDueDate
-        if !billPartValues.isEmpty { bill.billParts = amountsByPart(billPartValues) }
         return bill
     }
 
     func paymentSaved(for occurrence: ExpenseOccurrence) -> ExpenseBill {
         var bill = base(for: occurrence)
-        bill.paidAmount = paymentPartValues.isEmpty ? paidAmount : total(of: paymentPartValues)
+        bill.paidAmount = paidAmount
         bill.paidOn = paidOn
-        if !paymentPartValues.isEmpty { bill.paidParts = amountsByPart(paymentPartValues) }
         return bill
     }
 
@@ -69,7 +67,6 @@ struct ExpenseBillDraft: Equatable {
         var bill = base(for: occurrence)
         bill.billAmount = nil
         bill.billDueDate = nil
-        bill.billParts = nil
         return bill.isEmpty ? nil : bill
     }
 
@@ -77,7 +74,6 @@ struct ExpenseBillDraft: Equatable {
         var bill = base(for: occurrence)
         bill.paidAmount = nil
         bill.paidOn = nil
-        bill.paidParts = nil
         return bill.isEmpty ? nil : bill
     }
 
@@ -85,8 +81,49 @@ struct ExpenseBillDraft: Equatable {
         values.map(\.amount).reduce(0, +)
     }
 
-    private func amountsByPart(_ values: [ExpenseBillPartDraft]) -> [UUID: Decimal] {
-        Dictionary(uniqueKeysWithValues: values.map { ($0.id, $0.amount) })
+    func partBillsSaved(for occurrence: ExpenseOccurrence) -> [ExpensePartBill] {
+        billPartValues.compactMap { value in
+            partBill(of: value.id, in: occurrence).map { bill in
+                var bill = bill
+                bill.billAmount = value.amount
+                bill.billDueDate = billDueDate
+                return bill
+            }
+        }
+    }
+
+    func partPaymentsSaved(for occurrence: ExpenseOccurrence) -> [ExpensePartBill] {
+        paymentPartValues.compactMap { value in
+            partBill(of: value.id, in: occurrence).map { bill in
+                var bill = bill
+                bill.paidAmount = value.amount
+                bill.paidOn = paidOn
+                return bill
+            }
+        }
+    }
+
+    func partBillsRemoved(for occurrence: ExpenseOccurrence) -> [ExpensePartBill] {
+        occurrence.parts.compactMap(\.bill).map { bill in
+            var bill = bill
+            bill.billAmount = nil
+            bill.billDueDate = nil
+            return bill
+        }
+    }
+
+    func partPaymentsRemoved(for occurrence: ExpenseOccurrence) -> [ExpensePartBill] {
+        occurrence.parts.compactMap(\.bill).map { bill in
+            var bill = bill
+            bill.paidAmount = nil
+            bill.paidOn = nil
+            return bill
+        }
+    }
+
+    private func partBill(of partID: UUID, in occurrence: ExpenseOccurrence) -> ExpensePartBill? {
+        guard let value = occurrence.parts.first(where: { $0.part.id == partID }) else { return nil }
+        return value.bill ?? ExpensePartBill(id: UUID(), partID: partID, month: occurrence.month)
     }
 
     private func base(for occurrence: ExpenseOccurrence) -> ExpenseBill {

@@ -168,4 +168,77 @@ struct ExpenseScheduleTests {
         #expect(summary.overdueCount == 1)
         #expect(summary.next?.expense == S.internet)
     }
+    private let taxa = S.part(S.condominio, "Taxa", position: 0)
+    private let agua = S.part(S.condominio, "Água", position: 1)
+    private let gas = S.part(S.condominio, "Gás", position: 2)
+
+    private func partsSnapshot(_ partBills: [ExpensePartBill], expense: Expense = S.condominio) -> ExpenseSnapshot {
+        ExpenseSnapshot(
+            expenses: [expense],
+            terms: [S.condominioTerm],
+            bills: [],
+            parts: [taxa, agua, gas],
+            partTerms: [
+                S.partTerm(taxa, from: S.month(2026, 7), amount: 820, isFixed: true),
+                S.partTerm(agua, from: S.month(2026, 7), amount: 85, day: 15),
+                S.partTerm(gas, from: S.month(2026, 7), amount: 80, day: 26)
+            ],
+            partBills: partBills
+        )
+    }
+
+    @Test func occurrenceAggregatesPartStatus() throws {
+        let october = S.month(2026, 10)
+        let fee = S.partBill(taxa, october, paid: 820, on: S.day(2026, 10, 9))
+        let open = try #require(occurrence(S.condominio, october, partsSnapshot([fee])))
+        #expect(open.status == .overdue)
+        #expect(open.isPartiallyPaid)
+        #expect(open.amount == 985)
+        #expect(open.remaining == 165)
+        #expect(open.dueDate == S.day(2026, 10, 15))
+
+        let all = [fee, S.partBill(agua, october, paid: 90, on: S.day(2026, 10, 16)), S.partBill(gas, october, paid: 80, on: S.day(2026, 10, 16))]
+        let settled = try #require(occurrence(S.condominio, october, partsSnapshot(all)))
+        #expect(settled.status == .paid)
+        #expect(!settled.isPartiallyPaid)
+        #expect(settled.amount == 990)
+        #expect(settled.remaining == 0)
+        #expect(settled.dueDate == S.day(2026, 10, 26))
+
+        let pending = try #require(occurrence(S.condominio, october, partsSnapshot([]), today: S.day(2026, 10, 1)))
+        #expect(pending.status == .pending)
+        #expect(!pending.isPartiallyPaid)
+        #expect(pending.remaining == 985)
+        #expect(pending.dueDate == S.day(2026, 10, 13))
+    }
+
+    @Test func occurrenceWithoutPartsRemaining() throws {
+        let open = try #require(occurrence(S.internet, S.month(2026, 10), snapshot()))
+        #expect(open.remaining == 180)
+        #expect(!open.isPartiallyPaid)
+        let paid = try #require(occurrence(S.internet, S.month(2026, 10), snapshot([S.paid(S.internet, S.month(2026, 10), 180, on: S.today)])))
+        #expect(paid.remaining == 0)
+    }
+
+    @Test func summaryUsesRemainingAndPartPayments() {
+        let fee = S.partBill(taxa, S.month(2026, 10), paid: 820, on: S.day(2026, 10, 9))
+        let summary = ExpenseSchedule.summary(for: S.month(2026, 10), snapshot: partsSnapshot([fee]), today: S.today)
+        #expect(summary.paid == 820)
+        #expect(summary.remaining == 165)
+        #expect(summary.expected == 985)
+        #expect(summary.overdueCount == 1)
+    }
+
+    @Test func carriedWhileAnyPartOpen() {
+        let condominio = Expense(id: S.condominio.id, name: S.condominio.name, startMonth: S.month(2026, 9))
+        let september = S.month(2026, 9)
+        let october = S.month(2026, 10)
+        let partial = [S.partBill(taxa, september, paid: 820), S.partBill(gas, september, paid: 80)]
+        let open = ExpenseSchedule.carried(into: october, snapshot: partsSnapshot(partial, expense: condominio), today: S.today)
+        #expect(open.map(\.month) == [september])
+        #expect(open.first?.remaining == 85)
+
+        let settled = partial + [S.partBill(agua, september, paid: 85)]
+        #expect(ExpenseSchedule.carried(into: october, snapshot: partsSnapshot(settled, expense: condominio), today: S.today).isEmpty)
+    }
 }

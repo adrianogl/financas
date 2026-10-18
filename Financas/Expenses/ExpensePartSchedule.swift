@@ -13,31 +13,41 @@ enum ExpensePartSchedule {
             .sorted { $0.position < $1.position }
     }
 
-    static func estimate(of part: ExpensePart, in month: YearMonth, snapshot: ExpenseSnapshot) -> ExpensePartValue? {
+    static func estimate(of part: ExpensePart, in month: YearMonth, snapshot: ExpenseSnapshot) -> (amount: Decimal, origin: ExpensePartOrigin)? {
         guard let term = term(for: part, in: month, snapshot: snapshot) else { return nil }
-        guard !term.isFixed else {
-            return ExpensePartValue(part: part, amount: term.amount, origin: .fixed, isFixed: true)
-        }
-        let paid = snapshot.bills
-            .filter { $0.expenseID == part.expenseID && $0.month < month && $0.month >= term.averageFrom }
-            .compactMap { bill in bill.paidParts?[part.id].map { (month: bill.month, amount: $0) } }
-        guard let average = ExpenseSchedule.average(of: paid) else {
-            return ExpensePartValue(part: part, amount: term.amount, origin: .estimated, isFixed: false)
-        }
-        return ExpensePartValue(part: part, amount: average.amount, origin: .average(months: average.months), isFixed: false)
+        guard !term.isFixed else { return (term.amount, .fixed) }
+        let paid = snapshot.partBills
+            .filter { $0.partID == part.id && $0.month < month && $0.month >= term.averageFrom }
+            .compactMap { bill in bill.paidAmount.map { (month: bill.month, amount: $0) } }
+        guard let average = ExpenseSchedule.average(of: paid) else { return (term.amount, .estimated) }
+        return (average.amount, .average(months: average.months))
     }
 
-    static func values(of expense: Expense, in month: YearMonth, snapshot: ExpenseSnapshot) -> [ExpensePartValue] {
-        let bill = bill(of: expense.id, in: month, snapshot: snapshot)
+    static func values(of expense: Expense, in month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> [ExpensePartValue] {
+        let expenseDay = ExpenseSchedule.term(for: expense, in: month, snapshot: snapshot)?.dayOfMonth ?? 1
         return activeParts(of: expense, in: month, snapshot: snapshot).compactMap { part in
-            let isFixed = term(for: part, in: month, snapshot: snapshot)?.isFixed ?? false
-            if let amount = bill?.paidParts?[part.id] {
-                return ExpensePartValue(part: part, amount: amount, origin: .paid, isFixed: isFixed)
+            guard let term = term(for: part, in: month, snapshot: snapshot),
+                  let estimate = estimate(of: part, in: month, snapshot: snapshot) else { return nil }
+            let bill = bill(of: part, in: month, snapshot: snapshot)
+            let (amount, origin): (Decimal, ExpensePartOrigin) = if let paid = bill?.paidAmount {
+                (paid, .paid)
+            } else if let launched = bill?.billAmount {
+                (launched, .bill)
+            } else {
+                estimate
             }
-            if let amount = bill?.billParts?[part.id] {
-                return ExpensePartValue(part: part, amount: amount, origin: .bill, isFixed: isFixed)
-            }
-            return estimate(of: part, in: month, snapshot: snapshot)
+            let dueDate = bill?.billDueDate ?? BusinessCalendar.businessDayOnOrAfter(month.day(term.dayOfMonth ?? expenseDay))
+            let status: ExpenseStatus = bill?.paidAmount != nil ? .paid : (dueDate < today ? .overdue : .pending)
+            return ExpensePartValue(
+                part: part,
+                month: month,
+                amount: amount,
+                origin: origin,
+                isFixed: term.isFixed,
+                dueDate: dueDate,
+                bill: bill,
+                status: status
+            )
         }
     }
 
@@ -48,11 +58,11 @@ enum ExpensePartSchedule {
     }
 
     private static func registered(_ part: ExpensePart, in month: YearMonth, snapshot: ExpenseSnapshot) -> Decimal? {
-        let bill = bill(of: part.expenseID, in: month, snapshot: snapshot)
-        return bill?.paidParts?[part.id] ?? bill?.billParts?[part.id]
+        let bill = bill(of: part, in: month, snapshot: snapshot)
+        return bill?.paidAmount ?? bill?.billAmount
     }
 
-    private static func bill(of expenseID: UUID, in month: YearMonth, snapshot: ExpenseSnapshot) -> ExpenseBill? {
-        snapshot.bills.first { $0.expenseID == expenseID && $0.month == month }
+    private static func bill(of part: ExpensePart, in month: YearMonth, snapshot: ExpenseSnapshot) -> ExpensePartBill? {
+        snapshot.partBills.first { $0.partID == part.id && $0.month == month }
     }
 }

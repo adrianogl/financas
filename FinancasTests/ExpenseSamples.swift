@@ -66,8 +66,27 @@ enum ExpenseSamples {
         amount: Decimal,
         isFixed: Bool = false,
         averageFrom: YearMonth? = nil,
-        isActive: Bool = true
+        isActive: Bool = true,
+        day: Int? = nil
     ) -> ExpensePartTerm {
-        ExpensePartTerm(id: UUID(), partID: part.id, validFrom: from, amount: amount, isFixed: isFixed, averageFrom: averageFrom ?? from, isActive: isActive)
+        ExpensePartTerm(
+            id: UUID(), partID: part.id, validFrom: from, amount: amount, isFixed: isFixed,
+            averageFrom: averageFrom ?? from, isActive: isActive, dayOfMonth: day
+        )
+    }
+
+    static func partBill(
+        _ part: ExpensePart,
+        _ month: YearMonth,
+        bill: Decimal? = nil,
+        due: CalendarDay? = nil,
+        paid: Decimal? = nil,
+        on paidOn: CalendarDay? = nil
+    ) -> ExpensePartBill {
+        ExpensePartBill(
+            id: UUID(), partID: part.id, month: month,
+            billAmount: bill, billDueDate: bill == nil ? nil : due ?? month.day(10),
+            paidOn: paid == nil ? nil : paidOn ?? month.day(10), paidAmount: paid
+        )
     }
 }

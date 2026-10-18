@@ -212,6 +212,8 @@ final class FakeExpenseService: ExpenseService {
     private(set) var calls: [String] = []
     private(set) var lastSavedParts: [ExpensePart] = []
     private(set) var lastSavedPartTerms: [ExpensePartTerm] = []
+    private(set) var lastSavedPartBills: [ExpensePartBill] = []
+    private(set) var lastDeletedPartBillIDs: [UUID] = []
     private var pending: [CheckedContinuation<Void, Never>] = []
 
     init(snapshot: ExpenseSnapshot = ExpenseSamples.snapshot) {
@@ -250,6 +252,16 @@ final class FakeExpenseService: ExpenseService {
 
     func deleteBill(id: UUID) async throws(IncomeError) {
         try await respond("deleteBill")
+    }
+
+    func save(_ partBills: [ExpensePartBill]) async throws(IncomeError) {
+        lastSavedPartBills = partBills
+        try await respond("savePartBills")
+    }
+
+    func deletePartBills(ids: [UUID]) async throws(IncomeError) {
+        lastDeletedPartBillIDs = ids
+        try await respond("deletePartBills")
     }
 
     func save(_ entry: ExpenseEntry) async throws(IncomeError) {

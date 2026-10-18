@@ -17,13 +17,15 @@ final class SupabaseExpenseService: ExpenseService {
             async let parts: [ExpensePart] = client.from(ExpenseConstants.partsTable).select().execute().value
             async let partTerms: [ExpensePartTerm] = client.from(ExpenseConstants.partTermsTable).select().execute().value
             async let entries: [ExpenseEntry] = client.from(ExpenseConstants.entriesTable).select().execute().value
+            async let partBills: [ExpensePartBill] = client.from(ExpenseConstants.partBillsTable).select().execute().value
             return try await ExpenseSnapshot(
                 expenses: expenses,
                 terms: terms,
                 bills: bills,
                 parts: parts,
                 partTerms: partTerms,
-                entries: entries
+                entries: entries,
+                partBills: partBills
             )
         } catch {
             throw SupabaseIncomeService.incomeError(from: error)
@@ -79,6 +81,29 @@ final class SupabaseExpenseService: ExpenseService {
     func deleteBill(id: UUID) async throws(IncomeError) {
         do {
             try await client.from(ExpenseConstants.billsTable).delete().eq("id", value: id.uuidString).execute()
+        } catch {
+            throw SupabaseIncomeService.incomeError(from: error)
+        }
+    }
+
+    func save(_ partBills: [ExpensePartBill]) async throws(IncomeError) {
+        guard !partBills.isEmpty else { return }
+        do {
+            try await client.from(ExpenseConstants.partBillsTable)
+                .upsert(partBills, onConflict: "part_id,month", returning: .minimal)
+                .execute()
+        } catch {
+            throw SupabaseIncomeService.incomeError(from: error)
+        }
+    }
+
+    func deletePartBills(ids: [UUID]) async throws(IncomeError) {
+        guard !ids.isEmpty else { return }
+        do {
+            try await client.from(ExpenseConstants.partBillsTable)
+                .delete()
+                .in("id", values: ids.map(\.uuidString))
+                .execute()
         } catch {
             throw SupabaseIncomeService.incomeError(from: error)
         }

@@ -59,9 +59,9 @@ struct ExpenseFormatTests {
         let taxa = S.part(S.condominio, "Taxa", position: 0)
         let agua = S.part(S.condominio, "Água", position: 1)
         let gas = S.part(S.condominio, "Gás", position: 2)
-        let fixed = ExpensePartValue(part: taxa, amount: 820, origin: .fixed, isFixed: true)
-        let water = ExpensePartValue(part: agua, amount: 110, origin: .bill, isFixed: false)
-        let cooking = ExpensePartValue(part: gas, amount: 80, origin: .estimated, isFixed: false)
+        let fixed = ExpensePartValue(part: taxa, month: S.month(2026, 10), amount: 820, origin: .fixed, isFixed: true, dueDate: S.day(2026, 10, 13), bill: nil, status: .pending)
+        let water = ExpensePartValue(part: agua, month: S.month(2026, 10), amount: 110, origin: .bill, isFixed: false, dueDate: S.day(2026, 10, 13), bill: nil, status: .pending)
+        let cooking = ExpensePartValue(part: gas, month: S.month(2026, 10), amount: 80, origin: .estimated, isFixed: false, dueDate: S.day(2026, 10, 13), bill: nil, status: .pending)
         let september = S.month(2026, 9)
 
         #expect(ExpenseFormat.rule(S.condominioTerm, estimate: .parts(1010), partCount: 3) == "Todo dia 10 · 3 partes")

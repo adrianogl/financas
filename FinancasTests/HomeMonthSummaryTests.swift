@@ -132,4 +132,26 @@ struct HomeMonthSummaryTests {
         #expect(result.entries.map(\.date.day) == [17, 10, 2])
         #expect(result.balance == -420)
     }
+    @Test func partPaymentsAreEntries() {
+        let condominio = ExpenseSamples.condominio
+        let taxa = ExpenseSamples.part(condominio, "Taxa", position: 0)
+        let agua = ExpenseSamples.part(condominio, "Água", position: 1)
+        let expenses = ExpenseSnapshot(
+            expenses: [condominio],
+            terms: [ExpenseSamples.condominioTerm],
+            bills: [],
+            parts: [taxa, agua],
+            partBills: [
+                ExpenseSamples.partBill(agua, S.month(2026, 10), paid: 112, on: S.day(2026, 10, 14)),
+                ExpenseSamples.partBill(taxa, S.month(2026, 10), bill: 820, due: S.day(2026, 10, 13)),
+                ExpenseSamples.partBill(taxa, S.month(2026, 9), paid: 820, on: S.day(2026, 9, 30))
+            ]
+        )
+        let result = summary(S.month(2026, 10), .empty, expenses: expenses)
+        #expect(result.entries.map(\.title) == ["Condomínio · Água"])
+        #expect(result.entries.first?.kind == .expense)
+        #expect(result.entries.first?.date == S.day(2026, 10, 14))
+        #expect(result.entries.first?.amount == 112)
+        #expect(result.balance == -112)
+    }
 }

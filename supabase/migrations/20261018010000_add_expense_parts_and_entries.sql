@@ -1,10 +1,6 @@
 alter table public.expenses
   add column kind text not null default 'bill' check (kind in ('bill', 'spending'));
 
-alter table public.expense_bills
-  add column bill_parts jsonb,
-  add column paid_parts jsonb;
-
 create table public.expense_parts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
@@ -23,7 +19,23 @@ create table public.expense_part_terms (
   is_fixed boolean not null,
   average_from date not null check (extract(day from average_from) = 1),
   is_active boolean not null,
+  day_of_month smallint check (day_of_month between 1 and 31),
   unique (part_id, valid_from)
+);
+
+create table public.expense_part_bills (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  part_id uuid not null references public.expense_parts(id) on delete cascade,
+  month date not null check (extract(day from month) = 1),
+  bill_amount numeric(12,2) check (bill_amount >= 0),
+  bill_due_date date,
+  paid_on date,
+  paid_amount numeric(12,2) check (paid_amount >= 0),
+  check ((bill_amount is null) = (bill_due_date is null)),
+  check ((paid_on is null) = (paid_amount is null)),
+  check (bill_amount is not null or paid_amount is not null),
+  unique (part_id, month)
 );
 
 create table public.expense_entries (
@@ -36,10 +48,12 @@ create table public.expense_entries (
 
 create index expense_parts_user_id_idx on public.expense_parts (user_id);
 create index expense_part_terms_user_id_idx on public.expense_part_terms (user_id);
+create index expense_part_bills_user_id_idx on public.expense_part_bills (user_id);
 create index expense_entries_user_id_idx on public.expense_entries (user_id);
 
 alter table public.expense_parts enable row level security;
 alter table public.expense_part_terms enable row level security;
+alter table public.expense_part_bills enable row level security;
 alter table public.expense_entries enable row level security;
 
 create policy "expense_parts_select_own" on public.expense_parts for select to authenticated using ((select auth.uid()) = user_id);
@@ -69,6 +83,20 @@ create policy "expense_part_terms_update_own" on public.expense_part_terms for u
     and exists (select 1 from public.expense_parts p where p.id = part_id and p.user_id = (select auth.uid()))
   );
 create policy "expense_part_terms_delete_own" on public.expense_part_terms for delete to authenticated using ((select auth.uid()) = user_id);
+
+create policy "expense_part_bills_select_own" on public.expense_part_bills for select to authenticated using ((select auth.uid()) = user_id);
+create policy "expense_part_bills_insert_own" on public.expense_part_bills for insert to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and exists (select 1 from public.expense_parts p where p.id = part_id and p.user_id = (select auth.uid()))
+  );
+create policy "expense_part_bills_update_own" on public.expense_part_bills for update to authenticated
+  using ((select auth.uid()) = user_id)
+  with check (
+    (select auth.uid()) = user_id
+    and exists (select 1 from public.expense_parts p where p.id = part_id and p.user_id = (select auth.uid()))
+  );
+create policy "expense_part_bills_delete_own" on public.expense_part_bills for delete to authenticated using ((select auth.uid()) = user_id);
 
 create policy "expense_entries_select_own" on public.expense_entries for select to authenticated using ((select auth.uid()) = user_id);
 create policy "expense_entries_insert_own" on public.expense_entries for insert to authenticated

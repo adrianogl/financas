@@ -350,4 +350,31 @@ struct ExpenseDraftTests {
         #expect(term.estimatedAmount == 600)
         #expect(draft.buildParts(today: S.today) == ExpensePartChanges(parts: [], terms: []))
     }
+    @Test func changingPartDayCreatesTermKeepingAverage() throws {
+        let snapshot = condominioSnapshot(gasTerms: [S.partTerm(gas, from: S.month(2026, 10), amount: 80, day: 20)])
+        var draft = editCondominio(snapshot)
+        #expect(draft.parts.map(\.dayOfMonth) == [nil, nil, 20])
+        draft.parts[1].dayOfMonth = 15
+        draft.parts[2].dayOfMonth = nil
+
+        let changes = draft.buildParts(today: S.today)
+
+        #expect(changes.parts.isEmpty)
+        #expect(changes.terms.map(\.partID) == [agua.id, gas.id])
+        let water = try #require(changes.terms.first)
+        #expect(water.dayOfMonth == 15)
+        #expect(water.amount == 85)
+        #expect(water.validFrom == S.month(2026, 10))
+        #expect(water.averageFrom == S.month(2026, 10))
+        #expect(changes.terms.last?.dayOfMonth == nil)
+    }
+
+    @Test func currentMonthWithPartPaymentIsRegistered() {
+        var snapshot = condominioSnapshot()
+        snapshot.partBills = [S.partBill(agua, S.month(2026, 10), paid: 85)]
+        #expect(editCondominio(snapshot).effectiveMonth == S.month(2026, 11))
+
+        snapshot.partBills = [S.partBill(agua, S.month(2026, 9), paid: 85)]
+        #expect(editCondominio(snapshot).effectiveMonth == S.month(2026, 10))
+    }
 }

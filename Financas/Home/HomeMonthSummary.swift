@@ -16,6 +16,13 @@ struct HomeMonthSummary: Equatable {
             return (bill, name, paidOn, amount)
         }
 
+        let parts = Dictionary(uniqueKeysWithValues: expenses.parts.map { ($0.id, $0) })
+        let partPayments = expenses.partBills.compactMap { bill -> (bill: ExpensePartBill, title: String, paidOn: CalendarDay, amount: Decimal)? in
+            guard let part = parts[bill.partID], let name = names[part.expenseID],
+                  let paidOn = bill.paidOn, let amount = bill.paidAmount, paidOn.yearMonth == month else { return nil }
+            return (bill, "\(name) · \(part.name)", paidOn, amount)
+        }
+
         let spendings = expenses.entries.compactMap { entry -> (entry: ExpenseEntry, name: String)? in
             guard let name = names[entry.expenseID], entry.spentOn.yearMonth == month else { return nil }
             return (entry, name)
@@ -23,6 +30,7 @@ struct HomeMonthSummary: Equatable {
 
         var movements = inMonth.map { (day: $0.receivedOn.day, amount: $0.amount) }
         movements += payments.map { (day: $0.paidOn.day, amount: -$0.amount) }
+        movements += partPayments.map { (day: $0.paidOn.day, amount: -$0.amount) }
         movements += spendings.map { (day: $0.entry.spentOn.day, amount: -$0.entry.amount) }
         let balance = movements.map(\.amount).reduce(0, +)
 
@@ -47,10 +55,13 @@ struct HomeMonthSummary: Equatable {
         let expenseEntries = payments.map {
             HomeEntry(id: $0.bill.id, title: $0.name, kind: .expense, date: $0.paidOn, amount: $0.amount)
         }
+        let partEntries = partPayments.map {
+            HomeEntry(id: $0.bill.id, title: $0.title, kind: .expense, date: $0.paidOn, amount: $0.amount)
+        }
         let spendingEntries = spendings.map {
             HomeEntry(id: $0.entry.id, title: $0.name, kind: .expense, date: $0.entry.spentOn, amount: $0.entry.amount)
         }
-        let entries = (incomeEntries + expenseEntries + spendingEntries).sorted { $0.date > $1.date }
+        let entries = (incomeEntries + expenseEntries + partEntries + spendingEntries).sorted { $0.date > $1.date }
 
         return HomeMonthSummary(month: month, balance: balance, points: points, entries: entries)
     }

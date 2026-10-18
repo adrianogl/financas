@@ -61,28 +61,52 @@ struct ExpenseCodingTests {
         #expect(expense.kind == .spending)
     }
 
-    @Test func encodesBillParts() throws {
+    @Test func encodesPartBillWithNulls() throws {
         let partID = UUID()
-        let bill = ExpenseBill(
-            id: billID, expenseID: expenseID, month: YearMonth(year: 2026, month: 10),
-            billAmount: 110, billDueDate: IncomeSamples.day(2026, 10, 10), paidOn: nil, paidAmount: nil,
-            billParts: [partID: 110]
+        let bill = ExpensePartBill(
+            id: billID, partID: partID, month: YearMonth(year: 2026, month: 10),
+            billAmount: nil, billDueDate: nil, paidOn: IncomeSamples.day(2026, 10, 9), paidAmount: 110
         )
         let encoded = try object(SupabaseIncomeService.encoder.encode(bill))
-        let parts = try #require(encoded["bill_parts"] as? [String: Any])
-        #expect(parts.count == 1)
-        #expect((parts[partID.uuidString.lowercased()] as? NSNumber)?.decimalValue == 110)
-        #expect(encoded["paid_parts"] is NSNull)
+        #expect((encoded["part_id"] as? String)?.lowercased() == partID.uuidString.lowercased())
+        #expect(encoded["month"] as? String == "2026-10-01")
+        #expect(encoded["bill_amount"] is NSNull)
+        #expect(encoded["bill_due_date"] is NSNull)
+        #expect(encoded["paid_on"] as? String == "2026-10-09")
+        #expect((encoded["paid_amount"] as? NSNumber)?.decimalValue == 110)
+        #expect(encoded["isEmpty"] == nil)
+        #expect(encoded["is_empty"] == nil)
+        #expect(!bill.isEmpty)
     }
 
-    @Test func decodesBillParts() throws {
-        let partID = UUID()
+    @Test func decodesPartBill() throws {
         let json = #"""
-        {"id":"\#(billID)","expense_id":"\#(expenseID)","month":"2026-10-01","bill_amount":110.5,"bill_due_date":"2026-10-10","paid_on":null,"paid_amount":null,"bill_parts":{"\#(partID.uuidString.lowercased())":110.5},"paid_parts":null}
+        {"id":"\#(billID)","part_id":"\#(expenseID)","month":"2026-10-01","bill_amount":110.5,"bill_due_date":"2026-10-20","paid_on":null,"paid_amount":null}
         """#
-        let bill = try SupabaseIncomeService.decoder.decode(ExpenseBill.self, from: Data(json.utf8))
-        #expect(bill.billParts == [partID: 110.5])
-        #expect(bill.paidParts == nil)
+        let bill = try SupabaseIncomeService.decoder.decode(ExpensePartBill.self, from: Data(json.utf8))
+        #expect(bill.partID == expenseID)
+        #expect(bill.month == YearMonth(year: 2026, month: 10))
+        #expect(bill.billAmount == 110.5)
+        #expect(bill.billDueDate == IncomeSamples.day(2026, 10, 20))
+        #expect(bill.paidOn == nil)
+        #expect(bill.paidAmount == nil)
+    }
+
+    @Test func partTermDayOfMonth() throws {
+        let empty = #"""
+        {"id":"\#(billID)","part_id":"\#(expenseID)","valid_from":"2026-07-01","amount":300,"is_fixed":true,"average_from":"2026-08-01","is_active":true,"day_of_month":null}
+        """#
+        let own = #"""
+        {"id":"\#(billID)","part_id":"\#(expenseID)","valid_from":"2026-07-01","amount":300,"is_fixed":true,"average_from":"2026-08-01","is_active":true,"day_of_month":15}
+        """#
+        let withoutDay = try SupabaseIncomeService.decoder.decode(ExpensePartTerm.self, from: Data(empty.utf8))
+        let withDay = try SupabaseIncomeService.decoder.decode(ExpensePartTerm.self, from: Data(own.utf8))
+        #expect(withoutDay.dayOfMonth == nil)
+        #expect(withDay.dayOfMonth == 15)
+
+        let encoded = try object(SupabaseIncomeService.encoder.encode(withoutDay))
+        #expect(encoded["day_of_month"] is NSNull)
+        #expect((try object(SupabaseIncomeService.encoder.encode(withDay))["day_of_month"] as? NSNumber)?.intValue == 15)
     }
 
     @Test func decodesPartTermAndEntry() throws {

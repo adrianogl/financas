@@ -12,6 +12,8 @@ protocol ExpenseService {
     func delete(expenseID: UUID) async throws(IncomeError)
     func save(_ bill: ExpenseBill) async throws(IncomeError)
     func deleteBill(id: UUID) async throws(IncomeError)
+    func save(_ partBills: [ExpensePartBill]) async throws(IncomeError)
+    func deletePartBills(ids: [UUID]) async throws(IncomeError)
     func save(_ entry: ExpenseEntry) async throws(IncomeError)
     func deleteEntry(id: UUID) async throws(IncomeError)
 }

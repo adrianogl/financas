@@ -71,7 +71,7 @@ final class ExpenseStore {
     }
 
     func overdueTotal(today: CalendarDay) -> Decimal {
-        overdueOccurrences(today: today).map(\.amount).reduce(0, +)
+        overdueOccurrences(today: today).map(\.remaining).reduce(0, +)
     }
 
     func summary(for month: YearMonth, today: CalendarDay) -> ExpenseMonthSummary {
@@ -160,24 +160,29 @@ final class ExpenseStore {
             let partIDs = Set(self.snapshot.parts.filter { $0.expenseID == expense.id }.map(\.id))
             self.snapshot.parts.removeAll { $0.expenseID == expense.id }
             self.snapshot.partTerms.removeAll { partIDs.contains($0.partID) }
+            self.snapshot.partBills.removeAll { partIDs.contains($0.partID) }
             self.snapshot.entries.removeAll { $0.expenseID == expense.id }
         }
     }
 
     func saveBill(_ draft: ExpenseBillDraft, for occurrence: ExpenseOccurrence) async -> Bool {
-        await persist(draft.billSaved(for: occurrence), replacing: occurrence)
+        guard occurrence.parts.isEmpty else { return await persist(draft.partBillsSaved(for: occurrence)) }
+        return await persist(draft.billSaved(for: occurrence), replacing: occurrence)
     }
 
     func removeBill(_ draft: ExpenseBillDraft, for occurrence: ExpenseOccurrence) async -> Bool {
-        await persist(draft.billRemoved(for: occurrence), replacing: occurrence)
+        guard occurrence.parts.isEmpty else { return await persist(draft.partBillsRemoved(for: occurrence)) }
+        return await persist(draft.billRemoved(for: occurrence), replacing: occurrence)
     }
 
     func markPaid(_ draft: ExpenseBillDraft, for occurrence: ExpenseOccurrence) async -> Bool {
-        await persist(draft.paymentSaved(for: occurrence), replacing: occurrence)
+        guard occurrence.parts.isEmpty else { return await persist(draft.partPaymentsSaved(for: occurrence)) }
+        return await persist(draft.paymentSaved(for: occurrence), replacing: occurrence)
     }
 
     func unmarkPaid(_ draft: ExpenseBillDraft, for occurrence: ExpenseOccurrence) async -> Bool {
-        await persist(draft.paymentRemoved(for: occurrence), replacing: occurrence)
+        guard occurrence.parts.isEmpty else { return await persist(draft.partPaymentsRemoved(for: occurrence)) }
+        return await persist(draft.paymentRemoved(for: occurrence), replacing: occurrence)
     }
 
     func saveEntry(_ draft: ExpenseEntryDraft) async -> Bool {
@@ -223,6 +228,25 @@ final class ExpenseStore {
         }
     }
 
+    private func persist(_ partBills: [ExpensePartBill]) async -> Bool {
+        let kept = partBills.filter { !$0.isEmpty }
+        let knownIDs = Set(snapshot.partBills.map(\.id))
+        let removedIDs = partBills.filter { $0.isEmpty && knownIDs.contains($0.id) }.map(\.id)
+        guard !kept.isEmpty || !removedIDs.isEmpty else { return false }
+        return await perform { [service] () async throws(IncomeError) in
+            if !kept.isEmpty {
+                try await service.save(kept)
+            }
+            if !removedIDs.isEmpty {
+                try await service.deletePartBills(ids: removedIDs)
+            }
+        } onSuccess: {
+            let touched = Set(partBills.map(\.id))
+            self.snapshot.partBills.removeAll { touched.contains($0.id) }
+            self.snapshot.partBills.append(contentsOf: kept)
+        }
+    }
+
     private func reusingExistingID(_ term: ExpenseTerm) -> ExpenseTerm {
         guard let existing = snapshot.terms.first(where: { $0.expenseID == term.expenseID && $0.validFrom == term.validFrom }) else {
             return term
@@ -248,7 +272,8 @@ final class ExpenseStore {
             amount: term.amount,
             isFixed: term.isFixed,
             averageFrom: term.averageFrom,
-            isActive: term.isActive
+            isActive: term.isActive,
+            dayOfMonth: term.dayOfMonth
         )
     }
 
