@@ -1,3 +1,5 @@
+import CoreGraphics
+
 enum ExpenseConstants {
     static let expensesTable = "expenses"
     static let termsTable = "expense_terms"
@@ -7,6 +9,11 @@ enum ExpenseConstants {
     static let partBillsTable = "expense_part_bills"
     static let entriesTable = "expense_entries"
     static let spendingHistoryMonths = 6
+    static let spendingRowBarHeight: CGFloat = 4
+    static let spendingCardBarHeight: CGFloat = 8
+    static let spendingEntryRowHeight: CGFloat = 44
+    static let spendingChartHeight: CGFloat = 120
+    static let spendingOtherMonthOpacity = 0.35
     static let loadFailedMessage = "Não foi possível carregar suas despesas. Tente de novo."
     static let entryAmountMessage = "Informe um valor maior que zero."
     static let entryDateMessage = "Escolha uma data dentro do período da despesa."

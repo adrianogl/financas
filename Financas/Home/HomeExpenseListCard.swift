@@ -23,11 +23,18 @@ struct HomeExpenseListCard: View {
     private var rows: some View {
         let month = incomeStore.selectedMonth
         let items = ExpenseMonthList(occurrences: store.occurrences(in: month, today: incomeStore.today)).all
+        let spendings = store.spendings(in: month, today: incomeStore.today)
         if store.snapshot.expenses.isEmpty {
             emptyText("Nenhuma despesa cadastrada.")
-        } else if items.isEmpty {
+        } else if items.isEmpty && spendings.isEmpty {
             emptyText("Nenhuma despesa prevista para \(IncomeFormat.monthName(month)).")
         } else {
+            ForEach(spendings) { spending in
+                spendingRow(spending)
+                if spending.id != spendings.last?.id || !items.isEmpty {
+                    Divider()
+                }
+            }
             ForEach(items) { occurrence in
                 row(occurrence)
                 if occurrence.id != items.last?.id {
@@ -35,6 +42,15 @@ struct HomeExpenseListCard: View {
                 }
             }
         }
+    }
+
+    private func spendingRow(_ spending: SpendingMonth) -> some View {
+        Button {
+            open(DetailRoute(spending))
+        } label: {
+            SpendingRow(spending: spending, isSelected: false)
+        }
+        .buttonStyle(.plain)
     }
 
     private func row(_ occurrence: ExpenseOccurrence) -> some View {

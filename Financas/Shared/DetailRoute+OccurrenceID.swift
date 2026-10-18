@@ -1,7 +1,7 @@
 extension DetailRoute {
     var occurrenceID: String {
         switch self {
-        case .income(let id, _), .expense(let id, _):
+        case .income(let id, _), .expense(let id, _), .spending(let id, _):
             id
         }
     }

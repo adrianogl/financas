@@ -9,6 +9,8 @@ struct DetailRouteView: View {
             IncomeDetailView(occurrenceID: id, month: month)
         case .expense(let id, let month):
             ExpenseDetailView(occurrenceID: id, month: month)
+        case .spending(let id, let month):
+            SpendingDetailView(spendingID: id, month: month)
         }
     }
 }

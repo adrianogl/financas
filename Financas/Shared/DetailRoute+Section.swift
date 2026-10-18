@@ -3,7 +3,7 @@ extension DetailRoute {
         switch self {
         case .income:
             .incomes
-        case .expense:
+        case .expense, .spending:
             .expenses
         }
     }

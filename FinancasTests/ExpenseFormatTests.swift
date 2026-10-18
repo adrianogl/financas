@@ -125,4 +125,27 @@ struct ExpenseFormatTests {
         #expect(ExpenseFormat.tableAmount(1010) == "1.010")
         #expect(ExpenseFormat.tableAmount(S.money("196.4")) == "196,40")
     }
+
+    private func spending(month: YearMonth, spent: Decimal, remaining: Decimal) -> SpendingMonth {
+        let expense = Expense(id: UUID(), name: "Abastecimento", startMonth: S.month(2026, 7), kind: .spending)
+        return SpendingMonth(expense: expense, month: month, expected: 600, spent: spent, remaining: remaining, entries: [])
+    }
+
+    @Test func spendingHeaderRuleText() {
+        #expect(ExpenseFormat.spendingHeaderRule(600) == "Gasto do mês · previsto R$\u{00A0}600")
+        #expect(ExpenseFormat.spendingHeaderRule(S.money("612.5")) == "Gasto do mês · previsto R$\u{00A0}612,50")
+    }
+
+    @Test func entryCountTexts() {
+        #expect(ExpenseFormat.entryCount(0) == "nenhum lançamento")
+        #expect(ExpenseFormat.entryCount(1) == "1 lançamento")
+        #expect(ExpenseFormat.entryCount(3) == "3 lançamentos")
+    }
+
+    @Test func spendingCaptionTexts() {
+        #expect(ExpenseFormat.spendingCaption(spending(month: S.month(2026, 10), spent: 420, remaining: 180), today: S.today) == "Faltam R$\u{00A0}180,00 do previsto")
+        #expect(ExpenseFormat.spendingCaption(spending(month: S.month(2026, 10), spent: 650, remaining: 0), today: S.today) == "R$\u{00A0}50,00 acima do previsto")
+        #expect(ExpenseFormat.spendingCaption(spending(month: S.month(2026, 9), spent: 420, remaining: 0), today: S.today) == "Previsto R$\u{00A0}600,00")
+        #expect(ExpenseFormat.spendingCaption(spending(month: S.month(2026, 9), spent: 650, remaining: 0), today: S.today) == "R$\u{00A0}50,00 acima do previsto")
+    }
 }

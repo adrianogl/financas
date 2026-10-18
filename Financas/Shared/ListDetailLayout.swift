@@ -154,6 +154,8 @@ struct ListDetailLayout<List: View>: View {
             incomeStore.occurrences(in: month).contains { $0.id == id }
         case .expense(let id, let month):
             expenseStore.occurrences(in: month, today: incomeStore.today).contains { $0.id == id }
+        case .spending(let id, let month):
+            expenseStore.spendings(in: month, today: incomeStore.today).contains { $0.id == id }
         }
     }
 

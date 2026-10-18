@@ -10,20 +10,21 @@ struct ExpensesView: View {
         let list = monthList
         let open = list.open
         let paid = list.paid
+        let spendings = monthSpendings
 
         NavigationStack {
             ListDetailLayout(
                 section: .expenses,
                 title: "Despesas",
                 add: SectionAddAction(title: "Nova despesa", action: create),
-                routes: (open + paid).map(DetailRoute.init),
+                routes: spendings.map(DetailRoute.init) + (open + paid).map(DetailRoute.init),
                 openRoutes: open.map(DetailRoute.init),
                 month: incomeStore.selectedMonth,
                 isLoaded: store.loadState == .loaded,
                 emptyText: hasMonthList ? emptyMonthText : nil
             ) { context in
                 MonthPicker(month: $incomeStore.selectedMonth)
-                content(context, open: open, paid: paid)
+                content(context, spendings: spendings, open: open, paid: paid)
             }
             .refreshable { await store.load() }
             .expenseFlow(paying: .constant(nil), editing: $editing)
@@ -39,6 +40,10 @@ struct ExpensesView: View {
         hasMonthList ? store.occurrences(in: incomeStore.selectedMonth, today: incomeStore.today) : []
     }
 
+    private var monthSpendings: [SpendingMonth] {
+        hasMonthList ? store.spendings(in: incomeStore.selectedMonth, today: incomeStore.today) : []
+    }
+
     private var monthList: ExpenseMonthList {
         ExpenseMonthList(occurrences: monthOccurrences)
     }
@@ -47,12 +52,12 @@ struct ExpensesView: View {
         "Nenhuma despesa prevista para \(IncomeFormat.monthName(incomeStore.selectedMonth))."
     }
 
-    private func content(_ context: ListDetailContext, open: [ExpenseOccurrence], paid: [ExpenseOccurrence]) -> some View {
+    private func content(_ context: ListDetailContext, spendings: [SpendingMonth], open: [ExpenseOccurrence], paid: [ExpenseOccurrence]) -> some View {
         ExpenseLoadContent {
             if store.snapshot.expenses.isEmpty {
                 emptyState
             } else {
-                monthContent(context, open: open, paid: paid)
+                monthContent(context, spendings: spendings, open: open, paid: paid)
             }
         }
     }
@@ -73,7 +78,7 @@ struct ExpensesView: View {
     }
 
     @ViewBuilder
-    private func monthContent(_ context: ListDetailContext, open: [ExpenseOccurrence], paid: [ExpenseOccurrence]) -> some View {
+    private func monthContent(_ context: ListDetailContext, spendings: [SpendingMonth], open: [ExpenseOccurrence], paid: [ExpenseOccurrence]) -> some View {
         let today = incomeStore.today
         let month = incomeStore.selectedMonth
         let active = store.activeExpenses(today: today)
@@ -88,13 +93,16 @@ struct ExpensesView: View {
                 .padding(.horizontal, 6)
         }
 
+        if !spendings.isEmpty {
+            spendingSection(spendings, context: context)
+        }
         if !open.isEmpty {
             section("A pagar", occurrences: open, context: context)
         }
         if !paid.isEmpty {
             section("Pagas", occurrences: paid, context: context)
         }
-        if open.isEmpty && paid.isEmpty {
+        if spendings.isEmpty && open.isEmpty && paid.isEmpty {
             Text(emptyMonthText)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -114,6 +122,23 @@ struct ExpensesView: View {
                     .contextMenu {
                         Button("Editar despesa", systemImage: "pencil") {
                             edit(occurrence.expense)
+                        }
+                    }
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 10)
+            .glassEffect(.regular, in: .rect(cornerRadius: 26))
+        }
+    }
+
+    private func spendingSection(_ spendings: [SpendingMonth], context: ListDetailContext) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionTitle("Gastos do mês")
+            DetailRowList(items: spendings, context: context, route: DetailRoute.init) { spending, isSelected in
+                SpendingRow(spending: spending, isSelected: isSelected)
+                    .contextMenu {
+                        Button("Editar despesa", systemImage: "pencil") {
+                            edit(spending.expense)
                         }
                     }
             }

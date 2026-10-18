@@ -78,6 +78,33 @@ enum ExpenseFormat {
         "Gasto do mês · previsto \(IncomeFormat.currency(expected, locale: locale))"
     }
 
+    static func spendingHeaderRule(_ expected: Decimal, locale: Locale = IncomeFormat.locale) -> String {
+        var source = expected
+        var whole = Decimal()
+        NSDecimalRound(&whole, &source, 0, .plain)
+        let fraction = whole == expected ? 0 : 2
+        let amount = expected.formatted(.currency(code: IncomeConstants.currencyCode).precision(.fractionLength(fraction)).locale(locale))
+        return "Gasto do mês · previsto \(amount)"
+    }
+
+    static func entryCount(_ count: Int) -> String {
+        switch count {
+        case 0: "nenhum lançamento"
+        case 1: "1 lançamento"
+        default: "\(count) lançamentos"
+        }
+    }
+
+    static func spendingCaption(_ spending: SpendingMonth, today: CalendarDay, locale: Locale = IncomeFormat.locale) -> String {
+        if spending.isOver {
+            return "\(IncomeFormat.currency(spending.excess, locale: locale)) acima do previsto"
+        }
+        if spending.month < today.yearMonth {
+            return "Previsto \(IncomeFormat.currency(spending.expected, locale: locale))"
+        }
+        return "Faltam \(IncomeFormat.currency(spending.remaining, locale: locale)) do previsto"
+    }
+
     static func tableAmount(_ value: Decimal, locale: Locale = IncomeFormat.locale) -> String {
         var source = value
         var whole = Decimal()
