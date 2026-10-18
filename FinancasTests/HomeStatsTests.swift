@@ -47,6 +47,6 @@ struct HomeStatsTests {
         #expect(stats.overdue.title == "Atrasadas")
         #expect(stats.overdue.value == "\(incomes.overdueOccurrences.count + expenses.overdueOccurrences(today: today).count)")
         #expect(stats.overdue.isWarning)
-        #expect(stats.overdue.caption == "Por hora · Luz")
+        #expect(stats.overdue.caption == "Luz · Condomínio")
     }
 }

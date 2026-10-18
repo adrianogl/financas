@@ -38,6 +38,7 @@ struct HomeWideView: View {
         .sheet(isPresented: isDetailPresented) {
             if let detail {
                 DetailSheet(route: detail)
+                    .presentationEnabled()
             }
         }
     }
@@ -88,6 +89,7 @@ struct HomeWideView: View {
                 incomeList
                 expenseList
                 BalanceChartCard(summary: summary, chartHeight: HomeConstants.wideChartHeight, showsDayScale: true, title: "Saldo dia a dia")
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

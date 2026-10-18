@@ -2,12 +2,15 @@ import SwiftUI
 
 struct ListDetailLayout<List: View>: View {
     @Environment(AppNavigation.self) private var navigation
+    @Environment(IncomeStore.self) private var incomeStore
+    @Environment(ExpenseStore.self) private var expenseStore
     @State private var width: CGFloat?
     let section: AppTab
     let title: String
     let add: SectionAddAction?
     let routes: [DetailRoute]
     let openRoutes: [DetailRoute]
+    let month: YearMonth
     let isLoaded: Bool
     let emptyText: String?
     @ViewBuilder let list: (ListDetailContext) -> List
@@ -41,10 +44,13 @@ struct ListDetailLayout<List: View>: View {
         .onChange(of: routes) { refresh() }
         .onChange(of: openRoutes) { refresh() }
         .onChange(of: isLoaded) { refresh() }
+        .onChange(of: month) { refresh() }
+        .onChange(of: selectionExists) { refresh() }
         .onChange(of: navigation.pendingSelection) { refresh() }
         .sheet(isPresented: isSheetPresented) {
             if let route = navigation.selection(for: section) {
                 DetailSheet(route: route)
+                    .presentationEnabled()
             }
         }
     }
@@ -138,13 +144,33 @@ struct ListDetailLayout<List: View>: View {
         )
     }
 
+    private var selectionExists: Bool {
+        navigation.selection(for: section).map(exists) ?? false
+    }
+
+    private func exists(_ route: DetailRoute) -> Bool {
+        switch route {
+        case .income(let id, let month):
+            incomeStore.occurrences(in: month).contains { $0.id == id }
+        case .expense(let id, let month):
+            expenseStore.occurrences(in: month, today: incomeStore.today).contains { $0.id == id }
+        }
+    }
+
     private func refresh() {
         guard let presentation else { return }
         if let route = navigation.takeSelection(for: section) {
             navigation.select(route, in: section, presentation: presentation)
         }
         if presentation == .panel {
-            navigation.applyDefaultSelection(routes: routes, openRoutes: openRoutes, isLoaded: isLoaded, in: section)
+            navigation.applyDefaultSelection(
+                routes: routes,
+                openRoutes: openRoutes,
+                month: month,
+                isLoaded: isLoaded,
+                exists: exists,
+                in: section
+            )
         }
     }
 }

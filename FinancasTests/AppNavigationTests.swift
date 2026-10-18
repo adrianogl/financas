@@ -82,7 +82,23 @@ struct AppNavigationTests {
         let nav = AppNavigation(defaults: UserDefaults(suiteName: #function)!)
         let october = YearMonth(year: 2026, month: 10)
         let routes: [DetailRoute] = [.income(id: "a", month: october), .income(id: "b", month: october)]
-        nav.applyDefaultSelection(routes: routes, openRoutes: [routes[1]], in: .incomes)
+        nav.applyDefaultSelection(routes: routes, openRoutes: [routes[1]], month: october, exists: { _ in true }, in: .incomes)
         #expect(nav.selection(for: .incomes) == routes[1])
+    }
+
+    @Test func resetReturnsHomeAndForgetsSelectionsButKeepsSidebar() {
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        let nav = AppNavigation(defaults: defaults)
+        let october = YearMonth(year: 2026, month: 10)
+        nav.isSidebarOpen = false
+        nav.select(.expense(id: "b", month: october), in: .expenses, presentation: .sheet)
+        nav.open(.income(id: "a", month: october))
+        nav.reset()
+        #expect(nav.section == .home)
+        #expect(nav.pendingSelection == nil)
+        #expect(nav.selection(for: .expenses) == nil)
+        #expect(!nav.isSheetPresented(in: .expenses))
+        #expect(!nav.isSidebarOpen)
     }
 }

@@ -2,10 +2,21 @@ import SwiftUI
 
 struct DetailScaffold<Item, Content: View>: View {
     @Environment(\.isDetailPanel) private var isPanel
+    @Environment(\.dismiss) private var dismiss
     let item: Item?
     @ViewBuilder let content: (Item) -> Content
 
     var body: some View {
+        layout
+            .onChange(of: item != nil) { wasFound, isFound in
+                if wasFound, !isFound, !isPanel {
+                    dismiss()
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var layout: some View {
         if isPanel {
             found
                 .padding(DetailConstants.panelPadding)

@@ -5,7 +5,7 @@ struct OverdueView: View {
     @Environment(ExpenseStore.self) private var expenseStore
 
     var body: some View {
-        let routes = shownIncomes.map(incomeRoute) + shownExpenses.map(expenseRoute)
+        let routes = shownIncomes.map(DetailRoute.init) + shownExpenses.map(DetailRoute.init)
 
         NavigationStack {
             ListDetailLayout(
@@ -14,6 +14,7 @@ struct OverdueView: View {
                 add: nil,
                 routes: routes,
                 openRoutes: routes,
+                month: store.selectedMonth,
                 isLoaded: isLoaded,
                 emptyText: nil
             ) { context in
@@ -38,14 +39,6 @@ struct OverdueView: View {
 
     private var shownExpenses: [ExpenseOccurrence] {
         store.loadState == .loaded ? expenses : []
-    }
-
-    private func incomeRoute(_ occurrence: IncomeOccurrence) -> DetailRoute {
-        .income(id: occurrence.id, month: occurrence.month)
-    }
-
-    private func expenseRoute(_ occurrence: ExpenseOccurrence) -> DetailRoute {
-        .expense(id: occurrence.id, month: occurrence.month)
     }
 
     @ViewBuilder
@@ -107,14 +100,14 @@ struct OverdueView: View {
 
         if summary.showsIncomes {
             section("Receitas") {
-                DetailRowList(items: store.overdueOccurrences, context: context, route: incomeRoute) { occurrence, isSelected in
+                DetailRowList(items: store.overdueOccurrences, context: context, route: DetailRoute.init) { occurrence, isSelected in
                     OverdueRow(occurrence: occurrence, today: store.today, isSelected: isSelected)
                 }
             }
         }
         if summary.showsExpenses {
             section("Despesas") {
-                DetailRowList(items: expenses, context: context, route: expenseRoute) { occurrence, isSelected in
+                DetailRowList(items: expenses, context: context, route: DetailRoute.init) { occurrence, isSelected in
                     OverdueExpenseRow(occurrence: occurrence, today: store.today, isSelected: isSelected)
                 }
             }

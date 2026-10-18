@@ -43,8 +43,8 @@ struct ExpenseDetailView: View {
                 if !isPaid {
                     DetailAmountBox(
                         title: "Vencimento",
-                        value: IncomeFormat.shortDate(occurrence.dueDate),
-                        caption: DueText.text(dueDate: occurrence.dueDate, today: today)
+                        value: DueText.shortDate(occurrence.dueDate),
+                        caption: DueText.relative(dueDate: occurrence.dueDate, today: today)
                     )
                 }
             }

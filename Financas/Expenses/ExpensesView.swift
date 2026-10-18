@@ -16,8 +16,9 @@ struct ExpensesView: View {
                 section: .expenses,
                 title: "Despesas",
                 add: SectionAddAction(title: "Nova despesa", action: create),
-                routes: (open + paid).map(route),
-                openRoutes: open.map(route),
+                routes: (open + paid).map(DetailRoute.init),
+                openRoutes: open.map(DetailRoute.init),
+                month: incomeStore.selectedMonth,
                 isLoaded: store.loadState == .loaded,
                 emptyText: hasMonthList ? emptyMonthText : nil
             ) { context in
@@ -44,10 +45,6 @@ struct ExpensesView: View {
 
     private var emptyMonthText: String {
         "Nenhuma despesa prevista para \(IncomeFormat.monthName(incomeStore.selectedMonth))."
-    }
-
-    private func route(_ occurrence: ExpenseOccurrence) -> DetailRoute {
-        .expense(id: occurrence.id, month: occurrence.month)
     }
 
     private func content(_ context: ListDetailContext, open: [ExpenseOccurrence], paid: [ExpenseOccurrence]) -> some View {
@@ -112,7 +109,7 @@ struct ExpensesView: View {
     private func section(_ title: String, occurrences: [ExpenseOccurrence], context: ListDetailContext) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionTitle(title)
-            DetailRowList(items: occurrences, context: context, route: route) { occurrence, isSelected in
+            DetailRowList(items: occurrences, context: context, route: DetailRoute.init) { occurrence, isSelected in
                 ExpenseOccurrenceRow(occurrence: occurrence, today: incomeStore.today, isSelected: isSelected)
                     .contextMenu {
                         Button("Editar despesa", systemImage: "pencil") {

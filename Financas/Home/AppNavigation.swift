@@ -29,6 +29,12 @@ final class AppNavigation {
         pendingSelection = route
     }
 
+    func reset() {
+        section = .home
+        pendingSelection = nil
+        listDetail = [:]
+    }
+
     func takeSelection(for section: AppTab) -> DetailRoute? {
         guard let route = pendingSelection, route.section == section else { return nil }
         pendingSelection = nil
@@ -80,8 +86,21 @@ final class AppNavigation {
         listDetail[section, default: ListDetailState()].select(route, presentation: presentation)
     }
 
-    func applyDefaultSelection(routes: [DetailRoute], openRoutes: [DetailRoute], isLoaded: Bool = true, in section: AppTab) {
-        listDetail[section, default: ListDetailState()].applyDefault(routes: routes, openRoutes: openRoutes, isLoaded: isLoaded)
+    func applyDefaultSelection(
+        routes: [DetailRoute],
+        openRoutes: [DetailRoute],
+        month: YearMonth,
+        isLoaded: Bool = true,
+        exists: (DetailRoute) -> Bool,
+        in section: AppTab
+    ) {
+        listDetail[section, default: ListDetailState()].applyDefault(
+            routes: routes,
+            openRoutes: openRoutes,
+            month: month,
+            isLoaded: isLoaded,
+            exists: exists
+        )
     }
 
     func presentationChanged(from old: DetailPresentation?, to new: DetailPresentation, in section: AppTab) {

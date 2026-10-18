@@ -23,7 +23,7 @@ struct HomeStats: Equatable {
             overdue = HomeStat(
                 title: "Atrasadas",
                 value: "\(count)",
-                caption: HomeStatText.overdueNames(overdueIncomes.map(\.income.name) + overdueExpenses.map(\.expense.name)),
+                caption: HomeStatText.overdueNames(Self.overdueNames(incomes: overdueIncomes, expenses: overdueExpenses)),
                 badge: nil,
                 isWarning: count > 0
             )
@@ -45,6 +45,18 @@ struct HomeStats: Equatable {
         } else {
             payable = Self.loading("Falta pagar")
         }
+    }
+
+    private static func overdueNames(incomes: [IncomeOccurrence], expenses: [ExpenseOccurrence]) -> [String] {
+        let entries = incomes.map { (dueDate: $0.dueDate, name: $0.income.name) }
+            + expenses.map { (dueDate: $0.dueDate, name: $0.expense.name) }
+        return entries
+            .sorted { lhs, rhs in
+                lhs.dueDate != rhs.dueDate
+                    ? lhs.dueDate < rhs.dueDate
+                    : lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+            }
+            .map(\.name)
     }
 
     private static func remaining(_ title: String, remaining: Decimal, expected: Decimal, overdueCount: Int) -> HomeStat {

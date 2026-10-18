@@ -15,12 +15,14 @@ struct IncomeReceiptFlow: ViewModifier {
                         income: store.snapshot.incomes.first { $0.id == draft.incomeID },
                         today: store.today
                     )
+                    .presentationEnabled()
                 }
             }
             .sheet(item: $receiving, onDismiss: openPendingEdit) { occurrence in
                 ReceiptSheet(occurrence: occurrence, today: store.today) { income in
                     pendingEdit = income
                 }
+                .presentationEnabled()
             }
     }
 

@@ -38,7 +38,7 @@ struct HomeIncomeListCard: View {
     private func row(_ occurrence: IncomeOccurrence) -> some View {
         HStack(spacing: 12) {
             Button {
-                open(.income(id: occurrence.id, month: occurrence.month))
+                open(DetailRoute(occurrence))
             } label: {
                 OccurrenceRow(occurrence: occurrence, isSelected: false)
             }

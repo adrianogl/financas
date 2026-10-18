@@ -2,6 +2,7 @@ struct ListDetailState: Equatable {
     private(set) var selection: DetailRoute?
     private(set) var isSelectedByUser = false
     private(set) var isSheetPresented = false
+    private var month: YearMonth?
 
     mutating func select(_ route: DetailRoute, presentation: DetailPresentation) {
         selection = route
@@ -9,8 +10,11 @@ struct ListDetailState: Equatable {
         isSheetPresented = presentation == .sheet
     }
 
-    mutating func applyDefault(routes: [DetailRoute], openRoutes: [DetailRoute], isLoaded: Bool = true) {
+    mutating func applyDefault(routes: [DetailRoute], openRoutes: [DetailRoute], month: YearMonth, isLoaded: Bool = true, exists: (DetailRoute) -> Bool) {
         guard isLoaded else { return }
+        let isSameMonth = month == self.month
+        self.month = month
+        if isSameMonth, isSelectedByUser, let selection, exists(selection) { return }
         let id = DetailSelection.resolve(
             current: selection?.occurrenceID,
             ids: routes.map(\.occurrenceID),

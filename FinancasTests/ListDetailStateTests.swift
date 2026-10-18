@@ -3,6 +3,9 @@ import Testing
 
 struct ListDetailStateTests {
     private let october = YearMonth(year: 2026, month: 10)
+    private let november = YearMonth(year: 2026, month: 11)
+    private let present: (DetailRoute) -> Bool = { _ in true }
+    private let missing: (DetailRoute) -> Bool = { _ in false }
 
     private func income(_ id: String) -> DetailRoute {
         .income(id: id, month: october)
@@ -10,7 +13,7 @@ struct ListDetailStateTests {
 
     @Test func defaultPicksFirstOpenAndIsNotByUser() {
         var state = ListDetailState()
-        state.applyDefault(routes: [income("a"), income("b")], openRoutes: [income("b")])
+        state.applyDefault(routes: [income("a"), income("b")], openRoutes: [income("b")], month: october, exists: present)
         #expect(state.selection == income("b"))
         #expect(!state.isSelectedByUser)
     }
@@ -18,7 +21,7 @@ struct ListDetailStateTests {
     @Test func defaultKeepsUserSelectionWhileItStaysInTheList() {
         var state = ListDetailState()
         state.select(income("a"), presentation: .panel)
-        state.applyDefault(routes: [income("a"), income("b")], openRoutes: [income("b")])
+        state.applyDefault(routes: [income("a"), income("b")], openRoutes: [income("b")], month: october, exists: present)
         #expect(state.selection == income("a"))
         #expect(state.isSelectedByUser)
     }
@@ -26,7 +29,8 @@ struct ListDetailStateTests {
     @Test func defaultReplacesSelectionMissingFromTheNewMonth() {
         var state = ListDetailState()
         state.select(income("a"), presentation: .panel)
-        state.applyDefault(routes: [income("c")], openRoutes: [])
+        state.applyDefault(routes: [income("a")], openRoutes: [], month: october, exists: present)
+        state.applyDefault(routes: [income("c")], openRoutes: [], month: november, exists: present)
         #expect(state.selection == income("c"))
         #expect(!state.isSelectedByUser)
     }
@@ -34,7 +38,7 @@ struct ListDetailStateTests {
     @Test func emptyMonthClearsSelection() {
         var state = ListDetailState()
         state.select(income("a"), presentation: .panel)
-        state.applyDefault(routes: [], openRoutes: [])
+        state.applyDefault(routes: [], openRoutes: [], month: october, exists: present)
         #expect(state.selection == nil)
     }
 
@@ -61,7 +65,7 @@ struct ListDetailStateTests {
 
     @Test func losingPanelKeepsAutomaticSelectionInTheList() {
         var state = ListDetailState()
-        state.applyDefault(routes: [income("a")], openRoutes: [income("a")])
+        state.applyDefault(routes: [income("a")], openRoutes: [income("a")], month: october, exists: present)
         state.presentationChanged(from: .panel, to: .sheet, isActive: true)
         #expect(!state.isSheetPresented)
     }
@@ -105,10 +109,10 @@ struct ListDetailStateTests {
     @Test func emptyRoutesWhileLoadingDoNotClearSelection() {
         var state = ListDetailState()
         state.select(income("a"), presentation: .panel)
-        state.applyDefault(routes: [], openRoutes: [], isLoaded: false)
+        state.applyDefault(routes: [], openRoutes: [], month: october, isLoaded: false, exists: present)
         #expect(state.selection == income("a"))
         #expect(state.isSelectedByUser)
-        state.applyDefault(routes: [income("b"), income("a")], openRoutes: [income("b")])
+        state.applyDefault(routes: [income("b"), income("a")], openRoutes: [income("b")], month: october, exists: present)
         #expect(state.selection == income("a"))
     }
 
@@ -125,5 +129,49 @@ struct ListDetailStateTests {
         state.select(income("a"), presentation: .panel)
         state.presentationChanged(from: nil, to: .sheet, isActive: true)
         #expect(!state.isSheetPresented)
+    }
+
+    @Test func paidUserSelectionStaysWhenItLeavesTheList() {
+        var state = ListDetailState()
+        state.select(income("carried"), presentation: .panel)
+        state.applyDefault(routes: [income("carried"), income("b")], openRoutes: [income("carried"), income("b")], month: october, exists: present)
+        state.applyDefault(routes: [income("b")], openRoutes: [income("b")], month: october, exists: present)
+        #expect(state.selection == income("carried"))
+        #expect(state.isSelectedByUser)
+    }
+
+    @Test func paidUserSelectionStaysAcrossReload() {
+        var state = ListDetailState()
+        state.select(income("carried"), presentation: .panel)
+        state.applyDefault(routes: [income("carried"), income("b")], openRoutes: [income("carried"), income("b")], month: october, exists: present)
+        state.applyDefault(routes: [], openRoutes: [], month: october, isLoaded: false, exists: present)
+        state.applyDefault(routes: [income("b")], openRoutes: [income("b")], month: october, exists: present)
+        #expect(state.selection == income("carried"))
+    }
+
+    @Test func monthChangeResolvesAgainAfterKeepingPaidSelection() {
+        var state = ListDetailState()
+        state.select(income("carried"), presentation: .panel)
+        state.applyDefault(routes: [income("carried"), income("b")], openRoutes: [income("carried"), income("b")], month: october, exists: present)
+        state.applyDefault(routes: [income("b")], openRoutes: [income("b")], month: october, exists: present)
+        state.applyDefault(routes: [income("c")], openRoutes: [income("c")], month: november, exists: present)
+        #expect(state.selection == income("c"))
+        #expect(!state.isSelectedByUser)
+    }
+
+    @Test func deletedUserSelectionFallsBackToDefault() {
+        var state = ListDetailState()
+        state.select(income("a"), presentation: .panel)
+        state.applyDefault(routes: [income("a"), income("b")], openRoutes: [income("a"), income("b")], month: october, exists: present)
+        state.applyDefault(routes: [income("b")], openRoutes: [income("b")], month: october, exists: missing)
+        #expect(state.selection == income("b"))
+        #expect(!state.isSelectedByUser)
+    }
+
+    @Test func automaticSelectionLeavingTheListFallsBackToDefault() {
+        var state = ListDetailState()
+        state.applyDefault(routes: [income("a"), income("b")], openRoutes: [income("a"), income("b")], month: october, exists: present)
+        state.applyDefault(routes: [income("b")], openRoutes: [income("b")], month: october, exists: present)
+        #expect(state.selection == income("b"))
     }
 }

@@ -9,7 +9,7 @@ struct FinancasApp: App {
     @State private var expenseStore: ExpenseStore
     @State private var avatarStore: AvatarStore
     @State private var reminders: ReminderScheduler
-    @State private var navigation = AppNavigation()
+    @State private var navigation: AppNavigation
 
     init() {
         let lock = LockManager(authenticator: BiometricAuthenticator(), pinStore: KeychainPINStore())
@@ -24,11 +24,13 @@ struct FinancasApp: App {
         let incomes = IncomeStore(service: SupabaseIncomeService(client: client))
         let expenses = ExpenseStore(service: SupabaseExpenseService(client: client))
         let scheduler = ReminderScheduler(center: SystemReminderCenter())
+        let navigation = AppNavigation()
 
         _lockManager = State(initialValue: lock)
         _incomeStore = State(initialValue: incomes)
         _expenseStore = State(initialValue: expenses)
         _reminders = State(initialValue: scheduler)
+        _navigation = State(initialValue: navigation)
         let account = AccountManager(
             service: SupabaseAccountService(client: client),
             hasDevicePIN: { lock.hasPIN },
@@ -37,6 +39,7 @@ struct FinancasApp: App {
                 lock.resetForSignOut()
                 incomes.reset()
                 expenses.reset()
+                navigation.reset()
                 Task { await scheduler.reset() }
             }
         )
