@@ -11,15 +11,18 @@ struct HomeMonthSummary: Equatable {
         let receipts = snapshot.receipts.filter { incomes[$0.incomeID] != nil }
         let inMonth = receipts.filter { $0.receivedOn.yearMonth == month }
         let names = Dictionary(uniqueKeysWithValues: expenses.expenses.map { ($0.id, $0.name) })
+        let owners = Dictionary(uniqueKeysWithValues: expenses.expenses.map { ($0.id, $0) })
         let payments = expenses.bills.compactMap { bill -> (bill: ExpenseBill, name: String, paidOn: CalendarDay, amount: Decimal)? in
-            guard let name = names[bill.expenseID], let paidOn = bill.paidOn, let amount = bill.paidAmount, paidOn.yearMonth == month else { return nil }
-            return (bill, name, paidOn, amount)
+            guard let expense = owners[bill.expenseID], let paidOn = bill.paidOn, let amount = bill.paidAmount, paidOn.yearMonth == month,
+                  ExpensePartSchedule.activeParts(of: expense, in: bill.month, snapshot: expenses).isEmpty else { return nil }
+            return (bill, expense.name, paidOn, amount)
         }
 
         let parts = Dictionary(uniqueKeysWithValues: expenses.parts.map { ($0.id, $0) })
         let partPayments = expenses.partBills.compactMap { bill -> (bill: ExpensePartBill, title: String, paidOn: CalendarDay, amount: Decimal)? in
             guard let part = parts[bill.partID], let name = names[part.expenseID],
-                  let paidOn = bill.paidOn, let amount = bill.paidAmount, paidOn.yearMonth == month else { return nil }
+                  let paidOn = bill.paidOn, let amount = bill.paidAmount, paidOn.yearMonth == month,
+                  ExpensePartSchedule.term(for: part, in: bill.month, snapshot: expenses)?.isActive == true else { return nil }
             return (bill, "\(name) · \(part.name)", paidOn, amount)
         }
 

@@ -50,6 +50,7 @@ create index expense_parts_user_id_idx on public.expense_parts (user_id);
 create index expense_part_terms_user_id_idx on public.expense_part_terms (user_id);
 create index expense_part_bills_user_id_idx on public.expense_part_bills (user_id);
 create index expense_entries_user_id_idx on public.expense_entries (user_id);
+create index expense_entries_expense_id_idx on public.expense_entries (expense_id);
 
 alter table public.expense_parts enable row level security;
 alter table public.expense_part_terms enable row level security;

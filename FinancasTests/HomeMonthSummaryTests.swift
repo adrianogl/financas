@@ -141,6 +141,10 @@ struct HomeMonthSummaryTests {
             terms: [ExpenseSamples.condominioTerm],
             bills: [],
             parts: [taxa, agua],
+            partTerms: [
+                ExpenseSamples.partTerm(taxa, from: S.month(2026, 9), amount: 820, isFixed: true),
+                ExpenseSamples.partTerm(agua, from: S.month(2026, 9), amount: 85)
+            ],
             partBills: [
                 ExpenseSamples.partBill(agua, S.month(2026, 10), paid: 112, on: S.day(2026, 10, 14)),
                 ExpenseSamples.partBill(taxa, S.month(2026, 10), bill: 820, due: S.day(2026, 10, 13)),
@@ -153,5 +157,28 @@ struct HomeMonthSummaryTests {
         #expect(result.entries.first?.date == S.day(2026, 10, 14))
         #expect(result.entries.first?.amount == 112)
         #expect(result.balance == -112)
+    }
+
+    @Test func paymentSourceFollowsActiveParts() {
+        let condominio = Expense(id: ExpenseSamples.condominio.id, name: "Condomínio", startMonth: S.month(2026, 9))
+        let taxa = ExpenseSamples.part(condominio, "Taxa", position: 0)
+        let expenses = ExpenseSnapshot(
+            expenses: [condominio],
+            terms: [ExpenseSamples.term(condominio, from: S.month(2026, 9), day: 10, estimated: 820)],
+            bills: [
+                ExpenseSamples.paid(condominio, S.month(2026, 9), 800, on: S.day(2026, 10, 2)),
+                ExpenseSamples.paid(condominio, S.month(2026, 10), 900, on: S.day(2026, 10, 5))
+            ],
+            parts: [taxa],
+            partTerms: [ExpenseSamples.partTerm(taxa, from: S.month(2026, 10), amount: 820, isFixed: true)],
+            partBills: [
+                ExpenseSamples.partBill(taxa, S.month(2026, 9), paid: 700, on: S.day(2026, 10, 3)),
+                ExpenseSamples.partBill(taxa, S.month(2026, 10), paid: 820, on: S.day(2026, 10, 9))
+            ]
+        )
+        let result = summary(S.month(2026, 10), .empty, expenses: expenses)
+        #expect(result.entries.map(\.amount) == [820, 800])
+        #expect(result.entries.map(\.title) == ["Condomínio · Taxa", "Condomínio"])
+        #expect(result.balance == -1620)
     }
 }

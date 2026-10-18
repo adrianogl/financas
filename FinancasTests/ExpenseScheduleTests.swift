@@ -241,4 +241,61 @@ struct ExpenseScheduleTests {
         let settled = partial + [S.partBill(agua, september, paid: 85)]
         #expect(ExpenseSchedule.carried(into: october, snapshot: partsSnapshot(settled, expense: condominio), today: S.today).isEmpty)
     }
+
+    private func fixedPartsSnapshot(expenseIsFixed: Bool, partsFixed: Bool) -> (Expense, ExpenseSnapshot) {
+        var condominio = S.condominio
+        condominio.isFixed = expenseIsFixed
+        let snapshot = ExpenseSnapshot(
+            expenses: [condominio],
+            terms: [S.condominioTerm],
+            bills: [],
+            parts: [taxa, agua],
+            partTerms: [
+                S.partTerm(taxa, from: S.month(2026, 10), amount: 820, isFixed: true),
+                S.partTerm(agua, from: S.month(2026, 10), amount: 85, isFixed: partsFixed)
+            ]
+        )
+        return (condominio, snapshot)
+    }
+
+    @Test func badgeWithPartsIgnoresExpenseFixed() throws {
+        let early = S.day(2026, 10, 1)
+        let october = S.month(2026, 10)
+
+        let (fixedExpense, variableParts) = fixedPartsSnapshot(expenseIsFixed: true, partsFixed: false)
+        #expect(try #require(occurrence(fixedExpense, october, variableParts, today: early)).badge == .estimated)
+
+        let (variableExpense, fixedParts) = fixedPartsSnapshot(expenseIsFixed: false, partsFixed: true)
+        #expect(try #require(occurrence(variableExpense, october, fixedParts, today: early)).badge == nil)
+
+        var launched = variableParts
+        launched.partBills = [S.partBill(agua, october, bill: 90, due: S.day(2026, 10, 15))]
+        #expect(try #require(occurrence(fixedExpense, october, launched, today: early)).badge == .billLaunched)
+    }
+
+    @Test func badgeKeepsStatusPriority() throws {
+        let october = S.month(2026, 10)
+        let fee = S.partBill(taxa, october, paid: 820, on: S.day(2026, 10, 9))
+        #expect(try #require(occurrence(S.condominio, october, partsSnapshot([fee]))).badge == .overdue)
+        #expect(try #require(occurrence(S.condominio, october, partsSnapshot([fee]), today: S.day(2026, 10, 10))).badge == .partiallyPaid)
+        let all = [fee, S.partBill(agua, october, paid: 85), S.partBill(gas, october, paid: 80)]
+        #expect(try #require(occurrence(S.condominio, october, partsSnapshot(all))).badge == nil)
+    }
+
+    @Test func badgeWithoutPartsUsesExpenseFixed() throws {
+        var internet = S.internet
+        #expect(try #require(occurrence(internet, S.month(2026, 10), snapshot(expenses: [internet]))).badge == .estimated)
+        internet.isFixed = true
+        #expect(try #require(occurrence(internet, S.month(2026, 10), snapshot(expenses: [internet]))).badge == nil)
+        let launched = snapshot([S.bill(S.internet, S.month(2026, 10), 190, due: S.day(2026, 10, 26))])
+        #expect(try #require(occurrence(S.internet, S.month(2026, 10), launched)).badge == .billLaunched)
+    }
+
+    @Test func amountDueShowsRemainingWhenPartiallyPaid() throws {
+        let october = S.month(2026, 10)
+        let fee = S.partBill(taxa, october, paid: 820, on: S.day(2026, 10, 9))
+        #expect(try #require(occurrence(S.condominio, october, partsSnapshot([fee]))).amountDue == 165)
+        #expect(try #require(occurrence(S.condominio, october, partsSnapshot([]))).amountDue == 985)
+        #expect(try #require(occurrence(S.internet, october, snapshot())).amountDue == 180)
+    }
 }

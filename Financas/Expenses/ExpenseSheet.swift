@@ -97,7 +97,7 @@ struct ExpenseSheet: View {
             Text("Vence \(IncomeFormat.shortDate(payable?.dueDate ?? occurrence.dueDate))")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text(IncomeFormat.currency(payable?.amount ?? occurrence.amount))
+            Text(IncomeFormat.currency(payable?.amount ?? occurrence.amountDue))
                 .font(.system(size: 32, weight: .semibold))
                 .monospacedDigit()
             Text(payable?.part.map { ExpenseFormat.origin($0) } ?? ExpenseFormat.origin(occurrence))

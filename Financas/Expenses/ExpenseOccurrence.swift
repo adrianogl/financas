@@ -33,6 +33,28 @@ struct ExpenseOccurrence: Identifiable, Hashable {
         return bill?.billAmount != nil
     }
 
+    var amountDue: Decimal {
+        isPartiallyPaid ? remaining : amount
+    }
+
+    var isFixed: Bool {
+        parts.isEmpty ? expense.isFixed : parts.allSatisfy(\.isFixed)
+    }
+
+    var badge: ExpenseOccurrenceBadge? {
+        switch status {
+        case .overdue:
+            return .overdue
+        case .pending where isPartiallyPaid:
+            return .partiallyPaid
+        case .pending:
+            if isFixed { return nil }
+            return hasBill ? .billLaunched : .estimated
+        case .paid:
+            return nil
+        }
+    }
+
     var id: String {
         "\(expense.id)-\(month.year)-\(month.month)"
     }

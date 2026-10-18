@@ -30,20 +30,16 @@ struct ExpenseOccurrenceRow: View {
 
     @ViewBuilder
     private var badge: some View {
-        switch occurrence.status {
+        switch occurrence.badge {
         case .overdue:
             OverdueBadge(text: "atrasada")
-        case .pending where occurrence.isPartiallyPaid:
+        case .partiallyPaid:
             ExpenseBadge(text: "parcialmente paga", tint: ExpenseBadgeConstants.billTint)
-        case .pending:
-            if occurrence.expense.isFixed {
-                EmptyView()
-            } else if occurrence.hasBill {
-                ExpenseBadge(text: "conta lançada", tint: ExpenseBadgeConstants.billTint)
-            } else {
-                ExpenseBadge(text: "estimada", tint: ExpenseBadgeConstants.estimateTint)
-            }
-        case .paid:
+        case .billLaunched:
+            ExpenseBadge(text: "conta lançada", tint: ExpenseBadgeConstants.billTint)
+        case .estimated:
+            ExpenseBadge(text: "estimada", tint: ExpenseBadgeConstants.estimateTint)
+        case nil:
             EmptyView()
         }
     }
