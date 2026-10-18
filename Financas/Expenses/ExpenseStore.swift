@@ -180,6 +180,28 @@ final class ExpenseStore {
         await persist(draft.paymentRemoved(for: occurrence), replacing: occurrence)
     }
 
+    func saveEntry(_ draft: ExpenseEntryDraft) async -> Bool {
+        if let message = draft.validationMessage {
+            errorMessage = message
+            return false
+        }
+        let entry = draft.build()
+        return await perform { [service] () async throws(IncomeError) in
+            try await service.save(entry)
+        } onSuccess: {
+            self.snapshot.entries.removeAll { $0.id == entry.id }
+            self.snapshot.entries.append(entry)
+        }
+    }
+
+    func deleteEntry(_ entry: ExpenseEntry) async -> Bool {
+        await perform { [service] () async throws(IncomeError) in
+            try await service.deleteEntry(id: entry.id)
+        } onSuccess: {
+            self.snapshot.entries.removeAll { $0.id == entry.id }
+        }
+    }
+
     private var sortedExpenses: [Expense] {
         snapshot.expenses.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }

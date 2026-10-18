@@ -113,4 +113,97 @@ struct ExpenseBillDraftTests {
         let billTarget = occurrence(S.luz, bills: [bill])
         #expect(draft.billRemoved(for: billTarget) == nil)
     }
+
+    private let taxa = S.part(S.condominio, "Taxa", position: 0)
+    private let agua = S.part(S.condominio, "Água", position: 1)
+    private let gas = S.part(S.condominio, "Gás", position: 2)
+
+    private func partsSnapshot(taxaFixed: Bool = true, aguaFixed: Bool = false, gasFixed: Bool = false, bills: [ExpenseBill] = []) -> ExpenseSnapshot {
+        ExpenseSnapshot(
+            expenses: [S.condominio],
+            terms: [S.condominioTerm],
+            bills: bills,
+            parts: [taxa, agua, gas],
+            partTerms: [
+                S.partTerm(taxa, from: S.month(2026, 7), amount: 820, isFixed: taxaFixed),
+                S.partTerm(agua, from: S.month(2026, 7), amount: 110, isFixed: aguaFixed),
+                S.partTerm(gas, from: S.month(2026, 7), amount: 80, isFixed: gasFixed)
+            ]
+        )
+    }
+
+    private func partsOccurrence(_ snapshot: ExpenseSnapshot) -> ExpenseOccurrence {
+        ExpenseSchedule.occurrence(of: S.condominio, in: S.month(2026, 10), snapshot: snapshot, today: S.today)!
+    }
+
+    @Test func paymentWithPartsSumsParts() {
+        let target = partsOccurrence(partsSnapshot())
+        let draft = ExpenseBillDraft(occurrence: target, today: S.today, mode: .payment)
+
+        let saved = draft.paymentSaved(for: target)
+
+        #expect(saved.paidParts == [taxa.id: 820, agua.id: 110, gas.id: 80])
+        #expect(saved.paidAmount == 1010)
+    }
+
+    @Test func billWithPartsKeepsPartsAndTotal() {
+        let target = partsOccurrence(partsSnapshot())
+        var draft = ExpenseBillDraft(occurrence: target, today: S.today, mode: .bill)
+        draft.parts[1].amount = 130
+
+        let saved = draft.billSaved(for: target)
+
+        #expect(saved.billParts == [taxa.id: 820, agua.id: 130, gas.id: 80])
+        #expect(saved.billAmount == 1030)
+        #expect(draft.partsTotal == 1030)
+    }
+
+    @Test func partsStartFromBillWhenPaying() {
+        let registered = ExpenseBill(
+            id: UUID(), expenseID: S.condominio.id, month: S.month(2026, 10),
+            billAmount: 1010, billDueDate: S.day(2026, 10, 20),
+            billParts: [taxa.id: 820, agua.id: 110, gas.id: 80]
+        )
+        let draft = ExpenseBillDraft(occurrence: partsOccurrence(partsSnapshot(bills: [registered])), today: S.today)
+
+        #expect(draft.mode == .payment)
+        #expect(draft.parts.first { $0.id == agua.id }?.amount == 110)
+    }
+
+    @Test func partsStartFromPaidWhenEditing() {
+        let paid = ExpenseBill(
+            id: UUID(), expenseID: S.condominio.id, month: S.month(2026, 10),
+            billAmount: 1010, paidOn: S.day(2026, 10, 14), paidAmount: 1020,
+            billParts: [taxa.id: 820, agua.id: 110, gas.id: 80],
+            paidParts: [taxa.id: 820, agua.id: 120, gas.id: 80]
+        )
+        let draft = ExpenseBillDraft(occurrence: partsOccurrence(partsSnapshot(bills: [paid])), today: S.today)
+
+        #expect(draft.parts.first { $0.id == agua.id }?.amount == 120)
+    }
+
+    @Test func allFixedPartsOpenPayment() {
+        let fixed = ExpenseBillDraft(occurrence: partsOccurrence(partsSnapshot(aguaFixed: true, gasFixed: true)), today: S.today)
+        let varying = ExpenseBillDraft(occurrence: partsOccurrence(partsSnapshot()), today: S.today)
+
+        #expect(fixed.mode == .payment)
+        #expect(varying.mode == .bill)
+    }
+
+    @Test func removingPaymentClearsPaidParts() {
+        let both = ExpenseBill(
+            id: UUID(), expenseID: S.condominio.id, month: S.month(2026, 10),
+            billAmount: 1010, billDueDate: S.day(2026, 10, 20), paidOn: S.day(2026, 10, 14), paidAmount: 1010,
+            billParts: [taxa.id: 820, agua.id: 110, gas.id: 80],
+            paidParts: [taxa.id: 820, agua.id: 110, gas.id: 80]
+        )
+        let target = partsOccurrence(partsSnapshot(bills: [both]))
+        let draft = ExpenseBillDraft(occurrence: target, today: S.today)
+
+        let remaining = draft.paymentRemoved(for: target)
+
+        #expect(remaining?.paidParts == nil)
+        #expect(remaining?.billParts == both.billParts)
+        #expect(draft.billRemoved(for: target)?.billParts == nil)
+    }
 }

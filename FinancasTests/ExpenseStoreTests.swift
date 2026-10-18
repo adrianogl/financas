@@ -249,6 +249,52 @@ struct ExpenseStoreTests {
         #expect(store.snapshot.entries.isEmpty)
     }
 
+    @Test func addEditAndDeleteEntry() async throws {
+        let abastecimento = Expense(id: UUID(), name: "Abastecimento", startMonth: S.month(2026, 8), kind: .spending)
+        var snapshot = S.snapshot
+        snapshot.expenses.append(abastecimento)
+        let (store, service) = await makeStore(snapshot)
+        var draft = ExpenseEntryDraft(expense: abastecimento, month: S.month(2026, 10), today: S.today)
+        draft.amount = 60
+
+        #expect(await store.saveEntry(draft))
+        #expect(service.calls.last == "saveEntry")
+        #expect(store.snapshot.entries.count == 1)
+
+        var edit = ExpenseEntryDraft(entry: store.snapshot.entries[0], expense: abastecimento, today: S.today)
+        edit.amount = 75
+        #expect(await store.saveEntry(edit))
+        #expect(store.snapshot.entries.count == 1)
+        #expect(store.snapshot.entries[0].amount == 75)
+
+        let entry = try #require(store.snapshot.entries.first)
+        #expect(await store.deleteEntry(entry))
+        #expect(service.calls.last == "deleteEntry")
+        #expect(store.snapshot.entries.isEmpty)
+    }
+
+    @Test func entryNetworkErrorKeepsSnapshot() async {
+        let abastecimento = Expense(id: UUID(), name: "Abastecimento", startMonth: S.month(2026, 8), kind: .spending)
+        let entry = ExpenseEntry(id: UUID(), expenseID: abastecimento.id, spentOn: S.day(2026, 10, 1), amount: 20)
+        var snapshot = S.snapshot
+        snapshot.expenses.append(abastecimento)
+        snapshot.entries = [entry]
+        let (store, service) = await makeStore(snapshot)
+        let before = store.snapshot
+        var draft = ExpenseEntryDraft(expense: abastecimento, month: S.month(2026, 10), today: S.today)
+        draft.amount = 60
+
+        service.nextError = .network
+        #expect(await store.saveEntry(draft) == false)
+        #expect(store.snapshot == before)
+        #expect(store.errorMessage == IncomeError.network.message)
+
+        service.nextError = .network
+        #expect(await store.deleteEntry(entry) == false)
+        #expect(store.snapshot == before)
+        #expect(store.errorMessage != nil)
+    }
+
     @Test func dueItemsNilBeforeLoad() async {
         let store = ExpenseStore(service: FakeExpenseService())
         #expect(store.dueItems(today: S.today) == nil)
