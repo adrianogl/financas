@@ -106,28 +106,44 @@ struct ExpenseSheet: View {
         .frame(maxWidth: .infinity)
     }
 
+    @ViewBuilder
     private var billFields: some View {
+        if hasParts {
+            ExpenseBillPartsSection(draft: $draft)
+        }
         Section {
-            LabeledContent("Valor da conta") {
-                TextField("Valor da conta", value: $draft.billAmount, format: .currency(code: IncomeConstants.currencyCode))
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .foregroundStyle(Theme.accent)
+            if !hasParts {
+                LabeledContent("Valor da conta") {
+                    TextField("Valor da conta", value: $draft.billAmount, format: .currency(code: IncomeConstants.currencyCode))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundStyle(Theme.accent)
+                }
             }
             DatePicker("Vencimento", selection: billDueDate, displayedComponents: .date)
         }
     }
 
+    @ViewBuilder
     private var paymentFields: some View {
+        if hasParts {
+            ExpenseBillPartsSection(draft: $draft)
+        }
         Section {
-            LabeledContent("Valor pago") {
-                TextField("Valor pago", value: $draft.paidAmount, format: .currency(code: IncomeConstants.currencyCode))
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .foregroundStyle(Theme.accent)
+            if !hasParts {
+                LabeledContent("Valor pago") {
+                    TextField("Valor pago", value: $draft.paidAmount, format: .currency(code: IncomeConstants.currencyCode))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundStyle(Theme.accent)
+                }
             }
             DatePicker("Data do pagamento", selection: paidOn, in: ...incomeStore.today.date(), displayedComponents: .date)
         }
+    }
+
+    private var hasParts: Bool {
+        !draft.parts.isEmpty
     }
 
     private var primaryTitle: String {

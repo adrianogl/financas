@@ -6,10 +6,21 @@ struct ExpenseBillDraft: Equatable {
     var billDueDate: CalendarDay
     var paidAmount: Decimal
     var paidOn: CalendarDay
-    var parts: [ExpenseBillPartDraft]
+    var billPartValues: [ExpenseBillPartDraft]
+    var paymentPartValues: [ExpenseBillPartDraft]
+
+    var parts: [ExpenseBillPartDraft] {
+        get { mode == .bill ? billPartValues : paymentPartValues }
+        set {
+            switch mode {
+            case .bill: billPartValues = newValue
+            case .payment: paymentPartValues = newValue
+            }
+        }
+    }
 
     var partsTotal: Decimal {
-        parts.map(\.amount).reduce(0, +)
+        total(of: parts)
     }
 
     init(occurrence: ExpenseOccurrence, today: CalendarDay, mode: ExpenseSheetMode? = nil) {
@@ -18,7 +29,14 @@ struct ExpenseBillDraft: Equatable {
         let allFixed = hasParts && occurrence.parts.allSatisfy(\.isFixed)
         let isFixedExpense = hasParts ? allFixed : occurrence.expense.isFixed
         self.mode = mode ?? (occurrence.hasBill || occurrence.status == .paid || isFixedExpense ? .payment : .bill)
-        parts = occurrence.parts.map { value in
+        billPartValues = occurrence.parts.map { value in
+            ExpenseBillPartDraft(
+                id: value.part.id,
+                name: value.part.name,
+                amount: bill?.billParts?[value.part.id] ?? value.amount
+            )
+        }
+        paymentPartValues = occurrence.parts.map { value in
             ExpenseBillPartDraft(
                 id: value.part.id,
                 name: value.part.name,
@@ -33,17 +51,17 @@ struct ExpenseBillDraft: Equatable {
 
     func billSaved(for occurrence: ExpenseOccurrence) -> ExpenseBill {
         var bill = base(for: occurrence)
-        bill.billAmount = parts.isEmpty ? billAmount : partsTotal
+        bill.billAmount = billPartValues.isEmpty ? billAmount : total(of: billPartValues)
         bill.billDueDate = billDueDate
-        if !parts.isEmpty { bill.billParts = amountsByPart }
+        if !billPartValues.isEmpty { bill.billParts = amountsByPart(billPartValues) }
         return bill
     }
 
     func paymentSaved(for occurrence: ExpenseOccurrence) -> ExpenseBill {
         var bill = base(for: occurrence)
-        bill.paidAmount = parts.isEmpty ? paidAmount : partsTotal
+        bill.paidAmount = paymentPartValues.isEmpty ? paidAmount : total(of: paymentPartValues)
         bill.paidOn = paidOn
-        if !parts.isEmpty { bill.paidParts = amountsByPart }
+        if !paymentPartValues.isEmpty { bill.paidParts = amountsByPart(paymentPartValues) }
         return bill
     }
 
@@ -63,8 +81,12 @@ struct ExpenseBillDraft: Equatable {
         return bill.isEmpty ? nil : bill
     }
 
-    private var amountsByPart: [UUID: Decimal] {
-        Dictionary(uniqueKeysWithValues: parts.map { ($0.id, $0.amount) })
+    private func total(of values: [ExpenseBillPartDraft]) -> Decimal {
+        values.map(\.amount).reduce(0, +)
+    }
+
+    private func amountsByPart(_ values: [ExpenseBillPartDraft]) -> [UUID: Decimal] {
+        Dictionary(uniqueKeysWithValues: values.map { ($0.id, $0.amount) })
     }
 
     private func base(for occurrence: ExpenseOccurrence) -> ExpenseBill {

@@ -162,12 +162,33 @@ struct ExpenseBillDraftTests {
         let registered = ExpenseBill(
             id: UUID(), expenseID: S.condominio.id, month: S.month(2026, 10),
             billAmount: 1010, billDueDate: S.day(2026, 10, 20),
-            billParts: [taxa.id: 820, agua.id: 110, gas.id: 80]
+            billParts: [taxa.id: 820, agua.id: 130, gas.id: 80]
         )
         let draft = ExpenseBillDraft(occurrence: partsOccurrence(partsSnapshot(bills: [registered])), today: S.today)
 
         #expect(draft.mode == .payment)
+        #expect(draft.parts.first { $0.id == agua.id }?.amount == 130)
+    }
+
+    @Test func billModeKeepsBillPartsOnPaidOccurrence() {
+        let paid = ExpenseBill(
+            id: UUID(), expenseID: S.condominio.id, month: S.month(2026, 10),
+            billAmount: 1010, billDueDate: S.day(2026, 10, 20), paidOn: S.day(2026, 10, 14), paidAmount: 1012,
+            billParts: [taxa.id: 820, agua.id: 110, gas.id: 80],
+            paidParts: [taxa.id: 820, agua.id: 112, gas.id: 80]
+        )
+        let target = partsOccurrence(partsSnapshot(bills: [paid]))
+        var draft = ExpenseBillDraft(occurrence: target, today: S.today)
+
+        #expect(draft.parts.first { $0.id == agua.id }?.amount == 112)
+        draft.mode = .bill
         #expect(draft.parts.first { $0.id == agua.id }?.amount == 110)
+        #expect(draft.partsTotal == 1010)
+
+        let saved = draft.billSaved(for: target)
+        #expect(saved.billParts?[agua.id] == 110)
+        #expect(saved.billAmount == 1010)
+        #expect(saved.paidParts?[agua.id] == 112)
     }
 
     @Test func partsStartFromPaidWhenEditing() {

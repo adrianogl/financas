@@ -22,24 +22,23 @@ struct ExpenseFormView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("Nome", text: $draft.name)
-                        .textInputAutocapitalization(.sentences)
-                    Picker("Valor", selection: $draft.isFixed) {
-                        Text("Fixo").tag(true)
-                        Text("Varia").tag(false)
+                if draft.isNew {
+                    Section {
+                        Picker("Tipo", selection: $draft.kind) {
+                            Text(ExpenseConstants.billKindTitle).tag(ExpenseKind.bill)
+                            Text(ExpenseConstants.spendingKindTitle).tag(ExpenseKind.spending)
+                        }
+                        .pickerStyle(.segmented)
                     }
-                    .pickerStyle(.segmented)
-                    TextField(draft.isFixed ? "Valor" : "Valor estimado", value: $draft.estimatedAmount, format: .currency(code: IncomeConstants.currencyCode))
-                        .keyboardType(.decimalPad)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
                 }
 
-                Section {
-                    Picker("Dia de vencimento", selection: $draft.dayOfMonth) {
-                        ForEach(IncomeFormConstants.days, id: \.self) { day in
-                            Text("\(day)").tag(day)
-                        }
-                    }
+                switch draft.kind {
+                case .bill:
+                    billFields
+                case .spending:
+                    spendingFields
                 }
 
                 Section {
@@ -48,6 +47,10 @@ struct ExpenseFormView: View {
                     Toggle("Tem mês de fim", isOn: hasEnd)
                     if let end = draft.endMonth {
                         MonthField(title: "Fim", month: Binding(get: { end }, set: { draft.endMonth = $0 }))
+                    }
+                } footer: {
+                    if draft.kind == .spending {
+                        Text(ExpenseConstants.spendingFooter)
                     }
                 }
 
@@ -94,6 +97,48 @@ struct ExpenseFormView: View {
                 Text("As contas lançadas e os pagamentos desta despesa também serão apagados.")
             }
         }
+    }
+
+    @ViewBuilder
+    private var billFields: some View {
+        Section {
+            TextField("Nome", text: $draft.name)
+                .textInputAutocapitalization(.sentences)
+            if draft.parts.isEmpty {
+                amountFields
+            }
+        }
+
+        ExpensePartsSection(draft: $draft)
+
+        Section {
+            Picker("Dia de vencimento", selection: $draft.dayOfMonth) {
+                ForEach(IncomeFormConstants.days, id: \.self) { day in
+                    Text("\(day)").tag(day)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var spendingFields: some View {
+        Section {
+            TextField("Nome", text: $draft.name)
+                .textInputAutocapitalization(.sentences)
+            TextField("Previsto por mês", value: $draft.estimatedAmount, format: .currency(code: IncomeConstants.currencyCode))
+                .keyboardType(.decimalPad)
+        }
+    }
+
+    @ViewBuilder
+    private var amountFields: some View {
+        Picker("Valor", selection: $draft.isFixed) {
+            Text("Fixo").tag(true)
+            Text("Varia").tag(false)
+        }
+        .pickerStyle(.segmented)
+        TextField(draft.isFixed ? "Valor" : "Valor estimado", value: $draft.estimatedAmount, format: .currency(code: IncomeConstants.currencyCode))
+            .keyboardType(.decimalPad)
     }
 
     private func manageSection(_ expense: Expense) -> some View {
