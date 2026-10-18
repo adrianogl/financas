@@ -175,6 +175,27 @@ struct ExpenseStoreTests {
         #expect(store.snapshot.terms.count == S.snapshot.terms.count + 1)
     }
 
+    @Test func saveSendsPartsAndUpdatesSnapshot() async throws {
+        let (store, service) = await makeStore()
+        var draft = ExpenseDraft(expense: S.condominio, snapshot: store.snapshot, today: S.today)
+        draft.addPart()
+        draft.parts[0].name = "Taxa"
+        draft.parts[0].amount = 820
+
+        let first = await store.save(draft, today: S.today)
+        let second = await store.save(draft, today: S.today)
+
+        #expect(first && second)
+        let part = try #require(service.lastSavedParts.first)
+        #expect(part.name == "Taxa")
+        #expect(part.expenseID == S.condominio.id)
+        #expect(service.lastSavedPartTerms.map(\.partID) == [part.id])
+        #expect(store.snapshot.parts == [part])
+        #expect(store.snapshot.partTerms.count == 1)
+        #expect(store.snapshot.partTerms.first?.amount == 820)
+        #expect(store.snapshot.partTerms.first?.id == service.lastSavedPartTerms.first?.id)
+    }
+
     @Test func invalidDraftShowsMessageWithoutCalling() async {
         let (store, service) = await makeStore()
         let draft = ExpenseDraft(today: S.today)

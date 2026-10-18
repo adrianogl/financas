@@ -119,13 +119,23 @@ final class ExpenseStore {
         }
         let (expense, newTerm) = draft.build(today: today)
         let term = newTerm.map(reusingExistingID)
+        let changes = draft.buildParts(today: today)
+        let partTerms = changes.terms.map(reusingExistingID)
         return await perform { [service] () async throws(IncomeError) in
-            try await service.save(expense, term: term, parts: [], partTerms: [])
+            try await service.save(expense, term: term, parts: changes.parts, partTerms: partTerms)
         } onSuccess: {
             self.upsert(expense)
             if let term {
                 self.snapshot.terms.removeAll { $0.expenseID == term.expenseID && $0.validFrom == term.validFrom }
                 self.snapshot.terms.append(term)
+            }
+            for part in changes.parts {
+                self.snapshot.parts.removeAll { $0.id == part.id }
+                self.snapshot.parts.append(part)
+            }
+            for partTerm in partTerms {
+                self.snapshot.partTerms.removeAll { $0.partID == partTerm.partID && $0.validFrom == partTerm.validFrom }
+                self.snapshot.partTerms.append(partTerm)
             }
         }
     }
@@ -202,6 +212,21 @@ final class ExpenseStore {
             estimatedAmount: term.estimatedAmount,
             dayOfMonth: term.dayOfMonth,
             averageFrom: term.averageFrom
+        )
+    }
+
+    private func reusingExistingID(_ term: ExpensePartTerm) -> ExpensePartTerm {
+        guard let existing = snapshot.partTerms.first(where: { $0.partID == term.partID && $0.validFrom == term.validFrom }) else {
+            return term
+        }
+        return ExpensePartTerm(
+            id: existing.id,
+            partID: term.partID,
+            validFrom: term.validFrom,
+            amount: term.amount,
+            isFixed: term.isFixed,
+            averageFrom: term.averageFrom,
+            isActive: term.isActive
         )
     }
 
