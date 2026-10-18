@@ -17,11 +17,11 @@ extension AppTab {
         case .home:
             "house"
         case .incomes:
-            "arrow.down.circle"
+            "arrow.down.to.line"
         case .expenses:
-            "arrow.up.circle"
+            "arrow.up.to.line"
         case .overdue:
-            "exclamationmark.circle"
+            "bell.badge"
         }
     }
 }
