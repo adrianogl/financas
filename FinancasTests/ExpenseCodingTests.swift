@@ -39,6 +39,7 @@ struct ExpenseCodingTests {
         let encoded = try object(SupabaseIncomeService.encoder.encode(expense))
         #expect(encoded["end_month"] is NSNull)
         #expect(encoded["start_month"] as? String == "2026-07-01")
+        #expect(encoded["is_fixed"] as? Bool == false)
     }
 
     @Test func decodesTerm() throws {

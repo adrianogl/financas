@@ -2,6 +2,7 @@ import Foundation
 
 struct ExpenseDraft: Equatable {
     var name: String
+    var isFixed: Bool
     var estimatedAmount: Decimal?
     var dayOfMonth: Int
     var startMonth: YearMonth
@@ -14,6 +15,7 @@ struct ExpenseDraft: Equatable {
 
     init(today: CalendarDay) {
         name = ""
+        isFixed = true
         estimatedAmount = nil
         dayOfMonth = 1
         startMonth = today.yearMonth
@@ -28,6 +30,7 @@ struct ExpenseDraft: Equatable {
     init(expense: Expense, snapshot: ExpenseSnapshot, today: CalendarDay) {
         let term = ExpenseSchedule.term(for: expense, in: today.yearMonth, snapshot: snapshot)
         name = expense.name
+        isFixed = expense.isFixed
         estimatedAmount = term?.estimatedAmount
         dayOfMonth = term?.dayOfMonth ?? 1
         startMonth = expense.startMonth
@@ -53,7 +56,7 @@ struct ExpenseDraft: Equatable {
     }
 
     func build(today: CalendarDay) -> (Expense, ExpenseTerm?) {
-        let expense = Expense(id: expenseID, name: trimmedName, startMonth: startMonth, endMonth: endMonth)
+        let expense = Expense(id: expenseID, name: trimmedName, startMonth: startMonth, endMonth: endMonth, isFixed: isFixed)
         let value = estimatedAmount ?? 0
 
         guard !isNew, let currentTerm else {

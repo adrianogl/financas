@@ -38,6 +38,16 @@ struct ExpenseScheduleTests {
         #expect(november.dueDate == S.day(2026, 11, 13))
     }
 
+    @Test func fixedExpenseKeepsRegisteredAmountAfterThreePaidMonths() throws {
+        var luz = S.luz
+        luz.isFixed = true
+        let bills = luzPaid([(2026, 7, "196.40"), (2026, 8, "201.10"), (2026, 9, "188.00")])
+        let base = snapshot(bills, expenses: [luz])
+        #expect(ExpenseSchedule.estimate(for: luz, in: S.month(2026, 10), snapshot: base) == .fixed(180))
+        let october = try #require(occurrence(luz, S.month(2026, 10), base))
+        #expect(october.amount == 180)
+    }
+
     @Test func estimateIsManualWithTwoPaidMonths() {
         let bills = luzPaid([(2026, 7, "196.40"), (2026, 8, "201.10")])
         #expect(ExpenseSchedule.estimate(for: S.luz, in: S.month(2026, 10), snapshot: snapshot(bills)) == .manual(180))

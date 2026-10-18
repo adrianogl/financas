@@ -5,12 +5,14 @@ struct Expense: Identifiable, Hashable, Codable, Sendable {
     var name: String
     var startMonth: YearMonth
     var endMonth: YearMonth?
+    var isFixed = false
 
     enum CodingKeys: String, CodingKey {
         case id
         case name
         case startMonth = "start_month"
         case endMonth = "end_month"
+        case isFixed = "is_fixed"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -19,5 +21,6 @@ struct Expense: Identifiable, Hashable, Codable, Sendable {
         try container.encode(name, forKey: .name)
         try container.encode(startMonth, forKey: .startMonth)
         try container.encode(endMonth, forKey: .endMonth)
+        try container.encode(isFixed, forKey: .isFixed)
     }
 }

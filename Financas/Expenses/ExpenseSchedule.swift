@@ -9,6 +9,7 @@ enum ExpenseSchedule {
 
     static func estimate(for expense: Expense, in month: YearMonth, snapshot: ExpenseSnapshot) -> ExpenseEstimate? {
         guard let term = term(for: expense, in: month, snapshot: snapshot) else { return nil }
+        guard !expense.isFixed else { return .fixed(term.estimatedAmount) }
         let paid = snapshot.bills
             .filter { $0.expenseID == expense.id && $0.paidAmount != nil && $0.month < month && $0.month >= term.averageFrom }
             .sorted { $0.month > $1.month }

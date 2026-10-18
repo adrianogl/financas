@@ -34,7 +34,9 @@ struct ExpenseOccurrenceRow: View {
         case .overdue:
             OverdueBadge(text: "atrasada")
         case .pending:
-            if occurrence.hasBill {
+            if occurrence.expense.isFixed {
+                EmptyView()
+            } else if occurrence.hasBill {
                 ExpenseBadge(text: "conta lançada", tint: ExpenseBadgeConstants.billTint)
             } else {
                 ExpenseBadge(text: "estimada", tint: ExpenseBadgeConstants.estimateTint)

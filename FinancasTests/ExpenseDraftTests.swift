@@ -23,6 +23,28 @@ struct ExpenseDraftTests {
         #expect(term?.expenseID == expense.id)
     }
 
+    @Test func newDraftStartsFixed() {
+        var draft = ExpenseDraft(today: S.today)
+        #expect(draft.isFixed)
+        draft.name = "Internet"
+        draft.estimatedAmount = 120
+        #expect(draft.build(today: S.today).0.isFixed)
+    }
+
+    @Test func switchingToVariesUpdatesOnlyTheExpense() {
+        var internet = S.internet
+        internet.isFixed = true
+        let snapshot = ExpenseSnapshot(expenses: [internet], terms: S.snapshot.terms, bills: [])
+        var draft = ExpenseDraft(expense: internet, snapshot: snapshot, today: S.today)
+        #expect(draft.isFixed)
+        draft.isFixed = false
+
+        let (expense, term) = draft.build(today: S.today)
+
+        #expect(!expense.isFixed)
+        #expect(term == nil)
+    }
+
     @Test func editingEstimateStartsAverageNextMonth() {
         var draft = ExpenseDraft(expense: S.luz, snapshot: S.snapshot, today: S.today)
         #expect(draft.estimatedAmount == 180)

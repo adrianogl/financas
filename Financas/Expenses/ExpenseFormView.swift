@@ -25,7 +25,12 @@ struct ExpenseFormView: View {
                 Section {
                     TextField("Nome", text: $draft.name)
                         .textInputAutocapitalization(.sentences)
-                    TextField("Valor estimado", value: $draft.estimatedAmount, format: .currency(code: IncomeConstants.currencyCode))
+                    Picker("Valor", selection: $draft.isFixed) {
+                        Text("Fixo").tag(true)
+                        Text("Varia").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                    TextField(draft.isFixed ? "Valor" : "Valor estimado", value: $draft.estimatedAmount, format: .currency(code: IncomeConstants.currencyCode))
                         .keyboardType(.decimalPad)
                 }
 

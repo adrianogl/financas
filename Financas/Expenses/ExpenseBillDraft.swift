@@ -9,7 +9,7 @@ struct ExpenseBillDraft: Equatable {
 
     init(occurrence: ExpenseOccurrence, today: CalendarDay, mode: ExpenseSheetMode? = nil) {
         let bill = occurrence.bill
-        self.mode = mode ?? (occurrence.hasBill || occurrence.status == .paid ? .payment : .bill)
+        self.mode = mode ?? (occurrence.hasBill || occurrence.status == .paid || occurrence.expense.isFixed ? .payment : .bill)
         billAmount = bill?.billAmount ?? occurrence.amount
         billDueDate = occurrence.dueDate
         paidAmount = bill?.paidAmount ?? bill?.billAmount ?? occurrence.estimate.amount

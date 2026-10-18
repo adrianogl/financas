@@ -39,6 +39,15 @@ struct ExpenseFormatTests {
     @Test func ruleTexts() {
         #expect(ExpenseFormat.rule(S.luzTerm, estimate: .average(amount: 180, months: [S.month(2026, 7), S.month(2026, 8), S.month(2026, 9)])) == "Todo dia 13 · média de 3 meses")
         #expect(ExpenseFormat.rule(S.internetTerm, estimate: .manual(180)) == "Todo dia 26 · estimado")
+        #expect(ExpenseFormat.rule(S.internetTerm, estimate: .fixed(120)) == "Todo dia 26 · valor fixo")
+    }
+
+    @Test func originForFixedExpense() {
+        var internet = S.internet
+        internet.isFixed = true
+        let snapshot = ExpenseSnapshot(expenses: [internet], terms: S.snapshot.terms, bills: [])
+        let october = ExpenseSchedule.occurrence(of: internet, in: S.month(2026, 10), snapshot: snapshot, today: S.today)!
+        #expect(ExpenseFormat.origin(october) == "valor fixo")
     }
 
     @Test func titleShowsMonthOnlyForPreviousMonths() {

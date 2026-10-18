@@ -13,6 +13,8 @@ enum ExpenseFormat {
             return "estimado pela média de \(list(months.map { IncomeFormat.shortMonth($0, locale: locale) }))"
         case .manual:
             return "estimado"
+        case .fixed:
+            return "valor fixo"
         }
     }
 
@@ -23,6 +25,8 @@ enum ExpenseFormat {
             return "\(day) · média de \(months.count) meses"
         case .manual:
             return "\(day) · estimado"
+        case .fixed:
+            return "\(day) · valor fixo"
         }
     }
 

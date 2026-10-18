@@ -18,6 +18,16 @@ struct ExpenseBillDraftTests {
         #expect(draft.paidOn == S.today)
     }
 
+    @Test func fixedExpenseOpensInPaymentModeWithRegisteredAmount() {
+        var luz = S.luz
+        luz.isFixed = true
+        let snapshot = ExpenseSnapshot(expenses: [luz], terms: S.snapshot.terms, bills: [])
+        let fixed = ExpenseSchedule.occurrence(of: luz, in: S.month(2026, 10), snapshot: snapshot, today: S.today)!
+        let draft = ExpenseBillDraft(occurrence: fixed, today: S.today)
+        #expect(draft.mode == .payment)
+        #expect(draft.paidAmount == 180)
+    }
+
     @Test func opensInPaymentModeWithBill() {
         let bill = S.bill(S.luz, S.month(2026, 10), 210, due: S.day(2026, 10, 20))
         let draft = ExpenseBillDraft(occurrence: occurrence(S.luz, bills: [bill]), today: S.today)
