@@ -7,6 +7,7 @@ struct ExpenseOccurrence: Identifiable, Hashable {
     let estimate: ExpenseEstimate
     let bill: ExpenseBill?
     let status: ExpenseStatus
+    var parts: [ExpensePartValue] = []
 
     var amount: Decimal {
         bill?.paidAmount ?? bill?.billAmount ?? estimate.amount

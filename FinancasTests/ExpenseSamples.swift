@@ -55,4 +55,19 @@ enum ExpenseSamples {
     static func bill(_ expense: Expense, _ month: YearMonth, _ amount: Decimal, due: CalendarDay) -> ExpenseBill {
         ExpenseBill(id: UUID(), expenseID: expense.id, month: month, billAmount: amount, billDueDate: due, paidOn: nil, paidAmount: nil)
     }
+
+    static func part(_ expense: Expense, _ name: String, position: Int) -> ExpensePart {
+        ExpensePart(id: UUID(), expenseID: expense.id, name: name, position: position)
+    }
+
+    static func partTerm(
+        _ part: ExpensePart,
+        from: YearMonth,
+        amount: Decimal,
+        isFixed: Bool = false,
+        averageFrom: YearMonth? = nil,
+        isActive: Bool = true
+    ) -> ExpensePartTerm {
+        ExpensePartTerm(id: UUID(), partID: part.id, validFrom: from, amount: amount, isFixed: isFixed, averageFrom: averageFrom ?? from, isActive: isActive)
+    }
 }

@@ -54,4 +54,29 @@ struct ExpenseFormatTests {
         #expect(ExpenseFormat.occurrenceTitle(occurrence(S.luz, in: S.month(2026, 10)), today: S.today) == "Luz")
         #expect(ExpenseFormat.occurrenceTitle(occurrence(S.luz, in: S.month(2026, 9)), today: S.today) == "Luz · setembro")
     }
+
+    @Test func partTexts() {
+        let taxa = S.part(S.condominio, "Taxa", position: 0)
+        let agua = S.part(S.condominio, "Água", position: 1)
+        let gas = S.part(S.condominio, "Gás", position: 2)
+        let fixed = ExpensePartValue(part: taxa, amount: 820, origin: .fixed, isFixed: true)
+        let water = ExpensePartValue(part: agua, amount: 110, origin: .bill, isFixed: false)
+        let cooking = ExpensePartValue(part: gas, amount: 80, origin: .estimated, isFixed: false)
+        let september = S.month(2026, 9)
+
+        #expect(ExpenseFormat.rule(S.condominioTerm, estimate: .parts(1010), partCount: 3) == "Todo dia 10 · 3 partes")
+        #expect(ExpenseFormat.rule(S.condominioTerm, estimate: .parts(820), partCount: 1) == "Todo dia 10 · 1 parte")
+
+        let base = occurrence(S.condominio, in: S.month(2026, 10))
+        let summed = ExpenseOccurrence(expense: base.expense, month: base.month, dueDate: base.dueDate, estimate: .parts(1010), bill: nil, status: base.status)
+        #expect(ExpenseFormat.origin(summed) == "soma das partes")
+
+        #expect(ExpenseFormat.partNames([fixed, water, cooking]) == "taxa, água e gás")
+        #expect(ExpenseFormat.partNames([fixed, water]) == "taxa e água")
+
+        #expect(ExpenseFormat.partCaption(fixed, change: 10, previous: september) == "fixo")
+        #expect(ExpenseFormat.partCaption(water, change: 30, previous: september) == "▲ R$\u{00A0}30,00 vs. setembro")
+        #expect(ExpenseFormat.partCaption(water, change: -5, previous: september) == "▼ R$\u{00A0}5,00 vs. setembro")
+        #expect(ExpenseFormat.partCaption(cooking, change: nil, previous: september) == "varia")
+    }
 }

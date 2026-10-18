@@ -9,17 +9,26 @@ enum ExpenseSchedule {
 
     static func estimate(for expense: Expense, in month: YearMonth, snapshot: ExpenseSnapshot) -> ExpenseEstimate? {
         guard let term = term(for: expense, in: month, snapshot: snapshot) else { return nil }
+        let parts = ExpensePartSchedule.activeParts(of: expense, in: month, snapshot: snapshot)
+        guard parts.isEmpty else {
+            let amounts = parts.compactMap { ExpensePartSchedule.estimate(of: $0, in: month, snapshot: snapshot)?.amount }
+            return .parts(amounts.reduce(0, +))
+        }
         guard !expense.isFixed else { return .fixed(term.estimatedAmount) }
         let paid = snapshot.bills
-            .filter { $0.expenseID == expense.id && $0.paidAmount != nil && $0.month < month && $0.month >= term.averageFrom }
-            .sorted { $0.month > $1.month }
-        guard paid.count >= 3 else { return .manual(term.estimatedAmount) }
-        let recent = Array(paid.prefix(3))
-        let sum = recent.compactMap(\.paidAmount).reduce(0, +)
-        var average = sum / 3
+            .filter { $0.expenseID == expense.id && $0.month < month && $0.month >= term.averageFrom }
+            .compactMap { bill in bill.paidAmount.map { (month: bill.month, amount: $0) } }
+        guard let average = average(of: paid) else { return .manual(term.estimatedAmount) }
+        return .average(amount: average.amount, months: average.months)
+    }
+
+    static func average(of paid: [(month: YearMonth, amount: Decimal)]) -> (amount: Decimal, months: [YearMonth])? {
+        let recent = paid.sorted { $0.month > $1.month }.prefix(3)
+        guard recent.count == 3 else { return nil }
+        var average = recent.map(\.amount).reduce(0, +) / 3
         var rounded = Decimal()
         NSDecimalRound(&rounded, &average, 2, .plain)
-        return .average(amount: rounded, months: recent.map(\.month).sorted())
+        return (rounded, recent.map(\.month).sorted())
     }
 
     static func occurrence(of expense: Expense, in month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> ExpenseOccurrence? {
@@ -29,11 +38,19 @@ enum ExpenseSchedule {
         let bill = snapshot.bills.first { $0.expenseID == expense.id && $0.month == month }
         let dueDate = bill?.billDueDate ?? BusinessCalendar.businessDayOnOrAfter(month.day(term.dayOfMonth))
         let status: ExpenseStatus = bill?.paidAmount != nil ? .paid : (dueDate < today ? .overdue : .pending)
-        return ExpenseOccurrence(expense: expense, month: month, dueDate: dueDate, estimate: estimate, bill: bill, status: status)
+        return ExpenseOccurrence(
+            expense: expense,
+            month: month,
+            dueDate: dueDate,
+            estimate: estimate,
+            bill: bill,
+            status: status,
+            parts: ExpensePartSchedule.values(of: expense, in: month, snapshot: snapshot)
+        )
     }
 
     static func occurrences(in month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> [ExpenseOccurrence] {
-        snapshot.expenses
+        bills(in: snapshot)
             .compactMap { occurrence(of: $0, in: month, snapshot: snapshot, today: today) }
             .sorted(by: ordered)
     }
@@ -72,13 +89,17 @@ enum ExpenseSchedule {
     }
 
     private static func earlier(than month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> [ExpenseOccurrence] {
-        snapshot.expenses.flatMap { expense in
+        bills(in: snapshot).flatMap { expense in
             months(of: expense, before: month).compactMap { occurrence(of: expense, in: $0, snapshot: snapshot, today: today) }
         }
     }
 
     private static func early(in month: YearMonth, snapshot: ExpenseSnapshot, today: CalendarDay) -> [ExpenseOccurrence] {
         occurrences(in: month.next, snapshot: snapshot, today: today).filter { $0.dueDate.yearMonth <= month }
+    }
+
+    private static func bills(in snapshot: ExpenseSnapshot) -> [Expense] {
+        snapshot.expenses.filter { $0.kind == .bill }
     }
 
     private static func isActive(_ expense: Expense, in month: YearMonth) -> Bool {

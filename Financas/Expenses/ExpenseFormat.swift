@@ -15,10 +15,12 @@ enum ExpenseFormat {
             return "estimado"
         case .fixed:
             return "valor fixo"
+        case .parts:
+            return "soma das partes"
         }
     }
 
-    static func rule(_ term: ExpenseTerm, estimate: ExpenseEstimate) -> String {
+    static func rule(_ term: ExpenseTerm, estimate: ExpenseEstimate, partCount: Int = 0) -> String {
         let day = "Todo dia \(term.dayOfMonth)"
         switch estimate {
         case .average(_, let months):
@@ -27,7 +29,20 @@ enum ExpenseFormat {
             return "\(day) · estimado"
         case .fixed:
             return "\(day) · valor fixo"
+        case .parts:
+            return "\(day) · \(partCount) \(partCount == 1 ? "parte" : "partes")"
         }
+    }
+
+    static func partNames(_ values: [ExpensePartValue], locale: Locale = IncomeFormat.locale) -> String {
+        list(values.map { $0.part.name.lowercased(with: locale) })
+    }
+
+    static func partCaption(_ value: ExpensePartValue, change: Decimal?, previous: YearMonth, locale: Locale = IncomeFormat.locale) -> String {
+        guard !value.isFixed else { return "fixo" }
+        guard let change else { return "varia" }
+        let arrow = change < 0 ? "▼" : "▲"
+        return "\(arrow) \(IncomeFormat.currency(abs(change), locale: locale)) vs. \(IncomeFormat.monthName(previous, locale: locale))"
     }
 
     static func occurrenceTitle(_ occurrence: ExpenseOccurrence, today: CalendarDay, locale: Locale = IncomeFormat.locale) -> String {
