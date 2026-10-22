@@ -1,5 +1,6 @@
 import { API_KEY_TTL_MS, PLUGGY_API } from "./cardConstants.ts"
 import type { DateWindow, PluggyAccount, PluggyItem, PluggyTransaction } from "./pluggyTypes.ts"
+import { connectTokenBody } from "./itemOwnership.ts"
 import { CREDIT_ACCOUNT_TYPE } from "./cardConstants.ts"
 
 export class PluggyError extends Error {
@@ -53,8 +54,8 @@ export class PluggyClient {
     return (text ? JSON.parse(text) : undefined) as T
   }
 
-  async createConnectToken(itemId?: string, clientUserId?: string): Promise<string> {
-    const body = { ...(itemId ? { itemId } : {}), ...(clientUserId ? { clientUserId } : {}) }
+  async createConnectToken(userId: string, itemId?: string): Promise<string> {
+    const body = connectTokenBody(userId, itemId)
     const payload = await this.request<{ accessToken: string }>("/connect_token", { method: "POST", body })
     return payload.accessToken
   }

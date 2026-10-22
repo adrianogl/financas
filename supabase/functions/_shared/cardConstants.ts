@@ -8,3 +8,4 @@ export const CREDIT_ACCOUNT_TYPE = "CREDIT"
 export const NICKNAME_SEPARATOR = " ····"
 export const UPSERT_CHUNK_SIZE = 500
 export const CRON_SECRET_HEADER = "x-cron-secret"
+export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

@@ -63,3 +63,10 @@ export type ConnectionSyncResult = {
   ok: boolean
   error?: string
 }
+
+export type ConnectTokenBody = { itemId?: string; options: { clientUserId: string } }
+
+export type CardsConnectRequest =
+  | { action: "token"; itemId?: string | null }
+  | { action: "register"; itemId: string }
+  | { action: "remove"; connectionId: string }

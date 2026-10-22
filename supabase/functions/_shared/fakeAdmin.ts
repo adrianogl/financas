@@ -5,7 +5,7 @@ type Tables = Record<string, Row[]>
 
 class FakeQuery {
   private filters: Array<(row: Row) => boolean> = []
-  private action: "select" | "update" | "upsert" = "select"
+  private action: "select" | "update" | "upsert" | "delete" = "select"
   private patch: Row = {}
   private upserted: Row[] = []
   private conflictKey = "id"
@@ -23,6 +23,21 @@ class FakeQuery {
 
   in(column: string, values: unknown[]) {
     this.filters.push((row) => values.includes(row[column]))
+    return this
+  }
+
+  gte(column: string, value: string) {
+    this.filters.push((row) => String(row[column]) >= value)
+    return this
+  }
+
+  lte(column: string, value: string) {
+    this.filters.push((row) => String(row[column]) <= value)
+    return this
+  }
+
+  delete() {
+    this.action = "delete"
     return this
   }
 
@@ -56,6 +71,10 @@ class FakeQuery {
     const matches = store.filter((row) => this.filters.every((f) => f(row)))
     if (this.action === "update") {
       for (const row of matches) Object.assign(row, this.patch)
+      return Promise.resolve(resolve({ data: null, error: null }))
+    }
+    if (this.action === "delete") {
+      this.tables[this.table] = store.filter((row) => !matches.includes(row))
       return Promise.resolve(resolve({ data: null, error: null }))
     }
     if (this.action === "upsert") return Promise.resolve(resolve({ data: this.upserted, error: null }))

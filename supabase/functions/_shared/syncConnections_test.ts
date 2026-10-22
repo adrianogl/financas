@@ -35,3 +35,36 @@ Deno.test("falha numa conexão grava last_error e não impede as outras", async 
   assertEquals(second.last_error, null)
   assertEquals((tables as Record<string, unknown[]>).card_transactions.length, 1)
 })
+
+Deno.test("remove pendentes da janela que a Pluggy não devolveu mais, mantendo devolvidas e lançadas", async () => {
+  const today = new Date().toISOString().slice(0, 10)
+  const tables: Record<string, Array<Record<string, unknown>>> = {
+    card_connections: [
+      { id: "c1", user_id: "u", item_id: "item1", last_synced_at: null, status: "active", last_error: null },
+    ],
+    card_accounts: [{ id: "acc1", connection_id: "c1", pluggy_account_id: "pa1", nickname: "n" }],
+    card_transactions: [
+      { id: "pend-gone", card_account_id: "acc1", date: today, is_pending: true },
+      { id: "pend-kept", card_account_id: "acc1", date: today, is_pending: true },
+      { id: "posted-gone", card_account_id: "acc1", date: today, is_pending: false },
+      { id: "pend-old", card_account_id: "acc1", date: "2000-01-01", is_pending: true },
+      { id: "pend-other-account", card_account_id: "acc2", date: today, is_pending: true },
+    ],
+  }
+  const pluggy = {
+    getItem: () => Promise.resolve({ id: "item1", status: "UPDATED" }),
+    listCreditAccounts: () => Promise.resolve([{ id: "pa1", name: "CARTAO", number: "1234", type: "CREDIT" }]),
+    listTransactions: () =>
+      Promise.resolve([
+        { id: "pend-kept", description: "X", amount: 10, currencyCode: "BRL", date: `${today}T00:00:00.000Z`, type: "DEBIT", status: "PENDING" },
+      ]),
+  } as unknown as PluggyClient
+
+  const results = await syncConnections(fakeAdmin(tables), pluggy, {})
+
+  assertEquals(results, [{ connectionId: "c1", ok: true }])
+  assertEquals(
+    tables.card_transactions.map((row) => row.id).sort(),
+    ["pend-kept", "pend-old", "pend-other-account", "posted-gone"],
+  )
+})

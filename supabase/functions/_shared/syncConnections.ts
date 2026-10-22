@@ -2,7 +2,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.4"
 import { UPSERT_CHUNK_SIZE } from "./cardConstants.ts"
 import { accountRow, connectionStatus, syncWindow, transactionRow } from "./cardRows.ts"
 import type { PluggyClient } from "./pluggy.ts"
-import type { ConnectionSyncResult, SyncFilter } from "./pluggyTypes.ts"
+import type { ConnectionSyncResult, DateWindow, SyncFilter } from "./pluggyTypes.ts"
 
 type ConnectionRecord = {
   id: string
@@ -21,6 +21,29 @@ function chunks<T>(items: T[], size: number): T[][] {
   const result: T[][] = []
   for (let i = 0; i < items.length; i += size) result.push(items.slice(i, i + size))
   return result
+}
+
+async function removeStalePending(
+  admin: SupabaseClient,
+  cardAccountId: string,
+  window: DateWindow,
+  returnedIds: Set<string>,
+): Promise<void> {
+  const pending = await admin
+    .from("card_transactions")
+    .select("id")
+    .eq("card_account_id", cardAccountId)
+    .eq("is_pending", true)
+    .gte("date", window.from)
+    .lte("date", window.to)
+  if (pending.error) throw pending.error
+  const staleIds = (pending.data ?? [])
+    .map((row: { id: string }) => row.id)
+    .filter((id: string) => !returnedIds.has(id))
+  for (const chunk of chunks(staleIds, UPSERT_CHUNK_SIZE)) {
+    const result = await admin.from("card_transactions").delete().in("id", chunk)
+    if (result.error) throw result.error
+  }
 }
 
 async function syncConnection(
@@ -73,6 +96,7 @@ async function syncConnection(
         const result = await admin.from("card_transactions").upsert(chunk, { onConflict: "id" })
         if (result.error) throw result.error
       }
+      await removeStalePending(admin, cardAccountId, window, new Set(txRows.map((row) => row.id)))
     }
   }
 
