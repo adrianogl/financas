@@ -378,3 +378,65 @@ final class FakeReminderCenter: ReminderCenter {
         pending = []
     }
 }
+
+@MainActor
+final class FakeCardService: CardService {
+    var snapshot: CardSnapshot
+    var token = "token"
+    var nextError: IncomeError?
+    private(set) var calls: [String] = []
+    private(set) var lastSince: CalendarDay?
+    private(set) var lastSavedRecurrence: CardRecurrence?
+    private(set) var lastRename: (accountID: UUID, nickname: String)?
+    private(set) var lastTokenItemID: String?
+    private(set) var lastRegisteredItemID: String?
+    private(set) var lastRemovedConnectionID: UUID?
+
+    init(snapshot: CardSnapshot = .empty) {
+        self.snapshot = snapshot
+    }
+
+    func load(since: CalendarDay) async throws(IncomeError) -> CardSnapshot {
+        lastSince = since
+        try respond("load")
+        return snapshot
+    }
+
+    func save(_ recurrence: CardRecurrence) async throws(IncomeError) {
+        lastSavedRecurrence = recurrence
+        try respond("saveRecurrence")
+    }
+
+    func rename(accountID: UUID, nickname: String) async throws(IncomeError) {
+        lastRename = (accountID, nickname)
+        try respond("rename")
+    }
+
+    func sync() async throws(IncomeError) {
+        try respond("sync")
+    }
+
+    func connectToken(itemID: String?) async throws(IncomeError) -> String {
+        lastTokenItemID = itemID
+        try respond("connectToken")
+        return token
+    }
+
+    func register(itemID: String) async throws(IncomeError) {
+        lastRegisteredItemID = itemID
+        try respond("register")
+    }
+
+    func remove(connectionID: UUID) async throws(IncomeError) {
+        lastRemovedConnectionID = connectionID
+        try respond("remove")
+    }
+
+    private func respond(_ call: String) throws(IncomeError) {
+        calls.append(call)
+        if let error = nextError {
+            nextError = nil
+            throw error
+        }
+    }
+}
