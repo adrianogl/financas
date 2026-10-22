@@ -1,0 +1,10 @@
+export const PLUGGY_API = "https://api.pluggy.ai"
+export const API_KEY_TTL_MS = 100 * 60 * 1000
+export const FIRST_SYNC_MONTHS = 12
+export const SYNC_OVERLAP_DAYS = 7
+export const NEEDS_RECONNECT_ITEM_STATUSES = ["LOGIN_ERROR", "WAITING_USER_INPUT"]
+export const HEALTHY_ITEM_STATUSES = ["UPDATED", "UPDATING"]
+export const CREDIT_ACCOUNT_TYPE = "CREDIT"
+export const NICKNAME_SEPARATOR = " ····"
+export const UPSERT_CHUNK_SIZE = 500
+export const CRON_SECRET_HEADER = "x-cron-secret"
