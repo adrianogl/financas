@@ -13,4 +13,9 @@ enum CardConstants {
     static let recurrenceMinimumMonths = 3
     static let recurrenceAmountTolerance: Decimal = 0.10
     static let fixedChargeStaleDays = 45
+    static let commitmentMonthCount = 12
+    static let endingWindowMonths = 3
+    static let loadHistoryMonths = 13
+    static let loadFailedMessage = "Não foi possível carregar seus cartões. Tente de novo."
+    static let syncFailedMessage = "Não foi possível atualizar os cartões agora. Mostrando os dados da última atualização."
 }
