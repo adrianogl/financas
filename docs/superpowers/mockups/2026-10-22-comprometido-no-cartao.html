@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Comprometido no cartão</title>
+<style>
+  :root {
+    --accent:#3D6FE0; --positive:#2E8B6E; --warning:#C9483B; --bg:#FAFBFD;
+    --blob1:#C9D8FF; --blob2:#E3D9FA; --blob3:#D6E3FF;
+    --text:#111318; --secondary:#6B7080; --glass:rgba(255,255,255,.6); --glassBorder:rgba(255,255,255,.9); --divider:rgba(60,60,67,.14);
+    --fixo:#8A6BD6;
+  }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; background:#1b1d22; color:var(--text); padding:24px 16px 80px }
+  h1 { color:#fff; text-align:center; font-size:22px; margin-bottom:6px }
+  .lead { color:#aaa; text-align:center; font-size:14px; margin:0 auto 28px; max-width:900px; line-height:1.5 }
+  .frames { display:flex; flex-wrap:wrap; gap:32px; justify-content:center; align-items:flex-start }
+  figure { display:flex; flex-direction:column; align-items:center; gap:10px; cursor:pointer; border-radius:44px; padding:6px; border:2px solid transparent }
+  figure.selected { border-color:var(--accent) }
+  figcaption { color:#ccc; font-size:13px; text-align:left; max-width:340px; line-height:1.45 }
+  figcaption b { color:#fff; display:block; font-size:14px; margin-bottom:4px }
+  .device { background:#0c0d10; padding:8px; border-radius:40px; box-shadow:0 20px 50px rgba(0,0,0,.5) }
+  .screen { position:relative; width:340px; height:736px; overflow:hidden; background:var(--bg); border-radius:33px }
+  .bgblobs { position:absolute; inset:0; filter:blur(60px) }
+  .bgblobs i { position:absolute; border-radius:50%; display:block }
+  .status { position:absolute; top:0; left:0; right:0; height:46px; display:flex; justify-content:space-between; padding:16px 28px; font-size:14px; font-weight:600; z-index:5 }
+  .island { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:104px; height:30px; border-radius:18px; background:#000; z-index:7 }
+  .content { position:absolute; inset:0; padding:54px 16px 90px; overflow:hidden; display:flex; flex-direction:column; gap:10px }
+  .glass { background:var(--glass); backdrop-filter:blur(24px) saturate(1.6); -webkit-backdrop-filter:blur(24px) saturate(1.6); border:1px solid var(--glassBorder); box-shadow:0 8px 30px rgba(40,60,120,.08), inset 0 1px 0 rgba(255,255,255,.9) }
+  .card { border-radius:22px; padding:12px 16px }
+  .big { font-size:28px; font-weight:700; letter-spacing:-.5px }
+  .sub { font-size:13px; color:var(--secondary) }
+  .cap { font-size:11px; color:var(--secondary) }
+  .money { font-weight:600; font-variant-numeric:tabular-nums }
+  .row { display:flex; align-items:center; padding:7px 0; gap:10px }
+  .row + .row { border-top:1px solid var(--divider) }
+  .row .t { font-size:13.5px; font-weight:600 }
+  .row .s { font-size:11px; color:var(--secondary); margin-top:2px }
+  .row .v { margin-left:auto; text-align:right; font-size:13.5px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap }
+  .secTitle { font-size:12.5px; font-weight:600; color:var(--secondary); margin:2px 0 -4px 6px; display:flex; justify-content:space-between }
+  .secTitle a { color:var(--accent); font-weight:500 }
+  .badge { display:inline-block; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:999px }
+  .b-end { color:var(--positive); background:rgba(46,139,110,.13) }
+  .b-fixo { color:var(--fixo); background:rgba(138,107,214,.14) }
+  .b-parc { color:var(--accent); background:rgba(61,111,224,.12) }
+  .b-new { color:#8A6D1F; background:rgba(201,160,40,.17) }
+  .chips { display:flex; gap:6px; font-size:12px }
+  .chips span { padding:5px 10px; border-radius:999px; background:rgba(120,120,128,.14) }
+  .chips span.on { background:var(--accent); color:#fff; font-weight:600 }
+  .stack { display:flex; align-items:flex-end; gap:5px; height:92px; margin-top:8px }
+  .stack div { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:9px; color:var(--secondary) }
+  .stack .bar { width:100%; display:flex; flex-direction:column; border-radius:5px; overflow:hidden }
+  .stack .p { background:var(--accent) }
+  .stack .f { background:var(--fixo) }
+  .legend { display:flex; gap:12px; font-size:11px; color:var(--secondary); margin-top:6px }
+  .legend i { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:4px }
+  .split2 { display:flex; justify-content:space-between }
+  .tabbar { position:absolute; left:14px; right:14px; bottom:18px; height:58px; border-radius:30px; display:flex; justify-content:space-around; align-items:center; font-size:10px; color:var(--secondary); z-index:9 }
+  .tabbar span { display:flex; flex-direction:column; align-items:center; gap:2px }
+  .tabbar span.on { color:var(--accent); font-weight:600 }
+  .tabbar span i { font-style:normal; font-size:17px }
+  .month { display:flex; justify-content:space-between; align-items:baseline }
+  .month b { font-size:14px }
+  .delta { font-size:11.5px; font-weight:600; color:var(--positive) }
+  .ends { font-size:11.5px; color:var(--secondary); margin-top:3px; line-height:1.4 }
+  .btn2 { text-align:center; padding:9px; border-radius:999px; font-weight:600; font-size:13px; color:var(--accent); background:rgba(61,111,224,.12) }
+  .acts { display:flex; gap:6px }
+  .acts span { font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:999px }
+  .yes { background:var(--accent); color:#fff }
+  .no { background:rgba(120,120,128,.14); color:var(--text) }
+</style>
+</head>
+<body>
+
+<h1>Comprometido no cartão</h1>
+<p class="lead">Três jeitos de mostrar o que já está comprometido nos cartões C6, Caixa, Nubank e Inter. Valores reais do probe de hoje, arredondados. Parcelas em azul, fixos (assinaturas e recorrentes) em roxo. Clique no mockup que mais combina com você.</p>
+
+<div class="frames">
+
+<!-- A -->
+<figure data-choice="a" onclick="toggleSelect(this)">
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i><i style="background:var(--blob2);width:300px;height:300px;left:180px;top:200px"></i><i style="background:var(--blob3);width:400px;height:400px;left:-100px;top:480px"></i></div>
+    <div class="status"><span>9:41</span><span>●●●</span></div><div class="island"></div>
+    <div class="content">
+      <div class="big" style="margin-top:6px">Cartões</div>
+      <div class="chips"><span class="on">Todos</span><span>C6</span><span>Caixa</span><span>Nubank</span><span>Inter</span></div>
+      <div class="card glass">
+        <div class="cap">Comprometido em novembro</div>
+        <div class="money" style="font-size:26px">R$ 2.595,28</div>
+        <div class="split2" style="margin-top:4px">
+          <span class="sub"><span class="badge b-parc">parcelas</span> R$ 1.595,38</span>
+          <span class="sub"><span class="badge b-fixo">fixos</span> R$ 999,90</span>
+        </div>
+        <div class="stack">
+          <div><div class="bar" style="height:84px"><i class="p" style="flex:1595"></i><i class="f" style="flex:1000"></i></div>nov</div>
+          <div><div class="bar" style="height:69px"><i class="p" style="flex:1150"></i><i class="f" style="flex:1000"></i></div>dez</div>
+          <div><div class="bar" style="height:69px"><i class="p" style="flex:1150"></i><i class="f" style="flex:1000"></i></div>jan</div>
+          <div><div class="bar" style="height:64px"><i class="p" style="flex:992"></i><i class="f" style="flex:1000"></i></div>fev</div>
+          <div><div class="bar" style="height:64px"><i class="p" style="flex:992"></i><i class="f" style="flex:1000"></i></div>mar</div>
+          <div><div class="bar" style="height:64px"><i class="p" style="flex:992"></i><i class="f" style="flex:1000"></i></div>abr</div>
+          <div><div class="bar" style="height:62px"><i class="p" style="flex:932"></i><i class="f" style="flex:1000"></i></div>mai</div>
+          <div><div class="bar" style="height:56px"><i class="p" style="flex:751"></i><i class="f" style="flex:1000"></i></div>jul</div>
+          <div><div class="bar" style="height:49px"><i class="p" style="flex:541"></i><i class="f" style="flex:1000"></i></div>ago</div>
+          <div><div class="bar" style="height:32px"><i class="f" style="flex:1"></i></div>out</div>
+        </div>
+      </div>
+      <div class="secTitle"><span>Terminando</span><a>ver parcelas</a></div>
+      <div class="card glass" style="padding:4px 16px">
+        <div class="row"><div><div class="t">PlayStation · C6</div><div class="s">4/4 em novembro</div></div><div class="v">R$ 112,47<div><span class="badge b-end">libera em dez</span></div></div></div>
+        <div class="row"><div><div class="t">Pedro Guilherme · C6</div><div class="s">3/3 em novembro</div></div><div class="v">R$ 333,00<div><span class="badge b-end">libera em dez</span></div></div></div>
+        <div class="row"><div><div class="t">OAB MG · Caixa</div><div class="s">8/8 em janeiro</div></div><div class="v">R$ 158,38<div><span class="badge b-end">libera em fev</span></div></div></div>
+      </div>
+      <div class="secTitle"><span>Fixos</span><a>ver todos (11)</a></div>
+      <div class="card glass" style="padding:4px 16px">
+        <div class="row"><div><div class="t">Wellhub ×3</div><div class="s">C6 e Caixa</div></div><div class="v">R$ 586,50</div></div>
+        <div class="row"><div><div class="t">Cruzeiro EC</div><div class="s">Caixa</div></div><div class="v">R$ 100,00</div></div>
+      </div>
+    </div>
+    <div class="tabbar glass"><span><i>⌂</i>Início</span><span><i>↓</i>Entradas</span><span><i>↑</i>Despesas</span><span class="on"><i>▭</i>Cartões</span></div>
+  </div></div>
+  <figcaption><b>A · Aba Cartões com painel</b>Aba nova. Total do próximo mês, gráfico de 12 meses mostrando a queda conforme as parcelas acabam, e duas listas curtas: o que está terminando e os fixos. Filtro por cartão no topo.</figcaption>
+</figure>
+
+<!-- B -->
+<figure data-choice="b" onclick="toggleSelect(this)">
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i><i style="background:var(--blob2);width:300px;height:300px;left:180px;top:200px"></i><i style="background:var(--blob3);width:400px;height:400px;left:-100px;top:480px"></i></div>
+    <div class="status"><span>9:41</span><span>●●●</span></div><div class="island"></div>
+    <div class="content">
+      <div class="big" style="margin-top:6px">Comprometido</div>
+      <div class="sub" style="margin-top:-6px">fixos R$ 999,90/mês + parcelas</div>
+      <div class="card glass">
+        <div class="month"><b>Novembro</b><span class="money">R$ 2.595,28</span></div>
+        <div class="ends">Última parcela: PlayStation (C6), Pedro Guilherme (C6)</div>
+      </div>
+      <div class="card glass">
+        <div class="month"><b>Dezembro</b><span class="money">R$ 2.149,81</span></div>
+        <div class="delta">− R$ 445,47 vs novembro</div>
+      </div>
+      <div class="card glass">
+        <div class="month"><b>Janeiro</b><span class="money">R$ 2.149,81</span></div>
+        <div class="ends">Última parcela: OAB MG (Caixa)</div>
+      </div>
+      <div class="card glass">
+        <div class="month"><b>Fevereiro</b><span class="money">R$ 1.991,43</span></div>
+        <div class="delta">− R$ 158,38 vs janeiro</div>
+      </div>
+      <div class="card glass">
+        <div class="month"><b>Abril</b><span class="money">R$ 1.991,43</span></div>
+        <div class="ends">Última parcela: Azul (Caixa), anuidade Caixa</div>
+      </div>
+      <div class="card glass">
+        <div class="month"><b>Maio</b><span class="money">R$ 1.931,73</span></div>
+        <div class="delta">− R$ 59,70 vs abril</div>
+      </div>
+      <div class="card glass" style="opacity:.6">
+        <div class="month"><b>Junho</b><span class="money">R$ 1.931,73</span></div>
+        <div class="ends">Última parcela: Nike (Caixa)</div>
+      </div>
+    </div>
+    <div class="tabbar glass"><span><i>⌂</i>Início</span><span><i>↓</i>Entradas</span><span><i>↑</i>Despesas</span><span class="on"><i>▭</i>Cartões</span></div>
+  </div></div>
+  <figcaption><b>B · Linha do tempo mês a mês</b>Cada mês mostra o total comprometido e o que termina nele. Os meses sem mudança ficam só com o valor. Toque num mês para ver as parcelas e os fixos daquele mês. Mais direto para a pergunta "o que está acabando?".</figcaption>
+</figure>
+
+<!-- C -->
+<figure data-choice="c" onclick="toggleSelect(this)">
+  <div class="device"><div class="screen">
+    <div class="bgblobs"><i style="background:var(--blob1);width:380px;height:380px;left:-160px;top:-140px"></i><i style="background:var(--blob2);width:300px;height:300px;left:180px;top:200px"></i><i style="background:var(--blob3);width:400px;height:400px;left:-100px;top:480px"></i></div>
+    <div class="status"><span>9:41</span><span>●●●</span></div><div class="island"></div>
+    <div class="content">
+      <div class="big" style="margin-top:6px">Despesas</div>
+      <div class="card glass" style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px"><span style="color:var(--accent)">‹</span><b style="font-size:15px">Novembro de 2026</b><span style="color:var(--accent)">›</span></div>
+      <div class="card glass" style="border:1px solid rgba(201,160,40,.45)">
+        <div class="split2"><b style="font-size:13.5px">Revisão do mês</b><span class="badge b-new">3 novas</span></div>
+        <div class="row" style="padding-top:8px"><div><div class="t">Gelateria MFPS</div><div class="s">3 meses · ~R$ 51,00 · C6</div></div><div class="v acts"><span class="no">Não é fixo</span></div></div>
+        <div class="row"><div><div class="t">PG TRS HF</div><div class="s">5 meses · ~R$ 220,50 · Caixa</div></div><div class="v acts"><span class="yes">Fixo</span></div></div>
+      </div>
+      <div class="secTitle"><span>Cartão de crédito</span><a>detalhe</a></div>
+      <div class="card glass">
+        <div class="split2">
+          <div><div class="cap">Parcelas</div><div class="money" style="font-size:15px">R$ 1.595,38</div></div>
+          <div style="text-align:right"><div class="cap">Fixos no cartão</div><div class="money" style="font-size:15px">R$ 999,90</div></div>
+        </div>
+        <div class="ends" style="margin-top:6px">Em dezembro libera <b style="color:var(--positive)">R$ 445,47</b> (PlayStation, Pedro Guilherme)</div>
+      </div>
+      <div class="secTitle"><span>Fixas</span></div>
+      <div class="card glass" style="padding:4px 16px">
+        <div class="row"><div><div class="t">Condomínio</div><div class="s">26/11 · conta</div></div><div class="v">R$ 1.010,00</div></div>
+        <div class="row"><div><div class="t">Wellhub ×3</div><div class="s"><span class="badge b-fixo">cartão</span> C6 e Caixa</div></div><div class="v">R$ 586,50</div></div>
+        <div class="row"><div><div class="t">Internet</div><div class="s">10/11 · conta</div></div><div class="v">R$ 129,90</div></div>
+        <div class="row"><div><div class="t">Spotify</div><div class="s"><span class="badge b-fixo">cartão</span> Caixa</div></div><div class="v">R$ 40,90</div></div>
+      </div>
+    </div>
+    <div class="tabbar glass"><span><i>⌂</i>Início</span><span><i>↓</i>Entradas</span><span class="on"><i>↑</i>Despesas</span><span><i>!</i>Atrasadas</span></div>
+  </div></div>
+  <figcaption><b>C · Dentro de Despesas</b>Sem aba nova. Os fixos do cartão entram na lista de despesas fixas com um selo "cartão", e as parcelas viram um resumo. No topo, a revisão do mês pede para você confirmar as recorrências que o app detectou.</figcaption>
+</figure>
+
+</div>
+</body>
+</html>

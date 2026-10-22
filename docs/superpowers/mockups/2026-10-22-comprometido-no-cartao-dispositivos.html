@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Cartões no iPhone e no iPad</title>
+<style>
+  :root {
+    --accent:#3D6FE0; --positive:#2E8B6E; --warning:#C9483B; --bg:#FAFBFD; --fixo:#8A6BD6;
+    --blob1:#C9D8FF; --blob2:#E3D9FA; --blob3:#D6E3FF; --markTop:#EAF0FF; --markBottom:#C9D8FF;
+    --text:#111318; --secondary:#6B7080; --glass:rgba(255,255,255,.55); --glassBorder:rgba(255,255,255,.85); --divider:rgba(60,60,67,.14);
+  }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; background:#1b1d22; color:var(--text); padding:24px 16px 80px }
+  h1 { color:#fff; text-align:center; font-size:22px; margin-bottom:6px }
+  h2 { color:#fff; text-align:center; font-size:17px; margin:40px 0 16px }
+  .lead { color:#aaa; text-align:center; font-size:14px; margin:0 auto 24px; max-width:860px; line-height:1.5 }
+  .frames { display:flex; flex-wrap:wrap; gap:36px; justify-content:center; align-items:flex-start }
+  figure { display:flex; flex-direction:column; align-items:center; gap:10px }
+  figcaption { color:#ccc; font-size:13px; max-width:420px; line-height:1.45 }
+  figcaption b { color:#fff; display:block; font-size:14px; margin-bottom:2px }
+  .device { background:#0c0d10; padding:10px; box-shadow:0 20px 50px rgba(0,0,0,.5); position:relative; overflow:hidden }
+  .device.ipad { border-radius:26px }
+  .device.iphone { border-radius:40px; padding:8px }
+  .holder { position:relative; overflow:hidden }
+  .ipad .holder { border-radius:18px }
+  .iphone .holder { border-radius:34px }
+  .screen { position:absolute; top:0; left:0; overflow:hidden; background:var(--bg); transform-origin:top left }
+  .bgblobs { position:absolute; inset:0; filter:blur(60px) }
+  .bgblobs i { position:absolute; border-radius:50%; display:block }
+  .status { position:absolute; top:0; left:0; right:0; height:28px; display:flex; justify-content:space-between; padding:8px 24px; font-size:13px; font-weight:600; z-index:5 }
+  .iphone .status { height:54px; padding:18px 34px; font-size:16px }
+  .island { position:absolute; top:11px; left:50%; transform:translateX(-50%); width:124px; height:36px; border-radius:20px; background:#000; z-index:7 }
+  .glass { background:var(--glass); backdrop-filter:blur(24px) saturate(1.6); -webkit-backdrop-filter:blur(24px) saturate(1.6); border:1px solid var(--glassBorder); box-shadow:0 8px 30px rgba(40,60,120,.08), inset 0 1px 0 rgba(255,255,255,.9) }
+  .card { border-radius:24px; padding:16px 18px }
+  .big { font-size:34px; font-weight:700; letter-spacing:-.6px }
+  .cap { font-size:12.5px; color:var(--secondary) }
+  .sub { font-size:14px; color:var(--secondary) }
+  .money { font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.4px }
+  .row { display:flex; align-items:center; padding:9px 0; gap:12px }
+  .row + .row { border-top:1px solid var(--divider) }
+  .row .t { font-size:15px; font-weight:600 }
+  .row .s { font-size:12px; color:var(--secondary); margin-top:2px }
+  .row .v { margin-left:auto; text-align:right; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap }
+  .secTitle { font-size:15px; font-weight:600; color:var(--secondary); margin:4px 6px 8px; display:flex; justify-content:space-between }
+  .secTitle a { color:var(--accent); font-weight:500 }
+  .pill { display:inline-block; font-size:11.5px; font-weight:600; padding:2px 8px; border-radius:999px }
+  .b-end { color:var(--positive); background:rgba(46,139,110,.13) }
+  .b-parc { color:var(--accent); background:rgba(61,111,224,.12) }
+  .b-fixo { color:var(--fixo); background:rgba(138,107,214,.14) }
+  .b-warn { color:#8A6D1F; background:rgba(201,160,40,.17) }
+  .chips { display:flex; gap:7px; font-size:13.5px; flex-wrap:wrap }
+  .chips span { padding:6px 13px; border-radius:999px; background:rgba(120,120,128,.14) }
+  .chips span.on { background:var(--accent); color:#fff; font-weight:600 }
+  .review { display:flex; align-items:center; gap:12px; border-radius:20px; padding:12px 16px; border:1px solid rgba(201,160,40,.45) }
+  .review .dot { width:30px; height:30px; border-radius:50%; background:rgba(201,160,40,.2); color:#8A6D1F; display:grid; place-items:center; font-weight:700; flex:none }
+  .review b { font-size:15px }
+  .review .go { margin-left:auto; color:var(--accent); font-weight:600; font-size:14px }
+  .stack { display:flex; align-items:flex-end; gap:6px; margin-top:12px }
+  .stack div { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; color:var(--secondary) }
+  .stack .bar { width:100%; display:flex; flex-direction:column; border-radius:6px; overflow:hidden }
+  .stack .p { background:var(--accent) } .stack .f { background:var(--fixo) }
+  .stack .cur { font-weight:700; color:var(--text) }
+  .legend { display:flex; gap:14px; font-size:12px; color:var(--secondary); margin-top:10px }
+  .legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px }
+  .split2 { display:flex; justify-content:space-between; gap:12px }
+  .sync { font-size:12px; color:var(--secondary); text-align:center }
+  .tabbottom { position:absolute; bottom:24px; left:20px; right:20px; display:flex; justify-content:space-around; padding:6px; border-radius:999px; z-index:6 }
+  .tabbottom span, .tabtop span { flex:1; height:44px; display:grid; place-items:center; border-radius:999px; font-size:19px; position:relative; color:var(--secondary) }
+  .tabtop { position:absolute; top:34px; left:50%; transform:translateX(-50%); display:flex; gap:4px; padding:5px; border-radius:999px; z-index:6 }
+  .tabtop span { width:54px; flex:none; height:36px; font-size:17px }
+  .tabbottom span.on, .tabtop span.on { background:rgba(61,111,224,.14); color:var(--accent) }
+  .badge { position:absolute; top:2px; right:6px; background:#FF3B30; color:#fff; font-size:10px; font-weight:700; border-radius:999px; min-width:16px; height:16px; display:grid; place-items:center; padding:0 4px; font-style:normal }
+  .sidebar { position:absolute; top:12px; left:12px; bottom:12px; width:300px; border-radius:30px; padding:52px 14px 14px; z-index:4; display:flex; flex-direction:column }
+  .sidebar .item { display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:14px; font-size:17px }
+  .sidebar .item.on { background:rgba(61,111,224,.14); color:var(--accent); font-weight:600 }
+  .sidebar .item .ic { width:24px; text-align:center }
+  .sidebar .item .count { margin-left:auto; font-size:15px; color:var(--secondary) }
+  .sidebar .item .count.w { color:var(--warning); font-weight:600 }
+  .mark { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,var(--markTop),var(--markBottom)); box-shadow:0 5px 10px rgba(0,0,0,.12) }
+  .avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#7FA1EE,#B79BE6); color:#fff; display:grid; place-items:center; font-weight:600; flex:none }
+  .roundBtn { position:absolute; left:24px; bottom:24px; width:48px; height:48px; border-radius:50%; display:grid; place-items:center; font-size:20px; color:var(--accent); z-index:6 }
+  .col { display:flex; flex-direction:column; gap:14px; min-width:0 }
+  .sheetDim { position:absolute; inset:0; background:rgba(0,0,0,.25); z-index:20 }
+  .sheet { position:absolute; left:0; right:0; bottom:0; top:110px; z-index:21; background:#F2F3F7; border-radius:30px 30px 34px 34px; padding:18px; display:flex; flex-direction:column; gap:12px }
+  .sheetHead { display:flex; justify-content:space-between; align-items:center; font-size:16px }
+  .circle { width:34px; height:34px; border-radius:50%; background:rgba(120,120,128,.14); display:grid; place-items:center }
+  .acts { display:flex; gap:6px; margin-top:8px }
+  .acts span { font-size:13px; font-weight:600; padding:6px 12px; border-radius:999px }
+  .yes { background:var(--accent); color:#fff } .no { background:rgba(120,120,128,.14) }
+  .note { color:#aaa; font-size:12.5px; line-height:1.5; max-width:420px }
+</style>
+</head>
+<body>
+<h1>Aba Cartões no iPhone e no iPad</h1>
+<p class="lead">Mesma escala entre os aparelhos. Valores aproximados dos seus cartões em outubro de 2026. Parcelas em azul, fixos em roxo.</p>
+
+<h2>iPhone</h2>
+<div class="frames" id="iphone"></div>
+
+<h2>iPad horizontal · barra lateral aberta</h2>
+<div class="frames" id="ipadH"></div>
+
+<h2>iPad vertical · barra recolhida</h2>
+<div class="frames" id="ipadV"></div>
+
+<h2>Conexões (iPhone)</h2>
+<div class="frames" id="conn"></div>
+
+<script>
+const SCALE = 0.62;
+const months = [['nov',1595],['dez',1150],['jan',1150],['fev',992],['mar',992],['abr',992],['mai',932],['jun',932],['jul',751],['ago',541],['set',458],['out',0]];
+const FIXO = 1000, MAX = 2600;
+
+const ending = [
+  ['PlayStation','C6','4/4 em novembro','R$ 112,47','libera em dez'],
+  ['Pedro Guilherme','C6','3/3 em novembro','R$ 333,00','libera em dez'],
+  ['OAB MG','Caixa','8/8 em janeiro','R$ 158,38','libera em fev'],
+];
+const parcelas = [
+  ['Iate Tênis Clube','Caixa','1/12 · até set/27','R$ 458,37'],
+  ['PG Bora Assessoria','Caixa','3/12 · até jul','R$ 210,00'],
+  ['Nike','Caixa','2/10 · até jun','R$ 180,58'],
+  ['Amazon Marketplace','Caixa','2/12 · até ago','R$ 82,88'],
+  ['Azul Linhas Aéreas','Caixa','6/12 · até abr','R$ 25,20'],
+  ['Anuidade Caixa','Caixa','6/12 · até abr','R$ 34,50'],
+];
+const fixos = [
+  ['Wellhub Cristiano','C6','R$ 219,90',''],
+  ['Wellhub Adriano','C6','R$ 183,30',''],
+  ['Wellhub Thais','Caixa','R$ 183,30',''],
+  ['Cruzeiro EC','Caixa','R$ 100,00',''],
+  ['Anuidade C6','C6','R$ 98,00',''],
+  ['Apple','Inter','R$ 59,90',''],
+  ['Clube Livelo','C6','R$ 44,90',''],
+  ['Clube Livelo','Caixa','R$ 44,90','sem cobrança recente'],
+  ['Spotify','Caixa','R$ 40,90',''],
+  ['iFood Club','C6','R$ 12,90',''],
+  ['Amazon Music','Inter','R$ 11,90',''],
+];
+
+const blobs = (w,h) => `<div class="bgblobs"><i style="background:var(--blob1);width:${w*.9}px;height:${w*.9}px;left:-${w*.35}px;top:-${h*.15}px"></i><i style="background:var(--blob2);width:${w*.7}px;height:${w*.7}px;left:${w*.45}px;top:${h*.3}px"></i><i style="background:var(--blob3);width:${w}px;height:${w}px;left:-${w*.2}px;top:${h*.6}px"></i></div>`;
+
+const review = () => `<div class="review glass"><div class="dot">3</div><div><b>Recorrências para revisar</b><div class="cap">Gelateria MFPS, PG TRS HF, EC Melimais</div></div><span class="go">Revisar ›</span></div>`;
+const chips = () => `<div class="chips"><span class="on">Todos</span><span>C6</span><span>Caixa</span><span>Nubank</span><span>Inter</span></div>`;
+
+function panel(barH, showAll = 12) {
+  const bars = months.slice(0, showAll).map(([m,p],i) => {
+    const total = p + FIXO, h = Math.round(barH * total / MAX);
+    return `<div><div class="bar" style="height:${h}px">${p?`<i class="p" style="flex:${p}"></i>`:''}<i class="f" style="flex:${FIXO}"></i></div><span class="${i==0?'cur':''}">${m}</span></div>`;
+  }).join('');
+  return `<div class="card glass">
+    <div class="cap">Comprometido em novembro</div>
+    <div class="money" style="font-size:32px">R$ 2.595,28</div>
+    <div class="split2" style="margin-top:6px">
+      <span class="sub"><span class="pill b-parc">parcelas</span> R$ 1.595,38</span>
+      <span class="sub"><span class="pill b-fixo">fixos</span> R$ 999,90</span>
+    </div>
+    <div class="stack">${bars}</div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>Parcelas</span><span><i style="background:var(--fixo)"></i>Fixos</span><span style="margin-left:auto">próximos 12 meses</span></div>
+  </div>`;
+}
+
+const rowsEnding = (n=3) => ending.slice(0,n).map(([t,c,s,v,l]) => `<div class="row"><div><div class="t">${t}</div><div class="s">${c} · ${s}</div></div><div class="v">${v}<div><span class="pill b-end">${l}</span></div></div></div>`).join('');
+const rowsParc = (n) => parcelas.slice(0,n).map(([t,c,s,v]) => `<div class="row"><div><div class="t">${t}</div><div class="s">${c} · ${s}</div></div><div class="v">${v}</div></div>`).join('');
+const rowsFixos = (n) => fixos.slice(0,n).map(([t,c,v,w]) => `<div class="row"><div><div class="t">${t}</div><div class="s">${c}${w?` · <span class="pill b-warn">${w}</span>`:''}</div></div><div class="v">${v}</div></div>`).join('');
+
+const terminando = (n) => `<div><div class="secTitle"><span>Terminando</span><a>Ver parcelas (9)</a></div><div class="card glass" style="padding:4px 18px">${rowsEnding(n)}</div></div>`;
+const emAndamento = (n) => `<div><div class="secTitle"><span>Outras parcelas</span></div><div class="card glass" style="padding:4px 18px">${rowsParc(n)}</div></div>`;
+const fixosCard = (n) => `<div><div class="secTitle"><span>Fixos</span><a>Ver todos (11)</a></div><div class="card glass" style="padding:4px 18px">${rowsFixos(n)}</div></div>`;
+
+function device(kind, w, h, inner, caption) {
+  const fig = document.createElement('figure');
+  fig.innerHTML = `<div class="device ${kind}"><div class="holder" style="width:${w*SCALE}px;height:${h*SCALE}px"><div class="screen" style="width:${w}px;height:${h}px;transform:scale(${SCALE})">${blobs(w,h)}${inner}</div></div></div><figcaption>${caption}</figcaption>`;
+  return fig;
+}
+
+const iphoneTabs = `<div class="tabbottom glass"><span>⌂</span><span>↓</span><span>↑</span><span class="on">▭</span><span>!<i class="badge">2</i></span></div>`;
+
+document.getElementById('iphone').append(
+  device('iphone', 402, 874, `<div class="status"><span>9:41</span><span>●●●</span></div><div class="island"></div>
+    <div style="position:absolute;inset:0;padding:62px 18px 100px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+      <div class="big">Cartões</div>
+      ${review()}
+      ${chips()}
+      ${panel(96)}
+      ${terminando(3)}
+      ${fixosCard(2)}
+    </div>${iphoneTabs}`,
+    `<b>Aba Cartões</b>Rola para baixo: Terminando e depois Fixos. Puxar para baixo atualiza os dados. A barra embaixo ganha a quinta aba, entre Despesas e Atrasadas.`),
+  device('iphone', 402, 874, `<div class="status"><span>9:41</span><span>●●●</span></div><div class="island"></div>
+    <div style="position:absolute;inset:0;padding:62px 18px 100px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+      <div class="big">Cartões</div>${review()}${chips()}${panel(96)}
+    </div>
+    <div class="sheetDim"></div>
+    <div class="sheet">
+      <div class="sheetHead"><span class="circle">✕</span><b>Revisar recorrências</b><span style="width:34px"></span></div>
+      <div class="cap" style="padding:0 4px">Cobranças parecidas em 3 meses ou mais. Só entram nos fixos as que você marcar.</div>
+      <div class="card" style="background:#fff;padding:6px 16px">
+        <div class="row" style="display:block"><div class="split2"><div><div class="t">Gelateria MFPS</div><div class="s">C6 · 3 meses · ~R$ 51,00</div></div></div><div class="acts"><span class="yes">É fixo</span><span class="no">Não é fixo</span></div></div>
+        <div class="row" style="display:block"><div class="split2"><div><div class="t">PG TRS HF</div><div class="s">Caixa · 5 meses · ~R$ 220,50</div></div></div><div class="acts"><span class="yes">É fixo</span><span class="no">Não é fixo</span></div></div>
+        <div class="row" style="display:block"><div class="split2"><div><div class="t">EC Melimais</div><div class="s">C6 · 3 meses · ~R$ 9,90</div></div></div><div class="acts"><span class="yes">É fixo</span><span class="no">Não é fixo</span></div></div>
+      </div>
+    </div>${iphoneTabs}`,
+    `<b>Revisar recorrências</b>Abre pelo aviso amarelo do topo. Cada item tem "É fixo" e "Não é fixo". O que você descarta não volta.`)
+);
+
+const sidebar = `<div class="sidebar glass">
+  <div style="display:flex;align-items:center;gap:12px;padding:0 10px 16px"><div class="mark"></div><b style="font-size:20px">Finanças</b></div>
+  <div class="item"><span class="ic">⌂</span>Início</div>
+  <div class="item"><span class="ic">↓</span>Receitas<span class="count">2</span></div>
+  <div class="item"><span class="ic">↑</span>Despesas<span class="count">5</span></div>
+  <div class="item on"><span class="ic">▭</span>Cartões<span class="count">3</span></div>
+  <div class="item"><span class="ic">!</span>Atrasadas<span class="count w">2</span></div>
+  <div style="margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px"><div class="avatar">A</div><div><b style="font-size:15px">Adriano</b><div class="cap">Conta e configurações</div></div></div>
+</div>`;
+
+document.getElementById('ipadH').append(
+  device('ipad', 1180, 820, `<div class="status"><span>9:41  qua 22 out</span><span>●●●</span></div>${sidebar}
+    <div style="position:absolute;top:12px;left:336px;right:24px;bottom:12px;padding-top:40px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+      <div class="split2" style="align-items:flex-end"><div class="big">Cartões</div><span class="sync">Atualizado hoje, 06:10</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div class="col">${review()}${chips()}${panel(150)}</div>
+        <div class="col">${terminando(3)}${fixosCard(6)}</div>
+      </div>
+    </div>`,
+    `<b>Duas colunas</b>À esquerda: aviso de revisão, filtro e painel com o gráfico maior. À direita: Terminando e Fixos, com mais linhas visíveis. Cartões entra na barra lateral entre Despesas e Atrasadas, com o contador de recorrências para revisar.`)
+);
+
+document.getElementById('ipadV').append(
+  device('ipad', 820, 1180, `<div class="status"><span>9:41  qua 22 out</span><span>●●●</span></div>
+    <div class="tabtop glass"><span>⌂</span><span>↓</span><span>↑</span><span class="on">▭</span><span>!<i class="badge">2</i></span></div>
+    <div style="position:absolute;inset:0;padding:96px 28px 90px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+      <div class="split2" style="align-items:flex-end"><div class="big">Cartões</div><span class="sync">Atualizado hoje, 06:10</span></div>
+      ${review()}
+      ${chips()}
+      ${panel(170)}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div class="col">${terminando(3)}${emAndamento(3)}</div>
+        <div class="col">${fixosCard(8)}</div>
+      </div>
+    </div>
+    <div class="roundBtn glass">☰</div>`,
+    `<b>Painel em cima, listas lado a lado</b>Na vertical, o painel ocupa a largura toda, com o gráfico mais alto. Embaixo, Terminando e Fixos ficam lado a lado. Abas no topo e botão redondo para abrir a barra, como nas outras seções.`)
+);
+
+const connStatus = (b, cards, st, cls) => `<div class="row" style="display:block"><div class="split2"><div><div class="t">${b}</div><div class="s">${cards}</div></div><div class="v" style="font-size:13px;font-weight:500">${st}</div></div>${cls||''}</div>`;
+document.getElementById('conn').append(
+  device('iphone', 402, 874, `<div class="status"><span>9:41</span><span>●●●</span></div><div class="island"></div>
+    <div style="position:absolute;inset:0;padding:62px 18px 100px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;color:var(--accent);font-size:17px">‹ Configurações</div>
+      <div class="big" style="font-size:30px">Cartões conectados</div>
+      <div class="cap" style="padding:0 4px;font-size:13.5px;line-height:1.45">Os cartões chegam pelo MeuPluggy, que usa o Open Finance. Os dados atualizam uma vez por dia.</div>
+      <div class="card glass" style="padding:4px 18px">
+        ${connStatus('C6','BANDEIRADO ····4526','<span style="color:var(--positive)">Atualizado hoje</span>')}
+        ${connStatus('Caixa','Visa Platinum ····3334','<span style="color:var(--positive)">Atualizado hoje</span>')}
+        ${connStatus('Nubank','Platinum ····4627','<span style="color:var(--warning)">Precisa reconectar</span>','<div class="acts"><span class="yes">Reconectar</span></div>')}
+        ${connStatus('Inter','Black ····6889','<span style="color:var(--secondary)">Atualizado ontem</span>')}
+      </div>
+      <div style="text-align:center;padding:13px;border-radius:999px;font-weight:600;font-size:16px;color:#fff;background:var(--accent)">＋ Conectar banco</div>
+      <div class="cap" style="text-align:center">Arraste uma conexão para a esquerda para remover.</div>
+    </div>`,
+    `<b>Configurações › Cartões conectados</b>Cada conexão mostra o cartão e o status. "Reconectar" aparece só quando a conexão precisa de ação. Remover pede confirmação e apaga os dados daquela conexão.`),
+  device('iphone', 402, 874, `<div class="status"><span>9:41</span><span>●●●</span></div><div class="island"></div>
+    <div style="position:absolute;inset:0;padding:62px 18px 100px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;color:var(--accent);font-size:17px">‹ Cartões conectados</div>
+      <div class="big" style="font-size:30px">Conectar banco</div>
+      <div class="card glass" style="font-size:15px;line-height:1.5">
+        <b>Você vai precisar de uma conta no MeuPluggy.</b>
+        <ol style="margin:10px 0 0 20px;color:var(--secondary);font-size:14px">
+          <li>Crie a conta grátis em meu.pluggy.ai e conecte seus bancos por lá.</li>
+          <li>Volte aqui e toque em Continuar.</li>
+          <li>Entre com a conta do MeuPluggy e autorize o Finanças.</li>
+        </ol>
+      </div>
+      <div style="text-align:center;padding:13px;border-radius:999px;font-weight:600;font-size:16px;color:var(--accent);background:rgba(61,111,224,.12)">Criar conta no MeuPluggy ↗</div>
+      <div style="text-align:center;padding:13px;border-radius:999px;font-weight:600;font-size:16px;color:#fff;background:var(--accent)">Continuar</div>
+    </div>`,
+    `<b>Antes do widget</b>Explica o MeuPluggy antes de abrir o Pluggy Connect, porque sem essa conta a pessoa fica travada no widget.`),
+  device('iphone', 402, 874, `<div class="status"><span>9:41</span><span>●●●</span></div><div class="island"></div>
+    <div style="position:absolute;inset:0;padding:62px 18px 100px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+      <div class="big">Cartões</div>
+      <div class="card glass" style="margin-top:120px;text-align:center;padding:28px 22px">
+        <div style="font-size:40px;color:var(--accent)">▭</div>
+        <div style="font-size:18px;font-weight:600;margin-top:8px">Nenhum cartão conectado</div>
+        <div class="sub" style="margin-top:6px;line-height:1.45">Conecte seus cartões para ver quanto já está comprometido com parcelas e assinaturas.</div>
+        <div style="margin-top:16px;text-align:center;padding:12px;border-radius:999px;font-weight:600;font-size:15px;color:#fff;background:var(--accent)">Conectar banco</div>
+      </div>
+    </div>${iphoneTabs}`,
+    `<b>Aba vazia</b>Quem ainda não conectou nada vê isso. O botão leva para Cartões conectados.`)
+);
+</script>
+</body>
+</html>
