@@ -6,4 +6,5 @@ enum CardConstants {
     static let syncFunction = "cards-sync"
     static let connectFunction = "cards-connect"
     static let pageSize = 1000
+    static let installmentDropAfterMonths = 3
 }
