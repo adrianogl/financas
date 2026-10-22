@@ -1,0 +1,2 @@
+[functions.cards-sync]
+verify_jwt = false
