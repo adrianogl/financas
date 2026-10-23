@@ -7,6 +7,8 @@ extension AppTab {
             "Receitas"
         case .expenses:
             "Despesas"
+        case .cards:
+            "Cartões"
         case .overdue:
             "Atrasadas"
         }
@@ -20,6 +22,8 @@ extension AppTab {
             "arrow.down.to.line"
         case .expenses:
             "arrow.up.to.line"
+        case .cards:
+            "creditcard"
         case .overdue:
             "bell.badge"
         }

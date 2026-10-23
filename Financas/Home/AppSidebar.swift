@@ -38,6 +38,8 @@ struct AppSidebar: View {
             counts.incomes
         case .expenses:
             counts.expenses
+        case .cards:
+            counts.cards
         case .overdue:
             counts.overdue
         }

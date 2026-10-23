@@ -7,6 +7,7 @@ struct FinancasApp: App {
     @State private var accountManager: AccountManager
     @State private var incomeStore: IncomeStore
     @State private var expenseStore: ExpenseStore
+    @State private var cardStore: CardStore
     @State private var avatarStore: AvatarStore
     @State private var reminders: ReminderScheduler
     @State private var navigation: AppNavigation
@@ -23,12 +24,14 @@ struct FinancasApp: App {
         let client = SupabaseClientFactory.make(config: config)
         let incomes = IncomeStore(service: SupabaseIncomeService(client: client))
         let expenses = ExpenseStore(service: SupabaseExpenseService(client: client))
+        let cards = CardStore(service: SupabaseCardService(client: client))
         let scheduler = ReminderScheduler(center: SystemReminderCenter())
         let navigation = AppNavigation()
 
         _lockManager = State(initialValue: lock)
         _incomeStore = State(initialValue: incomes)
         _expenseStore = State(initialValue: expenses)
+        _cardStore = State(initialValue: cards)
         _reminders = State(initialValue: scheduler)
         _navigation = State(initialValue: navigation)
         let account = AccountManager(
@@ -39,6 +42,7 @@ struct FinancasApp: App {
                 lock.resetForSignOut()
                 incomes.reset()
                 expenses.reset()
+                cards.reset()
                 navigation.reset()
                 Task { await scheduler.reset() }
             }
@@ -59,6 +63,7 @@ struct FinancasApp: App {
                 .environment(accountManager)
                 .environment(incomeStore)
                 .environment(expenseStore)
+                .environment(cardStore)
                 .environment(avatarStore)
                 .environment(reminders)
                 .environment(appDelegate.router)

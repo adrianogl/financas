@@ -4,6 +4,9 @@ import UIKit
 enum Theme {
     static let accent = Color.accentColor
     static let positive = Color.dynamic(light: 0x2E8B6E, dark: 0x5CC79E)
+    static let fixedCharge = Color.dynamic(light: 0x8A6BD6, dark: 0xA88BF0)
+    static let review = Color.dynamic(light: 0x8A6D1F, dark: 0xE0C266)
+    static let reviewTint = Color.dynamic(light: 0xC9A028, dark: 0xC9A028)
     static let warning = Color.dynamic(light: 0xC9483B, dark: 0xE8796D)
     static let background = Color.dynamic(light: 0xFAFBFD, dark: 0x0B0F1A)
     static let blobPrimary = Color.dynamic(light: 0xC9D8FF, dark: 0x1D2D5C)

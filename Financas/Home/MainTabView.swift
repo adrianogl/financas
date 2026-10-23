@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(ExpenseStore.self) private var expenseStore
+    @Environment(CardStore.self) private var cardStore
     @Environment(LockManager.self) private var lockManager
     @Environment(ReminderRouter.self) private var router
     @Environment(AppNavigation.self) private var navigation
@@ -59,7 +60,8 @@ struct MainTabView: View {
         return SidebarCounts(
             incomes: incomeStore.occurrences(in: month),
             expenses: expenseStore.occurrences(in: month, today: today),
-            overdue: incomeStore.overdueOccurrences.count + expenseStore.overduePayables(today: today).count
+            overdue: incomeStore.overdueOccurrences.count + expenseStore.overduePayables(today: today).count,
+            cards: cardStore.reviewCount
         )
     }
 

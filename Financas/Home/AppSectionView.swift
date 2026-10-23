@@ -11,6 +11,8 @@ struct AppSectionView: View {
             IncomesView()
         case .expenses:
             ExpensesView()
+        case .cards:
+            CardsView()
         case .overdue:
             OverdueView()
         }

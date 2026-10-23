@@ -14,10 +14,11 @@ struct SidebarCountsTests {
         ]
         let expenses = ExpenseSchedule.occurrences(in: october, snapshot: expenseSnapshot, today: ExpenseSamples.today)
 
-        let counts = SidebarCounts(incomes: incomes, expenses: expenses, overdue: 4)
+        let counts = SidebarCounts(incomes: incomes, expenses: expenses, overdue: 4, cards: 3)
 
         #expect(counts.incomes == 1)
         #expect(counts.expenses == 2)
         #expect(counts.overdue == 4)
+        #expect(counts.cards == 3)
     }
 }

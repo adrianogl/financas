@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(LockManager.self) private var lockManager
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(ExpenseStore.self) private var expenseStore
+    @Environment(CardStore.self) private var cardStore
     @Environment(AvatarStore.self) private var avatarStore
     @Environment(ReminderScheduler.self) private var reminders
     @Environment(\.scenePhase) private var scenePhase
@@ -62,8 +63,10 @@ struct RootView: View {
                         guard lockManager.isUnlocked else { return }
                         async let user: Void = account.refreshUser()
                         async let expenses = expenseStore.refresh()
+                        async let cards: Void = cardStore.load()
                         await incomeStore.refresh()
                         _ = await expenses
+                        await cards
                         await syncReminders()
                         await user
                     }
@@ -77,10 +80,13 @@ struct RootView: View {
                         Task { await syncReminders() }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                        cardStore.today = CalendarDay(date: .now)
                         Task {
                             async let expenses = expenseStore.refresh()
+                            async let cards: Void = cardStore.load()
                             await incomeStore.refresh()
                             _ = await expenses
+                            await cards
                         }
                     }
             }
