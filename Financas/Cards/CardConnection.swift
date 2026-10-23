@@ -6,6 +6,7 @@ struct CardConnection: Identifiable, Hashable, Codable, Sendable {
     var status: CardConnectionStatus
     var lastSyncedAt: Date?
     var lastError: String?
+    var institutionName: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -13,14 +14,16 @@ struct CardConnection: Identifiable, Hashable, Codable, Sendable {
         case status
         case lastSyncedAt = "last_synced_at"
         case lastError = "last_error"
+        case institutionName = "institution_name"
     }
 
-    init(id: UUID, itemID: String, status: CardConnectionStatus, lastSyncedAt: Date?, lastError: String?) {
+    init(id: UUID, itemID: String, status: CardConnectionStatus, lastSyncedAt: Date?, lastError: String?, institutionName: String? = nil) {
         self.id = id
         self.itemID = itemID
         self.status = status
         self.lastSyncedAt = lastSyncedAt
         self.lastError = lastError
+        self.institutionName = institutionName
     }
 
     init(from decoder: Decoder) throws {
@@ -29,6 +32,7 @@ struct CardConnection: Identifiable, Hashable, Codable, Sendable {
         itemID = try container.decode(String.self, forKey: .itemID)
         status = try container.decode(CardConnectionStatus.self, forKey: .status)
         lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
+        institutionName = try container.decodeIfPresent(String.self, forKey: .institutionName)
         guard let text = try container.decodeIfPresent(String.self, forKey: .lastSyncedAt) else {
             lastSyncedAt = nil
             return
@@ -46,5 +50,6 @@ struct CardConnection: Identifiable, Hashable, Codable, Sendable {
         try container.encode(status, forKey: .status)
         try container.encode(lastSyncedAt?.formatted(.iso8601), forKey: .lastSyncedAt)
         try container.encode(lastError, forKey: .lastError)
+        try container.encode(institutionName, forKey: .institutionName)
     }
 }

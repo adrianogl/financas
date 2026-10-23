@@ -41,6 +41,15 @@ enum CardFormat {
         }
     }
 
+    static func accountDetailText(institution: String?, brandLabel: String?, lastDigits: String) -> String {
+        let labels = [institution, brandLabel]
+            .compactMap { $0?.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+        let digits = "····\(lastDigits)"
+        return labels.isEmpty ? digits : "\(labels) \(digits)"
+    }
+
     static func connectionWarning(_ connection: CardConnection, nickname: String, now: Date, calendar: Calendar = .current) -> String? {
         if connection.status == .needsReconnect {
             return "\(nickname) precisa reconectar"

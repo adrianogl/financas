@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.4"
-import { UPSERT_CHUNK_SIZE } from "./cardConstants.ts"
-import { accountRow, connectionStatus, syncWindow, transactionRow } from "./cardRows.ts"
+import { CREDIT_ACCOUNT_TYPE, UPSERT_CHUNK_SIZE } from "./cardConstants.ts"
+import { accountRow, connectionStatus, defaultNickname, institutionName, syncWindow, transactionRow } from "./cardRows.ts"
 import type { PluggyClient } from "./pluggy.ts"
 import type { ConnectionRecord, ConnectionSyncResult, DateWindow, SyncFilter } from "./pluggyTypes.ts"
 
@@ -91,13 +91,17 @@ async function syncConnection(
     (existing.data ?? []).map((row: { pluggy_account_id: string; nickname: string }) => [row.pluggy_account_id, row.nickname]),
   )
 
-  const accounts = await pluggy.listCreditAccounts(connection.item_id)
+  const allAccounts = await pluggy.listAccounts(connection.item_id)
+  const institution = institutionName(allAccounts)
+  const named = await admin.from("card_connections").update({ institution_name: institution }).eq("id", connection.id)
+  if (named.error) throw named.error
+  const accounts = allAccounts.filter((account) => account.type === CREDIT_ACCOUNT_TYPE)
   for (const account of accounts) {
     const isNew = !nicknames.has(account.id)
     const upserted = await admin
       .from("card_accounts")
       .upsert(
-        [{ ...accountRow(account, connection.id, nicknames.get(account.id)), user_id: connection.user_id }],
+        [{ ...accountRow(account, connection.id, institution, nicknames.get(account.id)), user_id: connection.user_id }],
         { onConflict: "pluggy_account_id" },
       )
       .select("id, pluggy_account_id")
@@ -108,7 +112,7 @@ async function syncConnection(
     try {
       await syncAccountTransactions(admin, pluggy, connection, account.id, cardAccountId, isNew ? null : connection.last_synced_at, today)
     } catch (error) {
-      if (isNew) await removeUntouchedAccount(admin, cardAccountId, accountRow(account, connection.id).nickname)
+      if (isNew) await removeUntouchedAccount(admin, cardAccountId, defaultNickname(account, institution))
       throw error
     }
   }

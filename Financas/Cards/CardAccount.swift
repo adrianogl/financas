@@ -6,6 +6,7 @@ struct CardAccount: Identifiable, Hashable, Codable, Sendable {
     var name: String
     var lastDigits: String
     var nickname: String
+    var brandLabel: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -13,5 +14,6 @@ struct CardAccount: Identifiable, Hashable, Codable, Sendable {
         case name
         case lastDigits = "last_digits"
         case nickname
+        case brandLabel = "brand_label"
     }
 }

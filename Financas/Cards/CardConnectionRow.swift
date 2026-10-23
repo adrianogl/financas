@@ -18,7 +18,7 @@ struct CardConnectionRow: View {
                 Button {
                     onRename(account)
                 } label: {
-                    line(title: account.nickname, detail: "\(account.name) ····\(account.lastDigits)", status: status)
+                    line(title: account.nickname, detail: CardFormat.accountDetailText(institution: connection.institutionName, brandLabel: account.brandLabel, lastDigits: account.lastDigits), status: status)
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)

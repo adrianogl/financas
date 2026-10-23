@@ -21,6 +21,8 @@ export type PluggyAccount = {
   name: string
   number: string
   type: string
+  bankData?: { transferNumber?: string | null } | null
+  creditData?: { brand?: string | null; level?: string | null } | null
 }
 
 export type PluggyItem = {
@@ -52,6 +54,7 @@ export type CardAccountRow = {
   name: string
   last_digits: string
   nickname: string
+  brand_label: string | null
 }
 
 export type DateWindow = { from: string; to: string }

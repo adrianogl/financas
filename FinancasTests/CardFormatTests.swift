@@ -79,4 +79,15 @@ struct CardFormatTests {
         #expect(CardFormat.statusText(connection(.active, synced: date(2026, 10, 21, 8)), now: now, calendar: calendar) == "Atualizado ontem")
         #expect(CardFormat.statusText(connection(.needsReconnect, synced: nil), now: now, calendar: calendar) == "Precisa reconectar")
     }
+
+    @Test(arguments: [
+        ("C6", "Mastercard Black", "4526", "C6 · Mastercard Black ····4526"),
+        (nil, "Mastercard Black", "4526", "Mastercard Black ····4526"),
+        ("C6", nil, "4526", "C6 ····4526"),
+        (nil, nil, "4526", "····4526"),
+        ("", "", "4526", "····4526"),
+    ] as [(String?, String?, String, String)])
+    func accountDetailTextOmitsMissingParts(institution: String?, brand: String?, digits: String, expected: String) {
+        #expect(CardFormat.accountDetailText(institution: institution, brandLabel: brand, lastDigits: digits) == expected)
+    }
 }

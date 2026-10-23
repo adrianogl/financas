@@ -17,7 +17,7 @@ Deno.test("falha numa conexão grava last_error e não impede as outras", async 
       if (itemId === "item1") return Promise.reject(new Error("pluggy fora do ar"))
       return Promise.resolve({ id: itemId, status: "UPDATED" })
     },
-    listCreditAccounts: () => Promise.resolve([{ id: "pa1", name: "CARTAO ", number: "1234", type: "CREDIT" }]),
+    listAccounts: () => Promise.resolve([{ id: "pa1", name: "CARTAO ", number: "1234", type: "CREDIT" }]),
     listTransactions: () =>
       Promise.resolve([
         { id: "t1", description: "X", amount: 10, currencyCode: "BRL", date: "2026-10-20T00:00:00.000Z", type: "DEBIT", status: "POSTED" },
@@ -55,7 +55,7 @@ Deno.test("remove pendentes da janela que a Pluggy não devolveu mais, mantendo 
   }
   const pluggy = {
     getItem: () => Promise.resolve({ id: "item1", status: "UPDATED" }),
-    listCreditAccounts: () => Promise.resolve([{ id: "pa1", name: "CARTAO", number: "1234", type: "CREDIT" }]),
+    listAccounts: () => Promise.resolve([{ id: "pa1", name: "CARTAO", number: "1234", type: "CREDIT" }]),
     listTransactions: () =>
       Promise.resolve([
         { id: "pend-kept", description: "X", amount: 10, currencyCode: "BRL", date: `${today}T00:00:00.000Z`, type: "DEBIT", status: "PENDING" },
@@ -76,7 +76,7 @@ type Window = { from: string; to: string }
 function recordingPluggy(status: string, accountIds: string[], windows: Record<string, Window>): PluggyClient {
   return {
     getItem: () => Promise.resolve({ id: "item1", status }),
-    listCreditAccounts: () =>
+    listAccounts: () =>
       Promise.resolve(accountIds.map((id) => ({ id, name: "CARTAO", number: "1234", type: "CREDIT" }))),
     listTransactions: (accountId: string, window: Window) => {
       windows[accountId] = window
@@ -157,7 +157,7 @@ Deno.test("item não ativo não avança last_synced_at, grava erro uma vez e sal
   }
   const pluggy = {
     getItem: () => Promise.resolve({ id: "item1", status: "OUTDATED" }),
-    listCreditAccounts: () => Promise.resolve([{ id: "pa1", name: "CARTAO", number: "1234", type: "CREDIT" }]),
+    listAccounts: () => Promise.resolve([{ id: "pa1", name: "CARTAO", number: "1234", type: "CREDIT" }]),
     listTransactions: () =>
       Promise.resolve([
         { id: "t1", description: "X", amount: 10, currencyCode: "BRL", date: "2026-10-20T00:00:00.000Z", type: "DEBIT", status: "POSTED" },
@@ -218,7 +218,7 @@ Deno.test("conta nova cuja primeira sincronização falha recebe a janela de 12 
   }
   const failing = {
     getItem: () => Promise.resolve({ id: "item1", status: "UPDATED" }),
-    listCreditAccounts: () =>
+    listAccounts: () =>
       Promise.resolve(["pa1", "pa2", "pa3"].map((id) => ({ id, name: "CARTAO", number: "1234", type: "CREDIT" }))),
     listTransactions: (accountId: string) =>
       Promise.resolve(
@@ -253,7 +253,7 @@ for (const scenario of ["apelido alterado", "recorrência confirmada"]) {
     }
     const pluggy = {
       getItem: () => Promise.resolve({ id: "item1", status: "UPDATED" }),
-      listCreditAccounts: () => Promise.resolve([{ id: "pa2", name: "CARTAO", number: "1234", type: "CREDIT" }]),
+      listAccounts: () => Promise.resolve([{ id: "pa2", name: "CARTAO", number: "1234", type: "CREDIT" }]),
       listTransactions: () => {
         const account = tables.card_accounts[0]
         if (scenario === "apelido alterado") account.nickname = "Meu cartão"
@@ -271,3 +271,71 @@ for (const scenario of ["apelido alterado", "recorrência confirmada"]) {
     assertEquals(windows.pa2, syncWindow(lastSyncedAt, today))
   })
 }
+
+function bankingPluggy(accounts: unknown[]): PluggyClient {
+  return {
+    getItem: () => Promise.resolve({ id: "item1", status: "UPDATED" }),
+    listAccounts: () => Promise.resolve(accounts),
+    listTransactions: () => Promise.resolve([]),
+  } as unknown as PluggyClient
+}
+
+const c6Accounts = [
+  { id: "b1", name: "C6 BANK", number: "0001", type: "BANK", bankData: { transferNumber: "336/0001/00040367-9" } },
+  {
+    id: "pa1",
+    name: "BANDEIRADO",
+    number: "4526",
+    type: "CREDIT",
+    creditData: { brand: "MASTERCARD", level: "BLACK" },
+  },
+]
+
+Deno.test("grava institution_name na conexão e brand_label e apelido do banco na conta, só para CREDIT", async () => {
+  const tables: Record<string, Array<Record<string, unknown>>> = {
+    card_connections: [
+      { id: "c1", user_id: "u", item_id: "item1", last_synced_at: null, status: "active", last_error: null },
+    ],
+  }
+
+  await syncConnections(fakeAdmin(tables), bankingPluggy(c6Accounts), {})
+
+  assertEquals(tables.card_connections[0].institution_name, "C6")
+  assertEquals(tables.card_accounts.length, 1)
+  assertEquals(tables.card_accounts[0].nickname, "C6")
+  assertEquals(tables.card_accounts[0].brand_label, "Mastercard Black")
+})
+
+Deno.test("sync atualiza o apelido padrão antigo e preserva o apelido alterado pelo usuário", async () => {
+  const tables: Record<string, Array<Record<string, unknown>>> = {
+    card_connections: [
+      { id: "c1", user_id: "u", item_id: "item1", last_synced_at: null, status: "active", last_error: null },
+    ],
+    card_accounts: [
+      { id: "acc1", connection_id: "c1", pluggy_account_id: "pa1", nickname: "BANDEIRADO ····4526" },
+      { id: "acc2", connection_id: "c1", pluggy_account_id: "pa2", nickname: "Cartão do trabalho" },
+    ],
+  }
+  const second = { id: "pa2", name: "OUTRO", number: "9999", type: "CREDIT" }
+
+  await syncConnections(fakeAdmin(tables), bankingPluggy([...c6Accounts, second]), {})
+
+  assertEquals(tables.card_accounts.map((row) => row.nickname), ["C6", "Cartão do trabalho"])
+})
+
+Deno.test("limpeza remove conta nova ainda com o apelido padrão novo quando a primeira sincronização falha", async () => {
+  const tables: Record<string, Array<Record<string, unknown>>> = {
+    card_connections: [
+      { id: "c1", user_id: "u", item_id: "item1", last_synced_at: null, status: "active", last_error: null },
+    ],
+  }
+  const pluggy = {
+    getItem: () => Promise.resolve({ id: "item1", status: "UPDATED" }),
+    listAccounts: () => Promise.resolve(c6Accounts),
+    listTransactions: () => Promise.reject(new Error("falha ao buscar")),
+  } as unknown as PluggyClient
+
+  await syncConnections(fakeAdmin(tables), pluggy, {})
+
+  assertEquals(tables.card_accounts.length, 0)
+})

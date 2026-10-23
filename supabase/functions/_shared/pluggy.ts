@@ -1,7 +1,6 @@
 import { API_KEY_TTL_MS, PLUGGY_API } from "./cardConstants.ts"
 import type { DateWindow, PluggyAccount, PluggyItem, PluggyTransaction } from "./pluggyTypes.ts"
 import { connectTokenBody } from "./itemOwnership.ts"
-import { CREDIT_ACCOUNT_TYPE } from "./cardConstants.ts"
 
 export class PluggyError extends Error {
   constructor(message: string, readonly status: number) {
@@ -68,11 +67,11 @@ export class PluggyClient {
     await this.request(`/items/${encodeURIComponent(itemId)}`, { method: "DELETE" })
   }
 
-  async listCreditAccounts(itemId: string): Promise<PluggyAccount[]> {
+  async listAccounts(itemId: string): Promise<PluggyAccount[]> {
     const payload = await this.request<{ results: PluggyAccount[] }>(
       `/accounts?itemId=${encodeURIComponent(itemId)}`,
     )
-    return payload.results.filter((account) => account.type === CREDIT_ACCOUNT_TYPE)
+    return payload.results
   }
 
   async listTransactions(accountId: string, window: DateWindow): Promise<PluggyTransaction[]> {

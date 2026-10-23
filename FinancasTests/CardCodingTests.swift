@@ -21,6 +21,26 @@ struct CardCodingTests {
         #expect(connection.lastSyncedAt == nil)
     }
 
+    @Test func decodesInstitutionAndBrandLabelWithAppDecoder() throws {
+        let connectionJSON = #"{"id":"\#(CardSamples.connection)","item_id":"item-1","status":"active","last_synced_at":null,"last_error":null,"institution_name":"C6"}"#
+        let connection = try SupabaseIncomeService.decoder.decode(CardConnection.self, from: Data(connectionJSON.utf8))
+        #expect(connection.institutionName == "C6")
+
+        let accountJSON = #"{"id":"\#(CardSamples.c6.id)","connection_id":"\#(CardSamples.connection)","name":"BANDEIRADO","last_digits":"4526","nickname":"C6","brand_label":"Mastercard Black"}"#
+        let account = try SupabaseIncomeService.decoder.decode(CardAccount.self, from: Data(accountJSON.utf8))
+        #expect(account.brandLabel == "Mastercard Black")
+    }
+
+    @Test func decodesMissingInstitutionAndBrandLabelAsNil() throws {
+        let connectionJSON = #"{"id":"\#(CardSamples.connection)","item_id":"item-1","status":"active","last_synced_at":null,"last_error":null}"#
+        let connection = try SupabaseIncomeService.decoder.decode(CardConnection.self, from: Data(connectionJSON.utf8))
+        #expect(connection.institutionName == nil)
+
+        let accountJSON = #"{"id":"\#(CardSamples.c6.id)","connection_id":"\#(CardSamples.connection)","name":"BANDEIRADO","last_digits":"4526","nickname":"C6","brand_label":null}"#
+        let account = try SupabaseIncomeService.decoder.decode(CardAccount.self, from: Data(accountJSON.utf8))
+        #expect(account.brandLabel == nil)
+    }
+
     @Test(arguments: [
         ("2026-10-23T13:36:08.494+00:00", 1792762568.494),
         ("2026-10-23T13:36:08.494123+00:00", 1792762568.494123),

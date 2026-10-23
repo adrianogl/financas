@@ -1,4 +1,7 @@
 import {
+  BANK_ACCOUNT_TYPE,
+  BANK_CODE_LENGTH,
+  BANK_NAMES,
   FIRST_SYNC_MONTHS,
   HEALTHY_ITEM_STATUSES,
   NEEDS_RECONNECT_ITEM_STATUSES,
@@ -32,14 +35,56 @@ export function transactionRow(tx: PluggyTransaction, cardAccountId: string): Om
   }
 }
 
-export function accountRow(account: PluggyAccount, connectionId: string, existingNickname?: string): CardAccountRow {
-  const name = account.name.trim()
+function titleCase(text: string): string {
+  return text
+    .toLowerCase()
+    .split(/[\s_]+/)
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ")
+}
+
+export function institutionName(accounts: PluggyAccount[]): string | null {
+  for (const account of accounts) {
+    if (account.type !== BANK_ACCOUNT_TYPE) continue
+    const transferNumber = account.bankData?.transferNumber
+    if (!transferNumber) continue
+    const code = transferNumber.trim().slice(0, BANK_CODE_LENGTH)
+    return BANK_NAMES[code] ?? (account.name.trim() || null)
+  }
+  return null
+}
+
+export function brandLabel(account: PluggyAccount): string | null {
+  const parts = [account.creditData?.brand, account.creditData?.level]
+    .map((part) => (part ?? "").trim())
+    .filter(Boolean)
+    .map(titleCase)
+  return parts.length > 0 ? parts.join(" ") : null
+}
+
+export function legacyNickname(account: PluggyAccount): string {
+  return `${account.name.trim()}${NICKNAME_SEPARATOR}${account.number}`
+}
+
+export function defaultNickname(account: PluggyAccount, institution: string | null): string {
+  return institution ?? legacyNickname(account)
+}
+
+export function accountRow(
+  account: PluggyAccount,
+  connectionId: string,
+  institution: string | null,
+  existingNickname?: string,
+): CardAccountRow {
+  const keepsExisting = existingNickname !== undefined && existingNickname !== legacyNickname(account)
   return {
     connection_id: connectionId,
     pluggy_account_id: account.id,
-    name,
+    name: account.name.trim(),
     last_digits: account.number,
-    nickname: existingNickname ?? `${name}${NICKNAME_SEPARATOR}${account.number}`,
+    nickname: keepsExisting ? existingNickname : defaultNickname(account, institution),
+    brand_label: brandLabel(account),
   }
 }
 
