@@ -5,6 +5,13 @@ enum PluggyConnectEvent: Equatable {
     case error
     case close
 
+    var dismissesSheet: Bool {
+        switch self {
+        case .success, .close: true
+        case .error: false
+        }
+    }
+
     static func parse(_ body: Any) -> PluggyConnectEvent? {
         guard let payload = body as? [String: Any], let event = payload["event"] as? String else { return nil }
         switch event {

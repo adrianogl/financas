@@ -48,5 +48,4 @@ enum CardConstants {
     ]
     static let connectFailedMessage = "Não foi possível concluir a conexão. Tente de novo."
     static let nicknamePrompt = "Apelido do cartão"
-    static let connectionRowCornerRadius: CGFloat = 20
 }

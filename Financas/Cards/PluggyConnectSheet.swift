@@ -8,7 +8,9 @@ struct PluggyConnectSheet: View {
     var body: some View {
         NavigationStack {
             PluggyConnectView(token: request.token, itemID: request.itemID) { event in
-                dismiss()
+                if event.dismissesSheet {
+                    dismiss()
+                }
                 onEvent(event)
             }
             .ignoresSafeArea(edges: .bottom)

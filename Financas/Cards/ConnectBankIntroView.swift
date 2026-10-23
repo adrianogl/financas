@@ -4,9 +4,7 @@ struct ConnectBankIntroView: View {
     @Environment(CardStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    @State private var request: PluggyConnectRequest?
-    @State private var isWorking = false
-    @State private var failure: String?
+    @State private var flow = PluggyConnectFlow()
 
     var body: some View {
         ScrollView {
@@ -41,9 +39,9 @@ struct ConnectBankIntroView: View {
                 .buttonStyle(.glass)
                 .controlSize(.large)
 
-                GlassPrimaryButton(title: "Continuar", isWorking: isWorking, action: proceed)
+                GlassPrimaryButton(title: "Continuar", isWorking: flow.isWorking, action: proceed)
 
-                if let message = failure ?? store.errorMessage {
+                if let message = flow.failure ?? store.errorMessage {
                     Text(message)
                         .font(.footnote)
                         .foregroundStyle(Theme.warning)
@@ -56,34 +54,18 @@ struct ConnectBankIntroView: View {
         .background(AppBackground())
         .navigationTitle("Conectar banco")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $request) { request in
-            PluggyConnectSheet(request: request, onEvent: handle)
+        .sheet(item: $flow.request) { request in
+            PluggyConnectSheet(request: request) { event in
+                Task {
+                    if await flow.handle(event, store: store) {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 
     private func proceed() {
-        failure = nil
-        isWorking = true
-        Task {
-            let token = await store.connectToken(for: nil)
-            isWorking = false
-            guard let token else { return }
-            request = PluggyConnectRequest(token: token, itemID: nil)
-        }
-    }
-
-    private func handle(_ event: PluggyConnectEvent) {
-        switch event {
-        case .success(let itemID):
-            Task {
-                if await store.register(itemID: itemID) {
-                    dismiss()
-                }
-            }
-        case .error:
-            failure = CardConstants.connectFailedMessage
-        case .close:
-            break
-        }
+        Task { await flow.begin(for: nil, store: store) }
     }
 }

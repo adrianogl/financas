@@ -18,3 +18,11 @@ struct PluggyConnectEventTests {
         #expect(PluggyConnectEvent.parse(["event": "success", "itemId": ""]) == .error)
     }
 }
+
+extension PluggyConnectEventTests {
+    @Test func errorKeepsSheetOpen() {
+        #expect(PluggyConnectEvent.success(itemID: "a").dismissesSheet)
+        #expect(PluggyConnectEvent.close.dismissesSheet)
+        #expect(!PluggyConnectEvent.error.dismissesSheet)
+    }
+}

@@ -4,11 +4,10 @@ struct CardConnectionsView: View {
     var showsDone = false
     @Environment(CardStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var request: PluggyConnectRequest?
+    @State private var flow = PluggyConnectFlow()
     @State private var renaming: CardAccount?
     @State private var nicknameDraft = ""
     @State private var removing: CardConnection?
-    @State private var failure: String?
     @State private var opensIntro = false
 
     var body: some View {
@@ -50,7 +49,7 @@ struct CardConnectionsView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
 
-                if let message = failure ?? store.errorMessage {
+                if let message = flow.failure ?? store.errorMessage {
                     Text(message)
                         .font(.footnote)
                         .foregroundStyle(Theme.warning)
@@ -72,8 +71,10 @@ struct CardConnectionsView: View {
         .navigationDestination(isPresented: $opensIntro) {
             ConnectBankIntroView()
         }
-        .sheet(item: $request) { request in
-            PluggyConnectSheet(request: request, onEvent: handle)
+        .sheet(item: $flow.request) { request in
+            PluggyConnectSheet(request: request) { event in
+                Task { _ = await flow.handle(event, store: store) }
+            }
         }
         .alert(CardConstants.nicknamePrompt, isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField(CardConstants.nicknamePrompt, text: $nicknameDraft)
@@ -104,21 +105,6 @@ struct CardConnectionsView: View {
     }
 
     private func reconnect(_ connection: CardConnection) {
-        failure = nil
-        Task {
-            guard let token = await store.connectToken(for: connection) else { return }
-            request = PluggyConnectRequest(token: token, itemID: connection.itemID)
-        }
-    }
-
-    private func handle(_ event: PluggyConnectEvent) {
-        switch event {
-        case .success(let itemID):
-            Task { await store.register(itemID: itemID) }
-        case .error:
-            failure = CardConstants.connectFailedMessage
-        case .close:
-            break
-        }
+        Task { await flow.begin(for: connection, store: store) }
     }
 }
