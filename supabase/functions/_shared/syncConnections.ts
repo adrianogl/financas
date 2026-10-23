@@ -92,7 +92,7 @@ async function syncConnection(
   )
 
   const allAccounts = await pluggy.listAccounts(connection.item_id)
-  const institution = institutionName(allAccounts)
+  const institution = institutionName(allAccounts) ?? connection.institution_name
   const named = await admin.from("card_connections").update({ institution_name: institution }).eq("id", connection.id)
   if (named.error) throw named.error
   const accounts = allAccounts.filter((account) => account.type === CREDIT_ACCOUNT_TYPE)
@@ -134,7 +134,7 @@ export async function syncConnections(
   pluggy: PluggyClient,
   filter: SyncFilter,
 ): Promise<ConnectionSyncResult[]> {
-  let query = admin.from("card_connections").select("id, user_id, item_id, last_synced_at")
+  let query = admin.from("card_connections").select("id, user_id, item_id, last_synced_at, institution_name")
   if (filter.userId) query = query.eq("user_id", filter.userId)
   if (filter.connectionIds) query = query.in("id", filter.connectionIds)
   const { data, error } = await query

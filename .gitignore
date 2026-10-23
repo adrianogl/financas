@@ -8,3 +8,4 @@ Financas/Info.plist
 Config/Secrets.xcconfig
 .mcp.json
 .superpowers/
+supabase/.temp/

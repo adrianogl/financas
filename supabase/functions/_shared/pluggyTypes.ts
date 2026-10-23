@@ -79,4 +79,5 @@ export type ConnectionRecord = {
   user_id: string
   item_id: string
   last_synced_at: string | null
+  institution_name: string | null
 }

@@ -306,6 +306,19 @@ Deno.test("grava institution_name na conexão e brand_label e apelido do banco n
   assertEquals(tables.card_accounts[0].brand_label, "Mastercard Black")
 })
 
+Deno.test("sync sem conta BANK mantém o banco já conhecido da conexão", async () => {
+  const tables: Record<string, Array<Record<string, unknown>>> = {
+    card_connections: [
+      { id: "c1", user_id: "u", item_id: "item1", last_synced_at: null, status: "active", last_error: null, institution_name: "C6" },
+    ],
+  }
+
+  await syncConnections(fakeAdmin(tables), bankingPluggy(c6Accounts.filter((account) => account.type === "CREDIT")), {})
+
+  assertEquals(tables.card_connections[0].institution_name, "C6")
+  assertEquals(tables.card_accounts[0].nickname, "C6")
+})
+
 Deno.test("sync atualiza o apelido padrão antigo e preserva o apelido alterado pelo usuário", async () => {
   const tables: Record<string, Array<Record<string, unknown>>> = {
     card_connections: [
