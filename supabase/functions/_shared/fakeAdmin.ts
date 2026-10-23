@@ -75,6 +75,12 @@ class FakeQuery {
     }
     if (this.action === "delete") {
       this.tables[this.table] = store.filter((row) => !matches.includes(row))
+      if (this.table === "card_accounts") {
+        const removed = new Set(matches.map((row) => row.id))
+        for (const child of ["card_transactions", "card_recurrences"]) {
+          if (this.tables[child]) this.tables[child] = this.tables[child].filter((row) => !removed.has(row.card_account_id))
+        }
+      }
       return Promise.resolve(resolve({ data: null, error: null }))
     }
     if (this.action === "upsert") return Promise.resolve(resolve({ data: this.upserted, error: null }))

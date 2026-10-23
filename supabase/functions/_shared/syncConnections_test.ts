@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1"
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.4"
 import { fakeAdmin } from "./fakeAdmin.ts"
 import type { PluggyClient } from "./pluggy.ts"
 import { syncWindow } from "./cardRows.ts"
@@ -145,3 +146,128 @@ Deno.test("LOGIN_ERROR marca needs_reconnect e ainda lê o que existe", async ()
   assertEquals(tables.card_connections[0].status, "needs_reconnect")
   assertEquals(Object.keys(windows), ["pa1"])
 })
+
+Deno.test("item não ativo não avança last_synced_at, grava erro uma vez e salva o que a Pluggy já tem", async () => {
+  const previous = "2026-09-01T10:00:00.000Z"
+  const tables: Record<string, Array<Record<string, unknown>>> = {
+    card_connections: [
+      { id: "c1", user_id: "u", item_id: "item1", last_synced_at: previous, status: "active", last_error: null },
+    ],
+    card_accounts: [{ id: "acc1", connection_id: "c1", pluggy_account_id: "pa1", nickname: "n" }],
+  }
+  const pluggy = {
+    getItem: () => Promise.resolve({ id: "item1", status: "OUTDATED" }),
+    listCreditAccounts: () => Promise.resolve([{ id: "pa1", name: "CARTAO", number: "1234", type: "CREDIT" }]),
+    listTransactions: () =>
+      Promise.resolve([
+        { id: "t1", description: "X", amount: 10, currencyCode: "BRL", date: "2026-10-20T00:00:00.000Z", type: "DEBIT", status: "POSTED" },
+      ]),
+  } as unknown as PluggyClient
+
+  const results = await syncConnections(fakeAdmin(tables), pluggy, {})
+
+  assertEquals(results, [{ connectionId: "c1", ok: false, error: "Item da Pluggy com status OUTDATED" }])
+  assertEquals(tables.card_connections[0].last_synced_at, previous)
+  assertEquals(tables.card_connections[0].status, "error")
+  assertEquals(tables.card_connections[0].last_error, "Item da Pluggy com status OUTDATED")
+  assertEquals(tables.card_transactions.length, 1)
+})
+
+Deno.test("depois de reconectar, a janela parte do last_synced_at antigo e só então avança", async () => {
+  const previous = "2026-09-01T10:00:00.000Z"
+  const tables: Record<string, Array<Record<string, unknown>>> = {
+    card_connections: [
+      { id: "c1", user_id: "u", item_id: "item1", last_synced_at: previous, status: "active", last_error: null },
+    ],
+    card_accounts: [{ id: "acc1", connection_id: "c1", pluggy_account_id: "pa1", nickname: "n" }],
+  }
+  await syncConnections(fakeAdmin(tables), recordingPluggy("OUTDATED", ["pa1"], {}), {})
+  const windows: Record<string, Window> = {}
+  const today = new Date().toISOString().slice(0, 10)
+
+  const results = await syncConnections(fakeAdmin(tables), recordingPluggy("UPDATED", ["pa1"], windows), {})
+
+  assertEquals(results, [{ connectionId: "c1", ok: true }])
+  assertEquals(windows.pa1, syncWindow(previous, today))
+  assert(String(tables.card_connections[0].last_synced_at) > previous)
+  assertEquals(tables.card_connections[0].last_error, null)
+})
+
+function failingAfterTransactionUpsert(admin: SupabaseClient): SupabaseClient {
+  return {
+    from: (table: string) => {
+      const query = admin.from(table)
+      if (table !== "card_transactions") return query
+      return {
+        upsert: (...args: Parameters<typeof query.upsert>) => query.upsert(...args),
+        select: () => {
+          throw new Error("falha ao ler pendentes")
+        },
+      }
+    },
+  } as unknown as SupabaseClient
+}
+
+Deno.test("conta nova cuja primeira sincronização falha recebe a janela de 12 meses na próxima execução", async () => {
+  const lastSyncedAt = new Date().toISOString()
+  const tables: Record<string, Array<Record<string, unknown>>> = {
+    card_connections: [
+      { id: "c1", user_id: "u", item_id: "item1", last_synced_at: lastSyncedAt, status: "active", last_error: null },
+    ],
+    card_accounts: [{ id: "acc1", connection_id: "c1", pluggy_account_id: "pa1", nickname: "n" }],
+  }
+  const failing = {
+    getItem: () => Promise.resolve({ id: "item1", status: "UPDATED" }),
+    listCreditAccounts: () =>
+      Promise.resolve(["pa1", "pa2", "pa3"].map((id) => ({ id, name: "CARTAO", number: "1234", type: "CREDIT" }))),
+    listTransactions: (accountId: string) =>
+      Promise.resolve(
+        accountId === "pa2"
+          ? [{ id: "t-pa2", description: "X", amount: 10, currencyCode: "BRL", date: "2026-10-20T00:00:00.000Z", type: "DEBIT", status: "POSTED" }]
+          : [],
+      ),
+  } as unknown as PluggyClient
+  const admin = failingAfterTransactionUpsert(fakeAdmin(tables))
+
+  const first = await syncConnections(admin, failing, {})
+  assertEquals(first, [{ connectionId: "c1", ok: false, error: "falha ao ler pendentes" }])
+  assertEquals(tables.card_accounts.map((row) => row.pluggy_account_id), ["pa1"])
+  assertEquals(tables.card_transactions ?? [], [])
+
+  const windows: Record<string, Window> = {}
+  await syncConnections(fakeAdmin(tables), recordingPluggy("UPDATED", ["pa1", "pa2", "pa3"], windows), {})
+
+  const today = new Date().toISOString().slice(0, 10)
+  assertEquals(windows.pa1, syncWindow(lastSyncedAt, today))
+  assertEquals(windows.pa2, syncWindow(null, today))
+  assertEquals(windows.pa3, syncWindow(null, today))
+})
+
+for (const scenario of ["apelido alterado", "recorrência confirmada"]) {
+  Deno.test(`limpeza não apaga conta nova com ${scenario} durante a falha`, async () => {
+    const lastSyncedAt = new Date().toISOString()
+    const tables: Record<string, Array<Record<string, unknown>>> = {
+      card_connections: [
+        { id: "c1", user_id: "u", item_id: "item1", last_synced_at: lastSyncedAt, status: "active", last_error: null },
+      ],
+    }
+    const pluggy = {
+      getItem: () => Promise.resolve({ id: "item1", status: "UPDATED" }),
+      listCreditAccounts: () => Promise.resolve([{ id: "pa2", name: "CARTAO", number: "1234", type: "CREDIT" }]),
+      listTransactions: () => {
+        const account = tables.card_accounts[0]
+        if (scenario === "apelido alterado") account.nickname = "Meu cartão"
+        else tables.card_recurrences = [{ id: "r1", card_account_id: account.id, merchant_key: "m", status: "confirmed" }]
+        return Promise.reject(new Error("falha ao buscar"))
+      },
+    } as unknown as PluggyClient
+
+    await syncConnections(fakeAdmin(tables), pluggy, {})
+    assertEquals(tables.card_accounts.length, 1)
+
+    const windows: Record<string, Window> = {}
+    await syncConnections(fakeAdmin(tables), recordingPluggy("UPDATED", ["pa2"], windows), {})
+    const today = new Date().toISOString().slice(0, 10)
+    assertEquals(windows.pa2, syncWindow(lastSyncedAt, today))
+  })
+}

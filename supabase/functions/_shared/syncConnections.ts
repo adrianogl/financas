@@ -39,6 +39,39 @@ async function removeStalePending(
   }
 }
 
+async function syncAccountTransactions(
+  admin: SupabaseClient,
+  pluggy: PluggyClient,
+  connection: ConnectionRecord,
+  pluggyAccountId: string,
+  cardAccountId: string,
+  lastSyncedAt: string | null,
+  today: string,
+): Promise<void> {
+  const window = syncWindow(lastSyncedAt, today)
+  const transactions = await pluggy.listTransactions(pluggyAccountId, window)
+  const txRows = transactions.map((tx) => ({
+    ...transactionRow(tx, cardAccountId),
+    user_id: connection.user_id,
+  }))
+  for (const chunk of chunks(txRows, UPSERT_CHUNK_SIZE)) {
+    const result = await admin.from("card_transactions").upsert(chunk, { onConflict: "id" })
+    if (result.error) throw result.error
+  }
+  await removeStalePending(admin, cardAccountId, window, new Set(txRows.map((row) => row.id)))
+}
+
+async function removeUntouchedAccount(admin: SupabaseClient, cardAccountId: string, defaultNickname: string): Promise<void> {
+  const recurrences = await admin.from("card_recurrences").select("id").eq("card_account_id", cardAccountId)
+  if (recurrences.error) {
+    console.error("falha ao verificar recorrências antes de limpar a conta nova", recurrences.error)
+    return
+  }
+  if ((recurrences.data ?? []).length > 0) return
+  const removal = await admin.from("card_accounts").delete().eq("id", cardAccountId).eq("nickname", defaultNickname)
+  if (removal.error) console.error("falha ao limpar a conta nova após erro na primeira sincronização", removal.error)
+}
+
 async function syncConnection(
   admin: SupabaseClient,
   pluggy: PluggyClient,
@@ -59,46 +92,37 @@ async function syncConnection(
   )
 
   const accounts = await pluggy.listCreditAccounts(connection.item_id)
-  if (accounts.length > 0) {
-    const rows = accounts.map((account) => ({
-      ...accountRow(account, connection.id, nicknames.get(account.id)),
-      user_id: connection.user_id,
-    }))
+  for (const account of accounts) {
+    const isNew = !nicknames.has(account.id)
     const upserted = await admin
       .from("card_accounts")
-      .upsert(rows, { onConflict: "pluggy_account_id" })
+      .upsert(
+        [{ ...accountRow(account, connection.id, nicknames.get(account.id)), user_id: connection.user_id }],
+        { onConflict: "pluggy_account_id" },
+      )
       .select("id, pluggy_account_id")
     if (upserted.error) throw upserted.error
+    const cardAccountId = (upserted.data ?? [])[0]?.id as string | undefined
+    if (!cardAccountId) continue
 
-    const cardIds = new Map<string, string>(
-      (upserted.data ?? []).map((row: { id: string; pluggy_account_id: string }) => [row.pluggy_account_id, row.id]),
-    )
-    for (const account of accounts) {
-      const window = syncWindow(nicknames.has(account.id) ? connection.last_synced_at : null, today)
-      const cardAccountId = cardIds.get(account.id)
-      if (!cardAccountId) continue
-      const transactions = await pluggy.listTransactions(account.id, window)
-      const txRows = transactions.map((tx) => ({
-        ...transactionRow(tx, cardAccountId),
-        user_id: connection.user_id,
-      }))
-      for (const chunk of chunks(txRows, UPSERT_CHUNK_SIZE)) {
-        const result = await admin.from("card_transactions").upsert(chunk, { onConflict: "id" })
-        if (result.error) throw result.error
-      }
-      await removeStalePending(admin, cardAccountId, window, new Set(txRows.map((row) => row.id)))
+    try {
+      await syncAccountTransactions(admin, pluggy, connection, account.id, cardAccountId, isNew ? null : connection.last_synced_at, today)
+    } catch (error) {
+      if (isNew) await removeUntouchedAccount(admin, cardAccountId, accountRow(account, connection.id).nickname)
+      throw error
     }
   }
 
-  const done = await admin
-    .from("card_connections")
-    .update(accounts.length > 0 ? { last_synced_at: new Date().toISOString(), last_error: null } : { last_error: null })
-    .eq("id", connection.id)
-  if (done.error) throw done.error
-
-  if (status !== "active") {
-    throw new Error(`Item da Pluggy com status ${item.status}`)
+  if (status === "active") {
+    const done = await admin
+      .from("card_connections")
+      .update(accounts.length > 0 ? { last_synced_at: new Date().toISOString(), last_error: null } : { last_error: null })
+      .eq("id", connection.id)
+    if (done.error) throw done.error
+    return
   }
+
+  throw new Error(`Item da Pluggy com status ${item.status}`)
 }
 
 export async function syncConnections(
