@@ -21,6 +21,18 @@ struct CardCodingTests {
         #expect(connection.lastSyncedAt == nil)
     }
 
+    @Test(arguments: [
+        ("2026-10-23T13:36:08.494+00:00", 1792762568.494),
+        ("2026-10-23T13:36:08.494123+00:00", 1792762568.494123),
+        ("2026-10-23T13:36:08+00:00", 1792762568.0),
+    ])
+    func decodesConnectionSyncTimestampWithAppDecoder(timestamp: String, seconds: Double) throws {
+        let json = #"{"id":"\#(CardSamples.connection)","user_id":"\#(UUID())","item_id":"item-1","status":"active","last_synced_at":"\#(timestamp)","last_error":null,"created_at":"2026-10-23T13:36:06.500664+00:00"}"#
+        let connection = try SupabaseIncomeService.decoder.decode(CardConnection.self, from: Data(json.utf8))
+        let synced = try #require(connection.lastSyncedAt)
+        #expect(abs(synced.timeIntervalSince1970 - seconds) < 0.001)
+    }
+
     @Test func encodesRecurrenceWithEndedOn() throws {
         let recurrence = CardRecurrence(
             id: UUID(),
