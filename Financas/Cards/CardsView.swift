@@ -4,6 +4,7 @@ struct CardsView: View {
     @Environment(CardStore.self) private var store
     @Environment(AppNavigation.self) private var navigation
     @State private var isReviewing = false
+    @State private var isConnecting = false
 
     var body: some View {
         let mode = navigation.mode
@@ -38,6 +39,11 @@ struct CardsView: View {
             .toolbar(mode == .compact ? .automatic : .hidden, for: .navigationBar)
             .sheet(isPresented: $isReviewing) {
                 RecurrenceReviewSheet()
+            }
+            .sheet(isPresented: $isConnecting) {
+                NavigationStack {
+                    CardConnectionsView(showsDone: true)
+                }
             }
         }
     }
@@ -209,5 +215,7 @@ struct CardsView: View {
         }
     }
 
-    private func openConnections() {}
+    private func openConnections() {
+        isConnecting = true
+    }
 }

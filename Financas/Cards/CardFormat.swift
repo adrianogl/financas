@@ -29,6 +29,18 @@ enum CardFormat {
         return "Atualizado em \(format(date, "dd/MM", calendar: calendar))"
     }
 
+    static func statusText(_ connection: CardConnection, now: Date, calendar: Calendar = .current) -> String {
+        switch connection.status {
+        case .needsReconnect:
+            return "Precisa reconectar"
+        case .error:
+            return "Falha ao atualizar"
+        case .active:
+            let text = syncText(connection.lastSyncedAt, now: now, calendar: calendar)
+            return text.split(separator: ",").first.map(String.init) ?? text
+        }
+    }
+
     static func connectionWarning(_ connection: CardConnection, nickname: String, now: Date, calendar: Calendar = .current) -> String? {
         if connection.status == .needsReconnect {
             return "\(nickname) precisa reconectar"

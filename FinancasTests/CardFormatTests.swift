@@ -69,4 +69,14 @@ struct CardFormatTests {
         reconnect.status = .needsReconnect
         #expect(CardFormat.connectionWarning(reconnect, nickname: "Nubank", now: now, calendar: calendar) == "Nubank precisa reconectar")
     }
+
+    @Test func statusTextDropsTimeAndFlagsReconnect() {
+        let now = date(2026, 10, 22, 15)
+        func connection(_ status: CardConnectionStatus, synced: Date?) -> CardConnection {
+            CardConnection(id: UUID(), itemID: "i", status: status, lastSyncedAt: synced, lastError: nil)
+        }
+        #expect(CardFormat.statusText(connection(.active, synced: date(2026, 10, 22, 8, 30)), now: now, calendar: calendar) == "Atualizado hoje")
+        #expect(CardFormat.statusText(connection(.active, synced: date(2026, 10, 21, 8)), now: now, calendar: calendar) == "Atualizado ontem")
+        #expect(CardFormat.statusText(connection(.needsReconnect, synced: nil), now: now, calendar: calendar) == "Precisa reconectar")
+    }
 }

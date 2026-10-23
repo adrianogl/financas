@@ -61,6 +61,14 @@ struct SettingsView: View {
             }
 
             Section {
+                NavigationLink("Cartões conectados") {
+                    CardConnectionsView()
+                }
+            } header: {
+                Text("Cartões")
+            }
+
+            Section {
                 ForEach(ReminderSlot.allCases, id: \.self) { slot in
                     ReminderSettingRow(title: slot.title, isOn: enabledBinding(slot), time: timeBinding(slot))
                 }

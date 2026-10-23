@@ -33,4 +33,20 @@ enum CardConstants {
     static let reviewDotOpacity = 0.2
     static let loadFailedMessage = "Não foi possível carregar seus cartões. Tente de novo."
     static let syncFailedMessage = "Não foi possível atualizar os cartões agora. Mostrando os dados da última atualização."
+    static let meuPluggyConnectorID = 200
+    static let pluggyConnectScript = "https://cdn.pluggy.ai/pluggy-connect/v2.9.2/pluggy-connect.js"
+    static let pluggyConnectBaseURL = "https://connect.pluggy.ai"
+    static let meuPluggyURL = "https://meu.pluggy.ai"
+    static let pluggyMessageHandler = "pluggy"
+    static let connectionsIntro = "Os cartões chegam pelo MeuPluggy, que usa o Open Finance. Os dados atualizam uma vez por dia."
+    static let connectionsSwipeHint = "Arraste uma conexão para a esquerda para remover."
+    static let connectIntroTitle = "Você vai precisar de uma conta no MeuPluggy."
+    static let connectIntroSteps = [
+        "Crie a conta grátis em meu.pluggy.ai e conecte seus bancos por lá.",
+        "Volte aqui e toque em Continuar.",
+        "Entre com a conta do MeuPluggy e autorize o Finanças.",
+    ]
+    static let connectFailedMessage = "Não foi possível concluir a conexão. Tente de novo."
+    static let nicknamePrompt = "Apelido do cartão"
+    static let connectionRowCornerRadius: CGFloat = 20
 }
