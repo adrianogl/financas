@@ -182,6 +182,25 @@ struct CardStoreTests {
         #expect(service.calls.suffix(2) == ["remove", "load"])
     }
 
+    @Test func registerFailureStillReloadsStore() async {
+        let (store, service) = await makeStore()
+        service.nextError = .unknown
+        service.snapshot = snapshot(transactions: [installment(c6, "Loja")])
+        let registered = await store.register(itemID: "item-2")
+        #expect(!registered)
+        #expect(store.errorMessage == IncomeError.unknown.message)
+        #expect(service.calls.suffix(2) == ["register", "load"])
+        #expect(store.snapshot.transactions.count == 1)
+    }
+
+    @Test func reviewCountIgnoresFilter() async {
+        let transactions = monthly(c6, "Wellhub", 183.30) + monthly(caixa, "Netflix", 55.90)
+        let (store, _) = await makeStore(snapshot(transactions: transactions))
+        store.filter = .account(c6.id)
+        #expect(store.candidates.count == 1)
+        #expect(store.reviewCount == 2)
+    }
+
     @Test func oldestSyncIsMinimum() async {
         let early = Date(timeIntervalSince1970: 1000)
         let late = Date(timeIntervalSince1970: 5000)

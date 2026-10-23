@@ -70,3 +70,10 @@ export type CardsConnectRequest =
   | { action: "token"; itemId?: string | null }
   | { action: "register"; itemId: string }
   | { action: "remove"; connectionId: string }
+
+export type ConnectionRecord = {
+  id: string
+  user_id: string
+  item_id: string
+  last_synced_at: string | null
+}

@@ -2,14 +2,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.4"
 import { UPSERT_CHUNK_SIZE } from "./cardConstants.ts"
 import { accountRow, connectionStatus, syncWindow, transactionRow } from "./cardRows.ts"
 import type { PluggyClient } from "./pluggy.ts"
-import type { ConnectionSyncResult, DateWindow, SyncFilter } from "./pluggyTypes.ts"
-
-type ConnectionRecord = {
-  id: string
-  user_id: string
-  item_id: string
-  last_synced_at: string | null
-}
+import type { ConnectionRecord, ConnectionSyncResult, DateWindow, SyncFilter } from "./pluggyTypes.ts"
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
@@ -55,9 +48,6 @@ async function syncConnection(
   const item = await pluggy.getItem(connection.item_id)
   const status = connectionStatus(item)
   await admin.from("card_connections").update({ status }).eq("id", connection.id)
-  if (status !== "active") {
-    throw new Error(`Item da Pluggy com status ${item.status}`)
-  }
 
   const existing = await admin
     .from("card_accounts")
@@ -83,8 +73,8 @@ async function syncConnection(
     const cardIds = new Map<string, string>(
       (upserted.data ?? []).map((row: { id: string; pluggy_account_id: string }) => [row.pluggy_account_id, row.id]),
     )
-    const window = syncWindow(connection.last_synced_at, today)
     for (const account of accounts) {
+      const window = syncWindow(nicknames.has(account.id) ? connection.last_synced_at : null, today)
       const cardAccountId = cardIds.get(account.id)
       if (!cardAccountId) continue
       const transactions = await pluggy.listTransactions(account.id, window)
@@ -102,9 +92,13 @@ async function syncConnection(
 
   const done = await admin
     .from("card_connections")
-    .update({ last_synced_at: new Date().toISOString(), last_error: null })
+    .update(accounts.length > 0 ? { last_synced_at: new Date().toISOString(), last_error: null } : { last_error: null })
     .eq("id", connection.id)
   if (done.error) throw done.error
+
+  if (status !== "active") {
+    throw new Error(`Item da Pluggy com status ${item.status}`)
+  }
 }
 
 export async function syncConnections(

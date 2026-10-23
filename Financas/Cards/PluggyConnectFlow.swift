@@ -20,6 +20,8 @@ final class PluggyConnectFlow {
         switch event {
         case .success(let itemID):
             failure = nil
+            isWorking = true
+            defer { isWorking = false }
             return await store.register(itemID: itemID)
         case .error:
             failure = CardConstants.connectFailedMessage

@@ -23,7 +23,7 @@ struct CardConnectionRow: View {
                 }
                 .buttonStyle(.plain)
             }
-            if connection.status == .needsReconnect {
+            if connection.status != .active {
                 Button("Reconectar", action: onReconnect)
                     .font(.subheadline.weight(.semibold))
                     .buttonStyle(.glass)

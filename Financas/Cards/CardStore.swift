@@ -46,7 +46,7 @@ final class CardStore {
     }
 
     var reviewCount: Int {
-        candidates.count
+        RecurrenceDetector.candidates(from: snapshot.transactions, decisions: snapshot.recurrences, today: today).count
     }
 
     var oldestSync: Date? {
@@ -150,7 +150,7 @@ final class CardStore {
 
     @discardableResult
     func register(itemID: String) async -> Bool {
-        await mutateAndReload { [service] () async throws(IncomeError) in
+        await mutateAndReload(reloadOnFailure: true) { [service] () async throws(IncomeError) in
             try await service.register(itemID: itemID)
         }
     }
@@ -212,13 +212,18 @@ final class CardStore {
         }
     }
 
-    private func mutateAndReload(_ operation: () async throws(IncomeError) -> Void) async -> Bool {
+    private func mutateAndReload(reloadOnFailure: Bool = false, _ operation: () async throws(IncomeError) -> Void) async -> Bool {
         errorMessage = nil
         let started = generation
         do {
             try await operation()
         } catch {
-            if started == generation { errorMessage = error.message }
+            guard started == generation else { return false }
+            errorMessage = error.message
+            if reloadOnFailure, let loaded = try? await service.load(since: historyStart), started == generation {
+                apply(loaded)
+                loadState = .loaded
+            }
             return false
         }
         guard started == generation else { return false }
