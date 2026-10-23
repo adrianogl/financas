@@ -58,11 +58,11 @@ struct CardsView: View {
 
     @ViewBuilder
     private func content(_ mode: LayoutMode) -> some View {
-        switch store.loadState {
-        case .idle, .loading:
+        switch CardsContentState.make(loadState: store.loadState, hasData: !store.snapshot.connections.isEmpty) {
+        case .spinner:
             ProgressView()
                 .frame(maxWidth: .infinity, minHeight: 160)
-        case .failed(let message):
+        case .error(let message):
             VStack(spacing: 12) {
                 Text(message)
                     .font(.subheadline)
@@ -74,29 +74,27 @@ struct CardsView: View {
                 .buttonStyle(.glass)
             }
             .frame(maxWidth: .infinity, minHeight: 160)
-        case .loaded:
-            if store.snapshot.connections.isEmpty {
-                CardsEmptyState(onConnect: openConnections)
-                    .padding(.top, 40)
-            } else {
-                dashboard(mode)
-            }
+        case .empty:
+            CardsEmptyState(onConnect: openConnections)
+                .padding(.top, 40)
+        case .dashboard(let failure):
+            dashboard(mode, failure: failure)
         }
     }
 
     @ViewBuilder
-    private func dashboard(_ mode: LayoutMode) -> some View {
+    private func dashboard(_ mode: LayoutMode, failure: String?) -> some View {
         switch mode {
         case .compact:
             VStack(alignment: .leading, spacing: 16) {
-                notices
+                notices(failure: failure)
                 summary(chartHeight: CardConstants.chartHeightCompact)
                 endingSection
                 fixedSection(limit: CardConstants.fixedPreviewCompact)
             }
         case .regularLandscape:
             VStack(alignment: .leading, spacing: 16) {
-                warnings
+                warnings(failure: failure)
                 HStack(alignment: .top, spacing: LayoutConstants.listDetailSpacing) {
                     VStack(alignment: .leading, spacing: 16) {
                         review
@@ -112,7 +110,7 @@ struct CardsView: View {
             }
         case .regularPortrait:
             VStack(alignment: .leading, spacing: 16) {
-                notices
+                notices(failure: failure)
                 summary(chartHeight: CardConstants.chartHeightPortrait)
                 HStack(alignment: .top, spacing: LayoutConstants.listDetailSpacing) {
                     VStack(alignment: .leading, spacing: 16) {
@@ -128,14 +126,19 @@ struct CardsView: View {
     }
 
     @ViewBuilder
-    private var notices: some View {
-        warnings
+    private func notices(failure: String?) -> some View {
+        warnings(failure: failure)
         review
     }
 
     @ViewBuilder
-    private var warnings: some View {
+    private func warnings(failure: String?) -> some View {
         let now = Date.now
+        if let failure {
+            CardConnectionWarning(text: failure) {
+                Task { await store.load() }
+            }
+        }
         ForEach(store.snapshot.connections) { connection in
             if let text = CardFormat.connectionWarning(connection, nickname: store.nickname(for: connection), now: now) {
                 CardConnectionWarning(text: text, action: openConnections)
