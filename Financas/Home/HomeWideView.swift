@@ -72,6 +72,7 @@ struct HomeWideView: View {
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
+            comparisonCard
             lists
         }
     }
@@ -85,6 +86,7 @@ struct HomeWideView: View {
                 overdueCard(stats)
             }
             .fixedSize(horizontal: false, vertical: true)
+            comparisonCard
             HStack(alignment: .top, spacing: HomeConstants.cardSpacing) {
                 incomeList
                 expenseList
@@ -103,8 +105,17 @@ struct HomeWideView: View {
                 overdueCard(stats)
             }
             .fixedSize(horizontal: false, vertical: true)
+            comparisonCard
             lists
         }
+    }
+
+    private var comparisonCard: some View {
+        @Bindable var incomeStore = incomeStore
+        return MonthComparisonCard(
+            months: MonthComparison.make(today: incomeStore.today, incomes: incomeStore.snapshot, expenses: expenseStore.snapshot),
+            selected: $incomeStore.selectedMonth
+        )
     }
 
     private var lists: some View {

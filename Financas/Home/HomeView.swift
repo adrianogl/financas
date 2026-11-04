@@ -44,12 +44,17 @@ struct HomeView: View {
                     openIncomes: { navigation.section = .incomes },
                     openExpenses: { navigation.section = .expenses }
                 )
+                MonthComparisonCard(months: comparison, selected: $incomeStore.selectedMonth)
                 entriesCard(summary)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 32)
             .readableWidth(LayoutConstants.contentWidth)
         }
+    }
+
+    private var comparison: [MonthComparison] {
+        MonthComparison.make(today: incomeStore.today, incomes: incomeStore.snapshot, expenses: expenseStore.snapshot)
     }
 
     private func entriesCard(_ summary: HomeMonthSummary) -> some View {

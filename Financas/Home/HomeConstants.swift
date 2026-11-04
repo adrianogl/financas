@@ -12,4 +12,9 @@ enum HomeConstants {
     static let chartColumnShare: CGFloat = 0.6
     static let wideChartHeight: CGFloat = 150
     static let portraitChartHeight: CGFloat = 120
+    static let comparisonPastMonths = 6
+    static let comparisonForecastMonths = 3
+    static let comparisonChartHeight: CGFloat = 170
+    static let forecastOpacity = 0.4
+    static let selectedMonthOpacity = 0.07
 }
