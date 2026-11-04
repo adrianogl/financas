@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(IncomeStore.self) private var store
     @Environment(ReminderScheduler.self) private var reminders
+    @Environment(AccountManager.self) private var account
     @Environment(\.dismiss) private var dismiss
     @State private var notificationsDenied = false
 
@@ -58,6 +59,17 @@ struct SettingsView: View {
                 Text("Dia não útil")
             } footer: {
                 Text(NonBusinessDayExample.text(rule: store.settings.nonBusinessDay))
+            }
+
+            Section {
+                if let email = account.user?.email {
+                    LabeledContent("E-mail", value: email)
+                }
+                NavigationLink("Alterar senha") {
+                    ChangePasswordView()
+                }
+            } header: {
+                Text("Conta")
             }
 
             Section {

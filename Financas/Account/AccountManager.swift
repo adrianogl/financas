@@ -182,6 +182,34 @@ final class AccountManager {
         }
     }
 
+    func changePassword(current: String, new: String) async -> Bool {
+        guard let user, beginRequest(password: new) else { return false }
+        defer { isWorking = false }
+
+        do {
+            _ = try await service.signIn(email: user.email, password: current)
+        } catch .invalidCredentials {
+            errorMessage = AccountError.wrongCurrentPassword.message
+            return false
+        } catch {
+            errorMessage = error.message
+            return false
+        }
+
+        do {
+            try await service.updatePassword(new)
+        } catch {
+            errorMessage = error.message
+            return false
+        }
+        await service.signOut(scope: .others)
+        return true
+    }
+
+    func clearError() {
+        errorMessage = nil
+    }
+
     func signOut() async {
         state = .signedOut
         errorMessage = nil

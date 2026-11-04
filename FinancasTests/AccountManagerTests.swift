@@ -322,4 +322,70 @@ struct AccountManagerTests {
 
         #expect(await harness.manager.hasSession() == false)
     }
+
+    @Test func changePasswordChecksCurrentAndSignsOutOtherDevices() async {
+        let harness = AccountManagerHarness()
+        harness.service.storedUser = .sample
+        await harness.manager.start()
+
+        let changed = await harness.manager.changePassword(current: "senhaatual", new: "novasenha1")
+
+        #expect(changed)
+        #expect(harness.service.signInCalls.map(\.email) == [AccountUser.sample.email])
+        #expect(harness.service.signInCalls.map(\.password) == ["senhaatual"])
+        #expect(harness.service.updatedPasswords == ["novasenha1"])
+        #expect(harness.service.signOutScopes == [.others])
+        #expect(harness.manager.state == .signedIn(.sample))
+        #expect(harness.manager.errorMessage == nil)
+    }
+
+    @Test func changePasswordWithWrongCurrentPasswordKeepsOldOne() async {
+        let harness = AccountManagerHarness()
+        harness.service.storedUser = .sample
+        await harness.manager.start()
+        harness.service.signInResult = .failure(.invalidCredentials)
+
+        let changed = await harness.manager.changePassword(current: "errada123", new: "novasenha1")
+
+        #expect(!changed)
+        #expect(harness.service.updatedPasswords.isEmpty)
+        #expect(harness.service.signOutScopes.isEmpty)
+        #expect(harness.manager.errorMessage == AccountError.wrongCurrentPassword.message)
+        #expect(harness.manager.state == .signedIn(.sample))
+    }
+
+    @Test func changePasswordRejectsShortNewPasswordLocally() async {
+        let harness = AccountManagerHarness()
+        harness.service.storedUser = .sample
+        await harness.manager.start()
+
+        let changed = await harness.manager.changePassword(current: "senhaatual", new: "curta")
+
+        #expect(!changed)
+        #expect(harness.service.signInCalls.isEmpty)
+        #expect(harness.manager.errorMessage == AccountError.weakPassword.message)
+    }
+
+    @Test func changePasswordToSamePasswordShowsMessage() async {
+        let harness = AccountManagerHarness()
+        harness.service.storedUser = .sample
+        await harness.manager.start()
+        harness.service.updateResult = .failure(.samePassword)
+
+        let changed = await harness.manager.changePassword(current: "senhaatual", new: "senhaatual")
+
+        #expect(!changed)
+        #expect(harness.service.signOutScopes.isEmpty)
+        #expect(harness.manager.errorMessage == AccountError.samePassword.message)
+    }
+
+    @Test func changePasswordIsIgnoredWhenSignedOut() async {
+        let harness = AccountManagerHarness()
+        await harness.manager.start()
+
+        let changed = await harness.manager.changePassword(current: "senhaatual", new: "novasenha1")
+
+        #expect(!changed)
+        #expect(harness.service.signInCalls.isEmpty)
+    }
 }

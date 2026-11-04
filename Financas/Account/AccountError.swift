@@ -6,6 +6,7 @@ enum AccountError: Error, Equatable {
     case invalidRecoveryLink
     case invalidConfirmationLink
     case samePassword
+    case wrongCurrentPassword
     case emailRateLimited
     case network
     case unknown
@@ -26,6 +27,8 @@ enum AccountError: Error, Equatable {
             "Não foi possível confirmar por este link. Se você já tocou nele, entre com seu e-mail e senha."
         case .samePassword:
             "A nova senha precisa ser diferente da atual."
+        case .wrongCurrentPassword:
+            "Senha atual incorreta."
         case .emailRateLimited:
             "Muitos e-mails enviados em pouco tempo. Espere alguns minutos e tente de novo."
         case .network:
