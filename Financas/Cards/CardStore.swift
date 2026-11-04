@@ -41,6 +41,12 @@ final class CardStore {
         CardCommitment.months(plans: plans, fixed: fixedCharges, from: today.yearMonth.next, count: CardConstants.commitmentMonthCount)
     }
 
+    var forecast: [CommitmentMonth] {
+        let allPlans = InstallmentPlans.plans(from: snapshot.transactions, today: today).filter { $0.lastMonth >= today.yearMonth }
+        let allFixed = FixedCharges.charges(from: snapshot.transactions, recurrences: snapshot.recurrences, today: today)
+        return CardCommitment.months(plans: allPlans, fixed: allFixed, from: today.yearMonth.next, count: CardConstants.commitmentMonthCount)
+    }
+
     var ending: [InstallmentPlan] {
         CardCommitment.ending(plans, today: today)
     }

@@ -55,6 +55,18 @@ struct CardStoreTests {
         #expect(store.months[0].installments == 100)
     }
 
+    @Test func forecastIgnoresTheCardFilter() async {
+        let transactions = [installment(c6, "Loja C6"), installment(caixa, "Loja Caixa")]
+        let confirmed = recurrence(c6, "Spotify", .confirmed)
+        let spotify = [CardSamples.tx(c6, 2026, 10, 1, 40, "Spotify")]
+        let (store, _) = await makeStore(snapshot(transactions: transactions + spotify, recurrences: [confirmed]))
+        store.filter = .account(caixa.id)
+
+        #expect(store.forecast[0].month == YearMonth(year: 2026, month: 11))
+        #expect(store.forecast[0].installments == 200)
+        #expect(store.forecast[0].fixed == 40)
+    }
+
     @Test func monthsStartNextMonthAndHaveTwelve() async {
         let (store, _) = await makeStore(snapshot(transactions: [installment(c6, "Loja")]))
         #expect(store.months.count == 12)

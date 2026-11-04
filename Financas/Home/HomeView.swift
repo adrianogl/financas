@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(ExpenseStore.self) private var expenseStore
+    @Environment(CardStore.self) private var cardStore
     @Environment(AppNavigation.self) private var navigation
 
     var body: some View {
@@ -54,7 +55,7 @@ struct HomeView: View {
     }
 
     private var comparison: [MonthComparison] {
-        MonthComparison.make(today: incomeStore.today, incomes: incomeStore.snapshot, expenses: expenseStore.snapshot)
+        MonthComparison.make(today: incomeStore.today, incomes: incomeStore.snapshot, expenses: expenseStore.snapshot, card: cardStore.forecast)
     }
 
     private func entriesCard(_ summary: HomeMonthSummary) -> some View {

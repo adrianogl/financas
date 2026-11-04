@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeWideView: View {
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(ExpenseStore.self) private var expenseStore
+    @Environment(CardStore.self) private var cardStore
     @Environment(AppNavigation.self) private var navigation
     @State private var width: CGFloat = 0
     @State private var receiving: IncomeOccurrence?
@@ -113,7 +114,7 @@ struct HomeWideView: View {
     private var comparisonCard: some View {
         @Bindable var incomeStore = incomeStore
         return MonthComparisonCard(
-            months: MonthComparison.make(today: incomeStore.today, incomes: incomeStore.snapshot, expenses: expenseStore.snapshot),
+            months: MonthComparison.make(today: incomeStore.today, incomes: incomeStore.snapshot, expenses: expenseStore.snapshot, card: cardStore.forecast),
             selected: $incomeStore.selectedMonth
         )
     }

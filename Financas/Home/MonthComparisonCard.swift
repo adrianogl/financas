@@ -20,6 +20,11 @@ struct MonthComparisonCard: View {
             if let item = months.first(where: { $0.month == selected }) {
                 Divider()
                 totals(item)
+                if item.card > 0 {
+                    Text("Despesas incluem \(IncomeFormat.currency(item.card)) do cartão (parcelas e gastos fixos).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(18)
