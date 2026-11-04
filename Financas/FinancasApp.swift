@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 
 @main
@@ -24,6 +25,7 @@ struct FinancasApp: App {
         let client = SupabaseClientFactory.make(config: config)
         let incomes = IncomeStore(service: SupabaseIncomeService(client: client))
         let expenses = ExpenseStore(service: SupabaseExpenseService(client: client))
+        AppDependencyManager.shared.add(dependency: expenses)
         let cards = CardStore(service: SupabaseCardService(client: client))
         let scheduler = ReminderScheduler(center: SystemReminderCenter())
         let navigation = AppNavigation()
