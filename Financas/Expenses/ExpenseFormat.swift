@@ -75,10 +75,12 @@ enum ExpenseFormat {
     }
 
     static func spendingRule(_ expected: Decimal, locale: Locale = IncomeFormat.locale) -> String {
-        "Gasto do mês · previsto \(IncomeFormat.currency(expected, locale: locale))"
+        guard expected > 0 else { return ExpenseConstants.spendingNoEstimateRule }
+        return "Gasto do mês · previsto \(IncomeFormat.currency(expected, locale: locale))"
     }
 
     static func spendingHeaderRule(_ expected: Decimal, locale: Locale = IncomeFormat.locale) -> String {
+        guard expected > 0 else { return ExpenseConstants.spendingNoEstimateRule }
         var source = expected
         var whole = Decimal()
         NSDecimalRound(&whole, &source, 0, .plain)
@@ -96,6 +98,7 @@ enum ExpenseFormat {
     }
 
     static func spendingCaption(_ spending: SpendingMonth, today: CalendarDay, locale: Locale = IncomeFormat.locale) -> String {
+        guard spending.hasEstimate else { return ExpenseConstants.spendingNoEstimateCaption }
         if spending.isOver {
             return "\(IncomeFormat.currency(spending.excess, locale: locale)) acima do previsto"
         }

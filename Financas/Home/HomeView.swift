@@ -39,6 +39,7 @@ struct HomeView: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HomeHeader()
+                QuickSpendingButton()
                 MonthPicker(month: $incomeStore.selectedMonth)
                 BalanceChartCard(summary: summary, chartHeight: 96, showsDayScale: false)
                 MonthBalanceCard(

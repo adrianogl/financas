@@ -49,11 +49,13 @@ struct HomeWideView: View {
         @Bindable var incomeStore = incomeStore
         if arrangement == .stacked {
             HomeHeader()
+            QuickSpendingButton()
             MonthPicker(month: $incomeStore.selectedMonth)
         } else {
             HStack(alignment: .bottom, spacing: HomeConstants.cardSpacing) {
                 HomeHeader()
                 Spacer(minLength: HomeConstants.cardSpacing)
+                QuickSpendingButton()
                 MonthPicker(month: $incomeStore.selectedMonth)
                     .frame(width: HomeConstants.monthPickerWidth)
             }

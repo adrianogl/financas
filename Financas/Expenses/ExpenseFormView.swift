@@ -125,8 +125,10 @@ struct ExpenseFormView: View {
         Section {
             TextField("Nome", text: $draft.name)
                 .textInputAutocapitalization(.sentences)
-            TextField("Previsto por mês", value: $draft.estimatedAmount, format: .currency(code: IncomeConstants.currencyCode))
+            TextField("Previsto por mês (opcional)", value: $draft.estimatedAmount, format: .currency(code: IncomeConstants.currencyCode))
                 .keyboardType(.decimalPad)
+        } footer: {
+            Text(ExpenseConstants.spendingFooterNoEstimate)
         }
     }
 

@@ -339,7 +339,7 @@ struct ExpenseDraftTests {
         draft.name = "Mercado"
         draft.dayOfMonth = 15
         draft.addPart()
-        #expect(draft.validationMessage == "Informe um valor maior que zero.")
+        #expect(draft.validationMessage == nil)
         draft.estimatedAmount = 600
         #expect(draft.validationMessage == nil)
 
@@ -484,5 +484,23 @@ struct ExpenseDraftTests {
         #expect(later.isActive)
         #expect(later.dayOfMonth == nil)
         #expect(later.averageFrom == terms.first?.averageFrom)
+    }
+
+    @Test func spendingWithoutEstimateIsValidAndSavesZero() {
+        var draft = ExpenseDraft(today: S.today)
+        draft.kind = .spending
+        draft.name = "Padaria"
+        draft.estimatedAmount = nil
+
+        #expect(draft.validationMessage == nil)
+        #expect(draft.build(today: S.today).1?.estimatedAmount == 0)
+    }
+
+    @Test func billWithoutEstimateStillAsksForAmount() {
+        var draft = ExpenseDraft(today: S.today)
+        draft.name = "Água"
+        draft.estimatedAmount = nil
+
+        #expect(draft.validationMessage == "Informe um valor maior que zero.")
     }
 }

@@ -126,9 +126,9 @@ struct ExpenseFormatTests {
         #expect(ExpenseFormat.tableAmount(S.money("196.4")) == "196,40")
     }
 
-    private func spending(month: YearMonth, spent: Decimal, remaining: Decimal) -> SpendingMonth {
+    private func spending(month: YearMonth, spent: Decimal, remaining: Decimal, expected: Decimal = 600) -> SpendingMonth {
         let expense = Expense(id: UUID(), name: "Abastecimento", startMonth: S.month(2026, 7), kind: .spending)
-        return SpendingMonth(expense: expense, month: month, expected: 600, spent: spent, remaining: remaining, entries: [])
+        return SpendingMonth(expense: expense, month: month, expected: expected, spent: spent, remaining: remaining, entries: [])
     }
 
     @Test func spendingHeaderRuleText() {
@@ -147,5 +147,18 @@ struct ExpenseFormatTests {
         #expect(ExpenseFormat.spendingCaption(spending(month: S.month(2026, 10), spent: 650, remaining: 0), today: S.today) == "R$\u{00A0}50,00 acima do previsto")
         #expect(ExpenseFormat.spendingCaption(spending(month: S.month(2026, 9), spent: 420, remaining: 0), today: S.today) == "Previsto R$\u{00A0}600,00")
         #expect(ExpenseFormat.spendingCaption(spending(month: S.month(2026, 9), spent: 650, remaining: 0), today: S.today) == "R$\u{00A0}50,00 acima do previsto")
+    }
+
+    @Test func spendingWithoutEstimateTexts() {
+        let current = spending(month: S.month(2026, 10), spent: 420, remaining: 0, expected: 0)
+        let past = spending(month: S.month(2026, 9), spent: 420, remaining: 0, expected: 0)
+
+        #expect(!current.isOver)
+        #expect(current.excess == 0)
+        #expect(!current.hasEstimate)
+        #expect(ExpenseFormat.spendingRule(0) == "Gasto do mês · sem valor previsto")
+        #expect(ExpenseFormat.spendingHeaderRule(0) == "Gasto do mês · sem valor previsto")
+        #expect(ExpenseFormat.spendingCaption(current, today: S.today) == "Sem valor previsto")
+        #expect(ExpenseFormat.spendingCaption(past, today: S.today) == "Sem valor previsto")
     }
 }

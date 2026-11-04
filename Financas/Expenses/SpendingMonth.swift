@@ -8,7 +8,8 @@ struct SpendingMonth: Identifiable, Hashable {
     let remaining: Decimal
     let entries: [ExpenseEntry]
 
-    var isOver: Bool { spent > expected }
-    var excess: Decimal { max(spent - expected, 0) }
+    var hasEstimate: Bool { expected > 0 }
+    var isOver: Bool { hasEstimate && spent > expected }
+    var excess: Decimal { hasEstimate ? max(spent - expected, 0) : 0 }
     var id: String { "\(expense.id)-\(month.year)-\(month.month)" }
 }

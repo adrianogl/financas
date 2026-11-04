@@ -12,8 +12,10 @@ struct SpendingRow: View {
                 Text("gasto do mês · \(ExpenseFormat.entryCount(spending.entries.count))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                SpendingProgressBar(spending: spending, height: ExpenseConstants.spendingRowBarHeight)
-                    .padding(.top, 6)
+                if spending.hasEstimate {
+                    SpendingProgressBar(spending: spending, height: ExpenseConstants.spendingRowBarHeight)
+                        .padding(.top, 6)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .trailing, spacing: 3) {
@@ -21,10 +23,12 @@ struct SpendingRow: View {
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(spending.isOver ? Theme.warning : .primary)
-                Text("de \(IncomeFormat.currency(spending.expected))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                if spending.hasEstimate {
+                    Text("de \(IncomeFormat.currency(spending.expected))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
             }
         }
         .padding(.vertical, 6)

@@ -87,7 +87,7 @@ struct ExpenseDraft: Equatable {
             if let partsMessage {
                 return partsMessage
             }
-        } else {
+        } else if kind == .bill {
             guard let estimatedAmount, estimatedAmount > 0 else {
                 return "Informe um valor maior que zero."
             }

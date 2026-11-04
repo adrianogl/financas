@@ -24,4 +24,7 @@ enum ExpenseConstants {
     static let partSameDayTitle = "Mesmo da despesa"
     static let billKindTitle = "Conta com vencimento"
     static let spendingKindTitle = "Gasto do mês"
+    static let spendingNoEstimateRule = "Gasto do mês · sem valor previsto"
+    static let spendingNoEstimateCaption = "Sem valor previsto"
+    static let spendingFooterNoEstimate = "O valor previsto é opcional. Sem ele, o app só soma o que você gastou."
 }
