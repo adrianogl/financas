@@ -7,6 +7,7 @@ struct HomeView: View {
     @Environment(AppNavigation.self) private var navigation
 
     var body: some View {
+        @Bindable var navigation = navigation
         NavigationStack {
             Group {
                 if navigation.mode == .compact {
@@ -17,6 +18,9 @@ struct HomeView: View {
                 }
             }
             .background(AppBackground())
+            .sheet(isPresented: $navigation.isReviewingSuggestions) {
+                SuggestionReviewView(today: incomeStore.today)
+            }
             .toolbar {
                 if !navigation.isSidebarVisible {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -40,6 +44,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 20) {
                 HomeHeader()
                 QuickSpendingButton()
+                SuggestionBanner()
                 MonthPicker(month: $incomeStore.selectedMonth)
                 BalanceChartCard(summary: summary, chartHeight: 96, showsDayScale: false)
                 MonthBalanceCard(

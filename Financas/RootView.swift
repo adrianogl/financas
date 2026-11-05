@@ -6,6 +6,7 @@ struct RootView: View {
     @Environment(IncomeStore.self) private var incomeStore
     @Environment(ExpenseStore.self) private var expenseStore
     @Environment(CardStore.self) private var cardStore
+    @Environment(SuggestionStore.self) private var suggestionStore
     @Environment(AvatarStore.self) private var avatarStore
     @Environment(ReminderScheduler.self) private var reminders
     @Environment(\.scenePhase) private var scenePhase
@@ -44,6 +45,9 @@ struct RootView: View {
             case .active:
                 lockManager.willEnterForeground()
                 Task { await syncReminders() }
+                if lockManager.isUnlocked {
+                    Task { await suggestionStore.refresh() }
+                }
             default:
                 break
             }
@@ -64,9 +68,11 @@ struct RootView: View {
                         async let user: Void = account.refreshUser()
                         async let expenses = expenseStore.refresh()
                         async let cards: Void = cardStore.load()
+                        async let suggestions = suggestionStore.refresh()
                         await incomeStore.refresh()
                         _ = await expenses
                         await cards
+                        _ = await suggestions
                         await syncReminders()
                         await user
                     }

@@ -440,3 +440,85 @@ final class FakeCardService: CardService {
         }
     }
 }
+
+@MainActor
+final class FakeSuggestionService: SuggestionService {
+    var snapshot: SuggestionSnapshot
+    var nextError: IncomeError?
+    var reportCreates = true
+    var confirmIsAlready = false
+    private(set) var calls: [String] = []
+    private(set) var lastMerchantKey: String?
+    private(set) var lastAutoLaunch: Bool??
+
+    init(snapshot: SuggestionSnapshot = .empty) {
+        self.snapshot = snapshot
+    }
+
+    func load(since: Date) async throws(IncomeError) -> SuggestionSnapshot {
+        try respond("load")
+        return snapshot
+    }
+
+    func report(_ purchase: SuggestionPurchase, merchantKey: String, device: SuggestionDevice) async throws(IncomeError) -> SuggestionReport {
+        try respond("report")
+        lastMerchantKey = merchantKey
+        let suggestion = SpendingSuggestion(
+            id: UUID(),
+            merchant: purchase.merchant,
+            merchantKey: merchantKey,
+            card: purchase.card,
+            amount: purchase.amount,
+            occurredAt: purchase.occurredAt,
+            reporterDevices: [device.id],
+            firstDeviceName: device.name,
+            status: .pending
+        )
+        return SuggestionReport(suggestion: suggestion, created: reportCreates)
+    }
+
+    func confirm(id: UUID, expenseID: UUID, spentOn: CalendarDay, autoLaunch: Bool?) async throws(IncomeError) -> SuggestionConfirmation {
+        try respond("confirm")
+        lastAutoLaunch = .some(autoLaunch)
+        var suggestion = try stored(id)
+        if !confirmIsAlready {
+            suggestion.status = .confirmed
+            suggestion.expenseID = expenseID
+            suggestion.entryID = UUID()
+        }
+        return SuggestionConfirmation(suggestion: suggestion, already: confirmIsAlready)
+    }
+
+    func reopen(id: UUID) async throws(IncomeError) -> SpendingSuggestion {
+        try respond("reopen")
+        var suggestion = try stored(id)
+        suggestion.status = .pending
+        suggestion.expenseID = nil
+        suggestion.entryID = nil
+        return suggestion
+    }
+
+    func move(id: UUID, expenseID: UUID) async throws(IncomeError) -> SpendingSuggestion {
+        try respond("move")
+        var suggestion = try stored(id)
+        suggestion.expenseID = expenseID
+        return suggestion
+    }
+
+    func dismiss(id: UUID) async throws(IncomeError) {
+        try respond("dismiss")
+    }
+
+    private func stored(_ id: UUID) throws(IncomeError) -> SpendingSuggestion {
+        guard let suggestion = snapshot.suggestions.first(where: { $0.id == id }) else { throw .unknown }
+        return suggestion
+    }
+
+    private func respond(_ call: String) throws(IncomeError) {
+        calls.append(call)
+        if let error = nextError {
+            nextError = nil
+            throw error
+        }
+    }
+}

@@ -243,6 +243,15 @@ final class ExpenseStore {
         }
     }
 
+    func merge(_ entry: ExpenseEntry) {
+        snapshot.entries.removeAll { $0.id == entry.id }
+        snapshot.entries.append(entry)
+    }
+
+    func forget(entryID: UUID) {
+        snapshot.entries.removeAll { $0.id == entryID }
+    }
+
     private var sortedExpenses: [Expense] {
         snapshot.expenses.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }

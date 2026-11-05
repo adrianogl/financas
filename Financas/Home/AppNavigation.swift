@@ -9,6 +9,7 @@ final class AppNavigation {
         didSet { defaults.set(isSidebarOpen, forKey: NavigationConstants.sidebarOpenKey) }
     }
     var pendingSelection: DetailRoute?
+    var isReviewingSuggestions = false
     private(set) var mode: LayoutMode = .compact
     private var isPortraitSidebarOpen = false
     private var listDetail: [AppTab: ListDetailState] = [:]
@@ -29,9 +30,15 @@ final class AppNavigation {
         pendingSelection = route
     }
 
+    func reviewSuggestions() {
+        section = .home
+        isReviewingSuggestions = true
+    }
+
     func reset() {
         section = .home
         pendingSelection = nil
+        isReviewingSuggestions = false
         listDetail = [:]
     }
 

@@ -20,6 +20,7 @@ struct HomeWideView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: HomeConstants.cardSpacing) {
                 top(arrangement)
+                SuggestionBanner()
                 switch arrangement {
                 case .twoColumns:
                     twoColumns(summary, stats: stats)

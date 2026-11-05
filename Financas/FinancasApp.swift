@@ -9,6 +9,7 @@ struct FinancasApp: App {
     @State private var incomeStore: IncomeStore
     @State private var expenseStore: ExpenseStore
     @State private var cardStore: CardStore
+    @State private var suggestionStore: SuggestionStore
     @State private var avatarStore: AvatarStore
     @State private var reminders: ReminderScheduler
     @State private var navigation: AppNavigation
@@ -26,14 +27,18 @@ struct FinancasApp: App {
         let incomes = IncomeStore(service: SupabaseIncomeService(client: client))
         let expenses = ExpenseStore(service: SupabaseExpenseService(client: client))
         AppDependencyManager.shared.add(dependency: expenses)
+        let suggestions = SuggestionStore(service: SupabaseSuggestionService(client: client), expenses: expenses)
+        AppDependencyManager.shared.add(dependency: suggestions)
         let cards = CardStore(service: SupabaseCardService(client: client))
         let scheduler = ReminderScheduler(center: SystemReminderCenter())
         let navigation = AppNavigation()
+        AppDependencyManager.shared.add(dependency: navigation)
 
         _lockManager = State(initialValue: lock)
         _incomeStore = State(initialValue: incomes)
         _expenseStore = State(initialValue: expenses)
         _cardStore = State(initialValue: cards)
+        _suggestionStore = State(initialValue: suggestions)
         _reminders = State(initialValue: scheduler)
         _navigation = State(initialValue: navigation)
         let account = AccountManager(
@@ -44,6 +49,7 @@ struct FinancasApp: App {
                 lock.resetForSignOut()
                 incomes.reset()
                 expenses.reset()
+                suggestions.reset()
                 cards.reset()
                 navigation.reset()
                 Task { await scheduler.reset() }
@@ -66,6 +72,7 @@ struct FinancasApp: App {
                 .environment(incomeStore)
                 .environment(expenseStore)
                 .environment(cardStore)
+                .environment(suggestionStore)
                 .environment(avatarStore)
                 .environment(reminders)
                 .environment(appDelegate.router)

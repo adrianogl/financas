@@ -11,5 +11,13 @@ struct FinancasShortcuts: AppShortcutsProvider {
             shortTitle: "Lançar gasto",
             systemImageName: "plus.circle"
         )
+        AppShortcut(
+            intent: OpenSuggestionReviewIntent(),
+            phrases: [
+                "Revisar compras no \(.applicationName)",
+            ],
+            shortTitle: "Revisar compras",
+            systemImageName: "creditcard"
+        )
     }
 }
